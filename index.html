@@ -42,14 +42,16 @@
         @keyframes scan-line { 0% { top: 20%; } 100% { top: 80%; } }
         input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         .dropdown-content { max-height: 250px; overflow-y: auto; }
-        .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #cbd5e1; transition: all 0.2s; }
+        
+        .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #cbd5e1; transition: all 0.2s; }
         .pin-dot.active { background-color: #3b82f6; border-color: #3b82f6; transform: scale(1.2); }
         .num-btn { 
-            width: 70px; height: 70px; border-radius: 50%; 
+            width: 72px; height: 72px; border-radius: 50%; 
             display: flex; align-items: center; justify-content: center;
             font-size: 1.5rem; font-weight: 800; background: white;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
             transition: all 0.1s; cursor: pointer;
+            user-select: none;
         }
         .num-btn:active { background: #f1f5f9; transform: scale(0.9); }
     </style>
@@ -58,7 +60,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
         
         // --- CONFIGURATION ---
         const API_URL = "https://script.google.com/macros/s/AKfycbzIBHv2yvSEOnjl2rTEMYJwNPt22rh7-C3ZOjUPgby3zJoWlyaI4QcRSn5QWHiO7i2Ctw/exec"; 
@@ -67,10 +69,12 @@
         // --- HELPER FUNCTIONS ---
         const formatTimeShort = (d) => d.toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
         const formatDate = (d) => d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        
+        const formatDisplayTime = (timeStr) => {
+            if (!timeStr || timeStr === '-' || timeStr === 'undefined' || timeStr === '') return '-';
+            return String(timeStr).substring(0, 5);
+        };
         const parseDateString = (str) => {
             if (!str) return null;
-            if (typeof str === 'object' && str instanceof Date) return str;
             if (typeof str === 'string' && str.includes('/')) {
                 const [d, m, y] = str.split('/').map(Number);
                 return new Date(y, m - 1, d);
@@ -78,15 +82,9 @@
             const d = new Date(str);
             return isNaN(d.getTime()) ? null : d;
         };
-
         const isSameDay = (d1, d2) => {
             if (!d1 || !d2) return false;
             return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-        };
-
-        const formatDisplayTime = (timeStr) => {
-            if (!timeStr || timeStr === '-' || timeStr === 'undefined' || timeStr === '') return '-';
-            return String(timeStr).substring(0, 5);
         };
 
         const Icon = ({ name, size = 24, className = "" }) => {
@@ -115,7 +113,7 @@
             const [modelsLoaded, setModelsLoaded] = useState(false);
             const [faceMatcher, setFaceMatcher] = useState(null);
             const [scanInstruction, setScanInstruction] = useState("กำลังเตรียมพร้อมระบบ...");
-            const [livenessStage, setLivenessStage] = useState(0); // 0: detect, 1: down, 2: up
+            const [livenessStage, setLivenessStage] = useState(0); 
             
             const [users, setUsers] = useState([]);
             const [attendance, setAttendance] = useState([]);
@@ -140,6 +138,7 @@
 
             const [regStep, setRegStep] = useState(1);
             const [capturedImages, setCapturedImages] = useState({ front: null, left: null, right: null });
+            const [regPinState, setRegPinState] = useState('entering'); // entering, confirming
             const [regPin, setRegPin] = useState("");
             const [regPinConfirm, setRegPinConfirm] = useState("");
 
@@ -166,7 +165,6 @@
                 return newItem;
             };
 
-            // --- AI FACE TRAINING LOGIC ---
             const trainFaceMatcher = async (userData) => {
                 if (!userData || userData.length === 0) return null;
                 setScanInstruction("กำลังจดจำใบหน้าจากฐานข้อมูล...");
@@ -176,7 +174,8 @@
                         try {
                             const facesObj = JSON.parse(user.faces);
                             const descriptors = [];
-                            for (let angle of ['front', 'left', 'right']) {
+                            const angles = ['front', 'left', 'right'];
+                            for (let angle of angles) {
                                 if (!facesObj[angle]) continue;
                                 const img = await faceapi.fetchImage(facesObj[angle]);
                                 const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
@@ -186,7 +185,7 @@
                         } catch (e) { return null; }
                     }));
                     const valid = labeledDescriptors.filter(x => x);
-                    setScanInstruction("สแกนใบหน้า: ก้มและเงยหน้าเพื่อ Login");
+                    setScanInstruction("สแกนใบหน้า: กรุณาก้มและเงยหน้าเพื่อ Login");
                     return valid.length > 0 ? new faceapi.FaceMatcher(valid, 0.55) : null;
                 } catch (e) { return null; }
             };
@@ -202,7 +201,13 @@
                     
                     const normUsers = (u.data || []).map(item => {
                         const n = normalizeKeys(item);
-                        return { nickname: n.nickname || n.ชื่อเล่น || '', code: String(n.code || n.รหัส || '').trim(), pin: String(n.pin || '').trim(), faces: n.faces, ...n };
+                        return { 
+                            nickname: n.nickname || n.ชื่อเล่น || '', 
+                            code: String(n.code || n.รหัส || '').trim(), 
+                            pin: String(n.pin || '').trim(), 
+                            faces: n.faces, 
+                            ...n 
+                        };
                     }).filter(d => d.nickname || d.code);
 
                     setUsers(normUsers);
@@ -219,30 +224,6 @@
                 } catch (e) { showToast("โหลดข้อมูลล้มเหลว", "error"); }
                 setLoading(false);
             };
-
-            useEffect(() => {
-                const loadModels = async () => {
-                    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-                    try {
-                        await Promise.all([
-                            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                        ]);
-                        setModelsLoaded(true);
-                        setScanInstruction("กรุณาวางใบหน้าในกรอบ");
-                    } catch (e) { setScanInstruction("โหลดโมเดลล้มเหลว"); }
-                };
-                loadModels();
-                refreshAllData();
-                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-                const watchId = navigator.geolocation.watchPosition(
-                    (p) => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude, enabled: true }),
-                    () => setLocation(prev => ({ ...prev, enabled: false })),
-                    { enableHighAccuracy: true }
-                );
-                return () => { clearInterval(timer); navigator.geolocation.clearWatch(watchId); stopCamera(); };
-            }, []);
 
             const startCamera = async () => {
                 try {
@@ -302,6 +283,29 @@
             };
 
             useEffect(() => {
+                const loadModels = async () => {
+                    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+                    try {
+                        await Promise.all([
+                            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                        ]);
+                        setModelsLoaded(true);
+                    } catch (e) { setScanInstruction("โหลดโมเดลล้มเหลว"); }
+                };
+                loadModels();
+                refreshAllData();
+                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                const watchId = navigator.geolocation.watchPosition(
+                    (p) => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude, enabled: true }),
+                    () => setLocation(prev => ({ ...prev, enabled: false })),
+                    { enableHighAccuracy: true }
+                );
+                return () => { clearInterval(timer); navigator.geolocation.clearWatch(watchId); stopCamera(); };
+            }, []);
+
+            useEffect(() => {
                 if ((view === 'home' && !currentUser && modelsLoaded) || (view === 'register' && regStep === 2)) {
                     startCamera();
                     if (view === 'home' && faceMatcher) {
@@ -344,37 +348,69 @@
                 setLoading(false);
             };
 
-            const handlePinSubmit = (val) => {
-                const found = users.find(u => u.code.trim() === selectedUserCode.trim() && u.pin.trim() === val.trim());
-                if (found) {
-                    setCurrentUser(found);
-                    setView('home');
-                    setPinInput("");
-                    showToast(`ยินดีต้อนรับคุณ ${found.nickname}`, "success");
-                } else {
-                    showToast("รหัส PIN ไม่ถูกต้อง", "error");
-                    setPinInput("");
+            const handlePinKeyPress = (num) => {
+                if (view === 'pin_login') {
+                    if (pinInput.length < 6) {
+                        const newVal = pinInput + num;
+                        setPinInput(newVal);
+                        if (newVal.length === 6) {
+                            const found = users.find(u => u.code.trim() === selectedUserCode.trim() && u.pin.trim() === newVal.trim());
+                            if (found) {
+                                setCurrentUser(found);
+                                setView('home');
+                                setPinInput("");
+                                showToast(`ยินดีต้อนรับคุณ ${found.nickname}`, "success");
+                            } else {
+                                showToast("รหัส PIN ไม่ถูกต้อง", "error");
+                                setPinInput("");
+                            }
+                        }
+                    }
+                } else if (view === 'register' && regStep === 3) {
+                    if (regPinState === 'entering') {
+                        if (regPin.length < 6) {
+                            const newVal = regPin + num;
+                            setRegPin(newVal);
+                            if (newVal.length === 6) {
+                                const isPinTaken = users.some(u => u.pin.trim() === newVal.trim() && u.code !== selectedUserCode);
+                                if (isPinTaken) {
+                                    showToast("รหัส PIN นี้ถูกใช้งานแล้ว กรุณาตั้งรหัสอื่น", "error");
+                                    setRegPin("");
+                                } else {
+                                    setRegPinState('confirming');
+                                }
+                            }
+                        }
+                    } else {
+                        if (regPinConfirm.length < 6) {
+                            const newVal = regPinConfirm + num;
+                            setRegPinConfirm(newVal);
+                            if (newVal.length === 6) {
+                                if (newVal === regPin) {
+                                    handleRegisterSubmit(newVal);
+                                } else {
+                                    showToast("รหัส PIN ไม่ตรงกัน กรุณาเริ่มใหม่", "error");
+                                    setRegPin("");
+                                    setRegPinConfirm("");
+                                    setRegPinState('entering');
+                                }
+                            }
+                        }
+                    }
                 }
             };
 
-            const handleRegisterSubmit = async () => {
-                if (!selectedUserCode) return showToast("กรุณาเลือกรายชื่อ", "error");
-                if (regPin !== regPinConfirm) return showToast("PIN ยืนยันไม่ตรงกัน", "error");
-                if (regPin.length !== 6) return showToast("PIN ต้องมีความยาว 6 หลัก", "error");
-                
-                const isPinTaken = users.some(u => u.pin.trim() === regPin.trim() && u.code !== selectedUserCode);
-                if (isPinTaken) return showToast("รหัส PIN นี้ถูกใช้งานแล้ว กรุณาตั้งรหัสอื่น", "error");
-
+            const handleRegisterSubmit = async (finalPin) => {
                 setLoading(true);
                 const userObj = users.find(u => u.code === selectedUserCode);
                 const payload = {
                     action: 'register', nickname: userObj?.nickname, code: selectedUserCode, 
-                    pin: regPin, faces: capturedImages
+                    pin: finalPin, faces: capturedImages
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                    showToast("อัปเดตข้อมูลพนักงานสำเร็จ", "success");
-                    setRegStep(1); setSelectedUserCode(""); setCapturedImages({}); setRegPin(""); setRegPinConfirm("");
+                    showToast("ลงทะเบียนสำเร็จ", "success");
+                    setRegStep(1); setSelectedUserCode(""); setCapturedImages({}); setRegPin(""); setRegPinConfirm(""); setRegPinState('entering');
                     setView('home'); refreshAllData();
                 } catch (e) { showToast("ลงทะเบียนไม่สำเร็จ", "error"); }
                 setLoading(false);
@@ -384,6 +420,7 @@
                 setSelectedUserCodes(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
             };
 
+            // --- COMPUTED DATA ---
             const processedReport = useMemo(() => {
                 const targetDate = new Date(filterDate);
                 return users.map(user => {
@@ -420,6 +457,18 @@
                 setLoading(false);
             };
 
+            // PIN PAD Component helper
+            const PinPad = ({ onKey, onClear, onBack }) => (
+                <div className="grid grid-cols-3 gap-6 px-10">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                        <div key={num} onClick={() => onKey(num.toString())} className="num-btn">{num}</div>
+                    ))}
+                    <div onClick={onClear} className="num-btn text-red-500 hover:bg-red-50"><Icon name="x" size={24}/></div>
+                    <div onClick={() => onKey("0")} className="num-btn">0</div>
+                    <div onClick={onBack} className="num-btn text-slate-400 hover:bg-slate-50"><Icon name="delete" size={24}/></div>
+                </div>
+            );
+
             return (
                 <div className="min-h-screen flex flex-col text-slate-800">
                     {message && <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-full shadow-lg text-white text-sm font-medium transition-all animate-in slide-in-from-top-4 duration-300 ${message.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>{message.text}</div>}
@@ -437,10 +486,10 @@
                             {isAdmin ? (
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => setView('admin_settings')} className="p-2 rounded-xl bg-blue-50 text-blue-600 transition-colors"><Icon name="settings" size={20} /></button>
-                                    <button onClick={() => { setIsAdmin(false); setCurrentUser(null); setIsScanning(true); setView('home'); }} className="text-xs bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold hover:bg-red-100 transition-all">ออกระบบ</button>
+                                    <button onClick={() => { setIsAdmin(false); setCurrentUser(null); setIsScanning(true); setView('home'); }} className="text-xs bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold">ออกระบบ</button>
                                 </div>
                             ) : (
-                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-all">Admin Login</button>
+                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200">Admin Login</button>
                             )}
                         </div>
                     </header>
@@ -455,7 +504,7 @@
                                         <h2 className="text-7xl font-black tabular-nums tracking-tighter mb-4">{currentTime.toLocaleTimeString('th-TH', { hour12: false })}</h2>
                                         <div className={`py-2 px-6 rounded-full inline-flex items-center gap-2 text-xs font-black transition-all ${currentUser && !isAdmin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-600/20 text-blue-400'}`}>
                                             <Icon name={currentUser && !isAdmin ? "user-check" : "scan"} size={16} /> 
-                                            {currentUser && !isAdmin ? `คุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
+                                            {currentUser && !isAdmin ? `สวัสดีคุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
                                         </div>
                                     </div>
                                     {!currentUser && !isAdmin ? (
@@ -465,15 +514,15 @@
                                                 {!modelsLoaded && <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold animate-pulse uppercase tracking-[0.2em]">Loading AI...</div>}
                                             </div>
                                             <div className="flex gap-3 px-4">
-                                                <button onClick={() => { setView('pin_login'); setIsScanning(false); stopCamera(); }} className="flex-1 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm text-xs font-bold text-slate-500 flex items-center justify-center gap-2 transition-colors hover:bg-slate-50">
-                                                    <Icon name="key-round" size={16} /> เข้าใช้งานด้วยรหัส PIN (แสงไม่พอ)
+                                                <button onClick={() => { setView('pin_login'); setPinInput(""); setIsScanning(false); stopCamera(); }} className="flex-1 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm text-xs font-bold text-slate-500 flex items-center justify-center gap-2 transition-colors hover:bg-slate-50">
+                                                    <Icon name="key-round" size={16} /> Login ด้วยรหัส PIN (แสงไม่พอ)
                                                 </button>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="bg-emerald-50 rounded-[2.5rem] p-10 text-center space-y-6 border-2 border-emerald-100 animate-in zoom-in-95 duration-500 shadow-xl">
                                             <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-200"><Icon name="check" size={40} strokeWidth={3} /></div>
-                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'สแกนสำเร็จ'}</h3>
+                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดผู้ดูแลระบบ' : 'Login สำเร็จ'}</h3>
                                             {!isAdmin && <button onClick={() => { setCurrentUser(null); setLivenessStage(0); setIsScanning(true); }} className="text-xs font-bold text-emerald-600 underline">Logout / สแกนใหม่</button>}
                                         </div>
                                     )}
@@ -489,7 +538,7 @@
                                                     <button onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)} className="w-full p-4 bg-slate-50 border-0 rounded-2xl font-black text-left flex justify-between items-center shadow-inner"><span className="truncate">{selectedUserCodes.length > 0 ? `เลือก ${selectedUserCodes.length} คน` : "-- เลือกรายชื่อพนักงาน --"}</span><Icon name="chevron-down" size={20} /></button>
                                                     {isUserDropdownOpen && (
                                                         <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[80] p-2 animate-in zoom-in-95">
-                                                            <div className="dropdown-content scrollbar-hide">
+                                                            <div className="dropdown-content">
                                                                 {users.map((u, i) => (
                                                                     <label key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
                                                                         <input type="checkbox" checked={selectedUserCodes.includes(u.code)} onChange={() => toggleUserSelection(u.code)} className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
@@ -545,13 +594,13 @@
                         )}
 
                         {view === 'pin_login' && (
-                            <div className="max-w-md mx-auto py-10 space-y-8 animate-in slide-in-from-bottom-8 duration-500">
+                            <div className="max-w-md mx-auto py-10 space-y-10 animate-in slide-in-from-bottom-8 duration-500">
                                 <div className="text-center space-y-4 px-6">
                                     <div className="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-sm border border-slate-100 text-amber-500">
                                         <Icon name="key-round" size={36} />
                                     </div>
-                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">Login ด้วย PIN</h2>
-                                    <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อของคุณและระบุรหัส PIN 6 หลัก</p>
+                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">เข้าใช้งานด้วย PIN</h2>
+                                    <p className="text-slate-400 font-medium italic text-center">เลือกชื่อของคุณและระบุ PIN 6 หลัก</p>
                                 </div>
                                 <div className="px-10">
                                     <label className="text-[11px] font-black text-slate-400 ml-2 uppercase">เลือกรายชื่อของคุณ</label>
@@ -570,20 +619,11 @@
                                                 <div key={i} className={`pin-dot ${pinInput.length > i ? 'active' : ''}`}></div>
                                             ))}
                                         </div>
-                                        <div className="grid grid-cols-3 gap-6 px-10">
-                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                                                <div key={num} onClick={() => {
-                                                    if (pinInput.length < 6) {
-                                                        const next = pinInput + num;
-                                                        setPinInput(next);
-                                                        if (next.length === 6) handlePinSubmit(next);
-                                                    }
-                                                }} className="num-btn">{num}</div>
-                                            ))}
-                                            <div onClick={() => setPinInput("")} className="num-btn text-red-500 hover:bg-red-50 transition-colors"><Icon name="x" size={24}/></div>
-                                            <div onClick={() => { if (pinInput.length < 6) { const n = pinInput + "0"; setPinInput(n); if (n.length === 6) handlePinSubmit(n); } }} className="num-btn">0</div>
-                                            <div onClick={() => setPinInput(p => p.slice(0, -1))} className="num-btn text-slate-400 hover:bg-slate-50 transition-colors"><Icon name="delete" size={24}/></div>
-                                        </div>
+                                        <PinPad 
+                                            onKey={handlePinKeyPress} 
+                                            onClear={() => setPinInput("")} 
+                                            onBack={() => setPinInput(p => p.slice(0, -1))} 
+                                        />
                                     </div>
                                 )}
                                 <button onClick={() => { setView('home'); setPinInput(""); setSelectedUserCode(""); setIsScanning(true); }} className="w-full text-slate-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:text-slate-600 transition-colors">
@@ -601,7 +641,7 @@
                                     {regStep === 1 && (
                                         <div className="space-y-6 text-left animate-in fade-in slide-in-from-bottom-2 duration-300">
                                             <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนใบหน้า</h2>
-                                            <p className="text-sm text-slate-400 font-medium text-center italic">เลือกรายชื่อพนักงานเพื่ออัปเดตข้อมูลใบหน้า 3 มุม</p>
+                                            <p className="text-sm text-slate-400 font-medium text-center italic">เลือกชื่อพนักงานเพื่ออัปเดตข้อมูลใบหน้าและ PIN</p>
                                             <select value={selectedUserCode} onChange={(e) => setSelectedUserCode(e.target.value)} className="w-full p-5 bg-slate-50 border-0 rounded-2xl font-black appearance-none text-slate-700 shadow-inner outline-none focus:ring-2 ring-blue-500/20">
                                                 <option value="">-- เลือกรายชื่อพนักงาน --</option>
                                                 {users.map((u, i) => <option key={i} value={u.code}>{u.nickname} ({u.code})</option>)}
@@ -631,15 +671,27 @@
                                     )}
                                     {regStep === 3 && (
                                         <div className="space-y-6 py-4 animate-in fade-in duration-300">
-                                            <h3 className="text-3xl font-black text-slate-900 tracking-tight text-center">ตั้งรหัส PIN 6 หลัก</h3>
-                                            <div className="space-y-4 max-w-xs mx-auto text-center">
-                                                <div className="flex justify-center gap-3 mb-6">
-                                                    {[0,1,2,3,4,5].map(i => <div key={i} className={`w-4 h-4 rounded-full border-2 border-blue-100 ${regPin.length > i ? 'bg-blue-600' : ''}`}></div>)}
+                                            <h3 className="text-2xl font-black text-slate-900 tracking-tight text-center">
+                                                {regPinState === 'entering' ? 'ตั้งรหัส PIN 6 หลัก' : 'ยืนยันรหัส PIN 6 หลัก'}
+                                            </h3>
+                                            <p className="text-sm text-center text-slate-400 font-bold uppercase tracking-widest italic">
+                                                {regPinState === 'entering' ? 'กรุณาตั้งรหัสที่ไม่ซ้ำกับคนอื่น' : 'กรุณาระบุรหัสเดิมอีกครั้ง'}
+                                            </p>
+                                            <div className="space-y-8 max-w-xs mx-auto text-center">
+                                                <div className="flex justify-center gap-3">
+                                                    {[0,1,2,3,4,5].map(i => (
+                                                        <div key={i} className={`pin-dot ${ (regPinState === 'entering' ? regPin.length : regPinConfirm.length) > i ? 'active' : ''}`}></div>
+                                                    ))}
                                                 </div>
-                                                <input type="password" maxLength="6" placeholder="ตั้งรหัสใหม่" className="w-full p-4 bg-slate-50 border-0 rounded-2xl text-center text-3xl font-black tracking-[0.5em] shadow-inner outline-none focus:ring-2 ring-blue-500/20" value={regPin} onChange={(e) => setRegPin(e.target.value.replace(/[^0-9]/g, ''))} />
-                                                <input type="password" maxLength="6" placeholder="ยืนยันรหัส" className="w-full p-4 bg-slate-50 border-0 rounded-2xl text-center text-3xl font-black tracking-[0.5em] shadow-inner outline-none focus:ring-2 ring-blue-500/20" value={regPinConfirm} onChange={(e) => setRegPinConfirm(e.target.value.replace(/[^0-9]/g, ''))} />
+                                                <PinPad 
+                                                    onKey={handlePinKeyPress} 
+                                                    onClear={() => { regPinState === 'entering' ? setRegPin("") : setRegPinConfirm("") }} 
+                                                    onBack={() => { regPinState === 'entering' ? setRegPin(p => p.slice(0, -1)) : setRegPinConfirm(p => p.slice(0, -1)) }} 
+                                                />
                                             </div>
-                                            <div className="flex gap-3 pt-4"><button onClick={() => setRegStep(2)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm transition-colors hover:bg-slate-200">กลับ</button><button disabled={regPin.length !== 6 || regPin !== regPinConfirm} onClick={handleRegisterSubmit} className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl transition-all">ลงทะเบียนสำเร็จ</button></div>
+                                            <div className="flex gap-3 pt-4">
+                                                <button onClick={() => { setRegStep(2); setRegPin(""); setRegPinConfirm(""); setRegPinState('entering'); }} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm transition-colors hover:bg-slate-200">กลับ</button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -762,7 +814,7 @@
                         <button onClick={refreshAllData} className="flex flex-col items-center gap-1.5 text-slate-400 flex-1 hover:text-blue-600 transition-colors"><Icon name="refresh-cw" size={26} /><span className="text-[10px] font-black uppercase tracking-[0.1em]">รีเฟรช</span></button>
                     </nav>
 
-                    <footer className="fixed bottom-2 w-full text-center pointer-events-none z-[60] px-4"><p className="text-[8px] text-slate-300 font-black tracking-[0.5em] uppercase opacity-50 truncate">© 2026 ฝ่ายกำกับรถพาเหรด | PARADE VEHICLE CONTROL</p></footer>
+                    <footer className="fixed bottom-2 w-full text-center pointer-events-none z-[60] px-4"><p className="text-[8px] text-slate-300 font-black tracking-[0.3em] uppercase opacity-50 truncate">© 2026 ฝ่ายกำกับรถพาเหรด | PARADE VEHICLE CONTROL</p></footer>
                 </div>
             );
         }
