@@ -118,7 +118,7 @@
             const [modelsLoaded, setModelsLoaded] = useState(false);
             const [faceMatcher, setFaceMatcher] = useState(null);
             const [scanInstruction, setScanInstruction] = useState("กำลังเตรียมพร้อมระบบ...");
-            const [livenessStage, setLivenessStage] = useState(0); // 0: detect, 1: down, 2: nod/up confirm
+            const [livenessStage, setLivenessStage] = useState(0); 
             
             // Data States
             const [users, setUsers] = useState([]);
@@ -149,7 +149,7 @@
             const [regPin, setRegPin] = useState("");
             const [regPinConfirm, setRegPinConfirm] = useState("");
 
-            // Dashboard Filter
+            // Filter States
             const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
             const [filterStatuses, setFilterStatuses] = useState(['มา', 'ลา', 'ลาครึ่งวัน', 'ไม่ลงบันทึก']);
             const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -173,10 +173,10 @@
                 return newItem;
             };
 
-            // --- AI FACE TRAINING ---
+            // --- AI FACE TRAINING LOGIC ---
             const trainFaceMatcher = async (userData) => {
                 if (!userData || userData.length === 0) return null;
-                setScanInstruction("กำลังจดจำใบหน้าพนักงาน...");
+                setScanInstruction("กำลังจดจำใบหน้าจากฐานข้อมูล...");
                 try {
                     const labeledDescriptors = await Promise.all(userData.map(async (user) => {
                         if (!user.faces) return null;
@@ -193,7 +193,7 @@
                         } catch (e) { return null; }
                     }));
                     const valid = labeledDescriptors.filter(x => x);
-                    setScanInstruction("พร้อมสแกน: กรุณาก้มและเงยหน้าเพื่อยืนยัน");
+                    setScanInstruction("สแกนใบหน้า: กรุณาก้มและเงยหน้าเพื่อ Login");
                     return valid.length > 0 ? new faceapi.FaceMatcher(valid, 0.45) : null;
                 } catch (e) { return null; }
             };
@@ -246,7 +246,7 @@
                         videoRef.current.srcObject = streamRef.current;
                     }
                 } catch (err) { 
-                    showToast("ไม่สามารถเปิดกล้องได้", "error"); 
+                    showToast("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบสิทธิ์", "error"); 
                 }
             };
 
@@ -264,9 +264,8 @@
                     if (detections) {
                         const bestMatch = faceMatcher.findBestMatch(detections.descriptor);
                         if (bestMatch.label !== 'unknown') {
-                            const matchedUser = users.find(u => u.code === bestMatch.label);
+                            const matchedUser = users.find(u => String(u.code) === String(bestMatch.label));
                             if (matchedUser) {
-                                // Liveness movement logic
                                 const nose = detections.landmarks.getNose()[3];
                                 const chin = detections.landmarks.getJawOutline()[8];
                                 const dist = chin.y - nose.y;
@@ -357,7 +356,6 @@
             };
 
             const handlePinSubmit = (val) => {
-                // FIXED PIN MATCHING LOGIC - Ensure everything is string before comparison
                 const found = users.find(u => String(u.code).trim() === String(selectedUserCode).trim() && String(u.pin).trim() === String(val).trim());
                 if (found) {
                     setCurrentUser(found);
@@ -383,7 +381,6 @@
                             const newVal = regPin + num;
                             setRegPin(newVal);
                             if (newVal.length === 6) {
-                                // Check unique pin
                                 const isPinTaken = users.some(u => String(u.pin || '').trim() === String(newVal).trim() && String(u.code) !== String(selectedUserCode));
                                 if (isPinTaken) {
                                     showToast("รหัส PIN นี้ถูกใช้งานแล้ว กรุณาตั้งรหัสอื่น", "error");
@@ -401,7 +398,7 @@
                                 if (newVal === regPin) {
                                     submitRegistration(newVal);
                                 } else {
-                                    showToast("รหัส PIN ไม่ตรงกัน กรุณาเริ่มใหม่", "error");
+                                    showToast("รหัส PIN ไม่ตรงกัน กรุณาลองใหม่", "error");
                                     setRegPin(""); setRegPinConfirm(""); setRegPinState('entering');
                                 }
                             }
@@ -419,7 +416,7 @@
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                    showToast("ลงทะเบียนและอัปเดตใบหน้าสำเร็จ", "success");
+                    showToast("ลงทะเบียนและบันทึกข้อมูลใบหน้าเรียบร้อย", "success");
                     setRegStep(1); setSelectedUserCode(""); setCapturedImages({}); setRegPin(""); setRegPinConfirm(""); setRegPinState('entering');
                     setView('home'); refreshAllData();
                 } catch (e) { showToast("ลงทะเบียนไม่สำเร็จ", "error"); }
@@ -435,13 +432,13 @@
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                         <div key={num} onClick={() => onKey(num.toString())} className="num-btn">{num}</div>
                     ))}
-                    <div onClick={onClear} className="num-btn text-red-500 hover:bg-red-50"><Icon name="x" size={24}/></div>
+                    <div onClick={onClear} className="num-btn text-red-500 hover:bg-red-50 transition-colors"><Icon name="x" size={24}/></div>
                     <div onClick={() => onKey("0")} className="num-btn">0</div>
-                    <div onClick={onBack} className="num-btn text-slate-400 hover:bg-slate-50"><Icon name="delete" size={24}/></div>
+                    <div onClick={onBack} className="num-btn text-slate-400 hover:bg-slate-50 transition-colors"><Icon name="delete" size={24}/></div>
                 </div>
             );
 
-            // --- COMPUTED DATA ---
+            // --- DASHBOARD DATA & STATS ---
             const processedReport = useMemo(() => {
                 const targetDate = new Date(filterDate);
                 return users.map(user => {
@@ -487,7 +484,7 @@
                         <div className="flex items-center gap-3">
                             <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-2xl text-white shadow-lg"><Icon name="shield-check" size={24} /></div>
                             <div>
-                                <h1 className="font-bold text-slate-900 leading-tight tracking-tight">PFL Attendance</h1>
+                                <h1 className="font-bold text-slate-900 leading-tight">PFL Attendance</h1>
                                 <p className={`text-[10px] font-black tracking-widest uppercase ${isAdmin ? 'text-amber-500' : 'text-slate-400'}`}>{isAdmin ? 'Administrator Mode' : 'ฝ่ายกำกับรถพาเหรด'}</p>
                             </div>
                         </div>
@@ -498,7 +495,7 @@
                                     <button onClick={() => { setIsAdmin(false); setCurrentUser(null); setIsScanning(true); setView('home'); }} className="text-xs bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold">ออกระบบ</button>
                                 </div>
                             ) : (
-                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-all">Admin Login</button>
+                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200">Admin Login</button>
                             )}
                         </div>
                     </header>
@@ -513,7 +510,7 @@
                                         <h2 className="text-7xl font-black tabular-nums tracking-tighter mb-4">{currentTime.toLocaleTimeString('th-TH', { hour12: false })}</h2>
                                         <div className={`py-2 px-6 rounded-full inline-flex items-center gap-2 text-xs font-black transition-all ${currentUser && !isAdmin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-600/20 text-blue-400'}`}>
                                             <Icon name={currentUser && !isAdmin ? "user-check" : "scan"} size={16} /> 
-                                            {currentUser && !isAdmin ? `คุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
+                                            {currentUser && !isAdmin ? `คุณคือคุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
                                         </div>
                                     </div>
                                     {!currentUser && !isAdmin ? (
@@ -531,7 +528,7 @@
                                     ) : (
                                         <div className="bg-emerald-50 rounded-[2.5rem] p-10 text-center space-y-6 border-2 border-emerald-100 animate-in zoom-in-95 duration-500 shadow-xl">
                                             <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-200"><Icon name="check" size={40} strokeWidth={3} /></div>
-                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'เข้าใช้งานสำเร็จ'}</h3>
+                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'เข้าใช้สำเร็จ'}</h3>
                                             {!isAdmin && <button onClick={() => { setCurrentUser(null); setLivenessStage(0); setIsScanning(true); }} className="text-xs font-bold text-emerald-600 underline">Logout / สแกนใหม่</button>}
                                         </div>
                                     )}
@@ -639,8 +636,8 @@
                                     <div className="flex items-center justify-center gap-2 px-10">{[1, 2, 3].map(s => <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${regStep >= s ? 'bg-blue-600 shadow-md shadow-blue-100' : 'bg-slate-100'}`}></div>)}</div>
                                     {regStep === 1 && (
                                         <div className="space-y-6 text-left animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนใบหน้า</h2>
-                                            <p className="text-sm text-slate-400 font-medium text-center italic">เลือกชื่อพนักงานเพื่ออัปเดตข้อมูลใบหน้าและ PIN</p>
+                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนพนักงาน</h2>
+                                            <p className="text-sm text-slate-400 font-medium text-center italic">เลือกชื่อพนักงานเพื่อบันทึกใบหน้าและ PIN</p>
                                             <select value={selectedUserCode} onChange={(e) => setSelectedUserCode(e.target.value)} className="w-full p-5 bg-slate-50 border-0 rounded-2xl font-black appearance-none text-slate-700 shadow-inner outline-none focus:ring-2 ring-blue-500/20">
                                                 <option value="">-- เลือกรายชื่อพนักงาน --</option>
                                                 {users.map((u, i) => <option key={i} value={u.code}>{u.nickname} ({u.code})</option>)}
