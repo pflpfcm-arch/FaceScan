@@ -108,6 +108,7 @@
             return <span ref={iconRef} className="inline-flex items-center justify-center leading-none"></span>;
         };
 
+        // --- CONFIGURATION ---
         const API_URL = "https://script.google.com/macros/s/AKfycbzIBHv2yvSEOnjl2rTEMYJwNPt22rh7-C3ZOjUPgby3zJoWlyaI4QcRSn5QWHiO7i2Ctw/exec"; 
         const ADMIN_PASSWORD = "pflpfcm";
 
@@ -159,7 +160,7 @@
 
             const showToast = (msg, type = 'info') => {
                 setMessage({ text: msg, type });
-                setTimeout(() => setMessage(null), 3000);
+                setTimeout(() => setMessage(null), 3500);
             };
 
             const normalizeKeys = (item) => {
@@ -180,7 +181,6 @@
                         try {
                             const facesObj = JSON.parse(user.faces);
                             const descriptors = [];
-                            // Load from front, left, right images
                             const angles = ['front', 'left', 'right'];
                             for (let angle of angles) {
                                 if (!facesObj[angle]) continue;
@@ -291,18 +291,22 @@
                                 const chin = detections.landmarks.getJawOutline()[8];
                                 const dist = chin.y - nose.y;
 
-                                if (dist > 80) { // Look up gesture to confirm
-                                    setIdentifiedUser(matchedUser);
-                                    setView('pin_auth');
+                                if (dist > 80) { // Look up gesture confirmed
+                                    setCurrentUser(matchedUser);
                                     setIsScanning(false);
                                     stopCamera();
+                                    showToast(`สแกนสำเร็จ: สวัสดีคุณ ${matchedUser.nickname}`, "success");
                                 } else if (dist < 45) {
-                                    setScanInstruction(`สวัสดีคุณ ${matchedUser.nickname}: เงยหน้าเพื่อเข้าสู่หน้า Login`);
+                                    setScanInstruction(`สวัสดีคุณ ${matchedUser.nickname}: เงยหน้าเพื่อยืนยันตัวตน`);
                                 } else {
-                                    setScanInstruction(`คุณ ${matchedUser.nickname}? ก้มและเงยหน้าเพื่อยืนยัน`);
+                                    setScanInstruction(`พบคุณ ${matchedUser.nickname}? ก้มและเงยหน้าเพื่อเข้าสู่ระบบ`);
                                 }
                             }
-                        } else { setScanInstruction("ไม่พบพนักงานในระบบ กรุณาลงทะเบียน"); }
+                        } else { 
+                            setScanInstruction("ไม่พบใบหน้า กรุณาใส่ PIN 6 หลัก หรือลงทะเบียนใหม่"); 
+                        }
+                    } else {
+                        // Keep current instruction if no face detected
                     }
                 } catch (e) {}
             };
@@ -320,12 +324,12 @@
                 return () => clearInterval(recognitionTimer.current);
             }, [view, currentUser, modelsLoaded, faceMatcher, regStep]);
 
-            const handlePinSubmit = (val) => {
+            const handlePinAuthSubmit = (val) => {
                 if (identifiedUser && val === identifiedUser.pin) {
                     setCurrentUser(identifiedUser);
                     setView('home');
                     setPinInput("");
-                    showToast(`ยินดีต้อนรับคุณ ${identifiedUser.nickname}`, "success");
+                    showToast(`ยืนยันตัวตนสำเร็จ: คุณ ${identifiedUser.nickname}`, "success");
                 } else {
                     showToast("รหัส PIN ไม่ถูกต้อง", "error");
                     setPinInput("");
@@ -361,8 +365,8 @@
                 if (regPin !== regPinConfirm) return showToast("PIN ยืนยันไม่ตรงกัน", "error");
                 if (regPin.length !== 6) return showToast("PIN ต้องมีความยาว 6 หลัก", "error");
                 
-                // --- CHECK UNIQUE PIN ---
-                const isPinTaken = users.some(u => u.pin === regPin);
+                // --- UNIQUE PIN CHECK ---
+                const isPinTaken = users.some(u => u.pin === regPin && u.code !== selectedUserCode);
                 if (isPinTaken) {
                     return showToast("รหัส PIN นี้ถูกใช้งานแล้ว กรุณาตั้งรหัสอื่น", "error");
                 }
@@ -375,7 +379,7 @@
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                    showToast("ลงทะเบียนสำเร็จ", "success");
+                    showToast("อัปเดตข้อมูลใบหน้าและ PIN สำเร็จ", "success");
                     setRegStep(1); setSelectedUserCode(""); setCapturedImages({}); setRegPin(""); setRegPinConfirm("");
                     setView('home'); refreshAllData();
                 } catch (e) { showToast("ลงทะเบียนไม่สำเร็จ", "error"); }
@@ -412,6 +416,16 @@
                 return stats;
             }, [users, attendance, filterDate]);
 
+            const saveConfig = async (type, newList) => {
+                setLoading(true);
+                try {
+                    await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'updateConfig', type, list: newList }) });
+                    showToast("อัปเดตสำเร็จ", "success");
+                    refreshAllData();
+                } catch (e) { showToast("อัปเดตไม่ได้", "error"); }
+                setLoading(false);
+            };
+
             return (
                 <div className="min-h-screen flex flex-col text-slate-800">
                     {message && <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-full shadow-lg text-white text-sm font-medium transition-all animate-in slide-in-from-top-4 duration-300 ${message.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>{message.text}</div>}
@@ -421,7 +435,7 @@
                         <div className="flex items-center gap-3">
                             <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-blue-200"><Icon name="shield-check" size={24} /></div>
                             <div>
-                                <h1 className="font-bold text-slate-900 leading-tight">PFL Attendance</h1>
+                                <h1 className="font-bold text-slate-900 leading-tight tracking-tight">PFL Attendance</h1>
                                 <p className={`text-[10px] font-black tracking-widest uppercase ${isAdmin ? 'text-amber-500' : 'text-slate-400'}`}>{isAdmin ? 'Administrator Mode' : 'ฝ่ายกำกับรถพาเหรด'}</p>
                             </div>
                         </div>
@@ -454,7 +468,6 @@
                                         <div className="space-y-4">
                                             <div className="video-container active-scan ring-4 ring-blue-500/30">
                                                 <video ref={videoRef} autoPlay playsInline muted /><div className="scan-guide"></div><div className="scan-line"></div>
-                                                {!modelsLoaded && <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold animate-pulse uppercase tracking-[0.2em]">Loading AI...</div>}
                                             </div>
                                             <div className="flex gap-3 px-4">
                                                 <button onClick={() => { setView('manual_login'); setIsScanning(false); stopCamera(); }} className="flex-1 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm text-xs font-bold text-slate-500 flex items-center justify-center gap-2 transition-colors hover:bg-slate-50">
@@ -467,8 +480,8 @@
                                             <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-200">
                                                 <Icon name="check" size={40} strokeWidth={3} />
                                             </div>
-                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'สแกนสำเร็จ'}</h3>
-                                            {!isAdmin && <button onClick={() => { setCurrentUser(null); setIdentifiedUser(null); setIsScanning(true); }} className="text-xs font-bold text-emerald-600 underline hover:no-underline">Logout / สแกนใหม่</button>}
+                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'เข้าสู่ระบบสำเร็จ'}</h3>
+                                            {!isAdmin && <button onClick={() => { setCurrentUser(null); setIdentifiedUser(null); setIsScanning(true); }} className="text-xs font-bold text-emerald-600 underline hover:no-underline transition-all">Logout / สแกนใหม่</button>}
                                         </div>
                                     )}
                                 </div>
@@ -556,8 +569,8 @@
                                     <div className="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-sm border border-slate-100 text-blue-600">
                                         <Icon name="shield-check" size={36} />
                                     </div>
-                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">ระบุรหัส PIN</h2>
-                                    <p className="text-slate-400 font-medium italic">ยืนยันตัวตนคุณ <span className="text-blue-600 font-bold">{identifiedUser?.nickname}</span> <br/>กรุณาระบุ PIN 6 หลักเพื่อเข้าสู่ระบบ</p>
+                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">ยืนยันรหัส PIN</h2>
+                                    <p className="text-slate-400 font-medium italic text-center">คุณคือคุณ <span className="text-blue-600 font-bold">{identifiedUser?.nickname}</span> <br/>กรุณาระบุ PIN 6 หลักเพื่อเข้าสู่ระบบ</p>
                                 </div>
                                 <div className="flex justify-center gap-4">
                                     {[0, 1, 2, 3, 4, 5].map(i => (
@@ -570,12 +583,12 @@
                                             if (pinInput.length < 6) {
                                                 const next = pinInput + num;
                                                 setPinInput(next);
-                                                if (next.length === 6) handlePinSubmit(next);
+                                                if (next.length === 6) handlePinAuthSubmit(next);
                                             }
                                         }} className="num-btn">{num}</div>
                                     ))}
                                     <div onClick={() => setPinInput("")} className="num-btn text-red-500 hover:bg-red-50 transition-colors"><Icon name="x" size={24}/></div>
-                                    <div onClick={() => { if (pinInput.length < 6) { const n = pinInput + "0"; setPinInput(n); if (n.length === 6) handlePinSubmit(n); } }} className="num-btn">0</div>
+                                    <div onClick={() => { if (pinInput.length < 6) { const n = pinInput + "0"; setPinInput(n); if (n.length === 6) handlePinAuthSubmit(n); } }} className="num-btn">0</div>
                                     <div onClick={() => setPinInput(p => p.slice(0, -1))} className="num-btn text-slate-400 hover:bg-slate-50 transition-colors"><Icon name="delete" size={24}/></div>
                                 </div>
                                 <button onClick={() => { setView('home'); setPinInput(""); setIsScanning(true); }} className="w-full text-slate-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:text-slate-600 transition-colors">
@@ -590,7 +603,7 @@
                                     <div className="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-sm border border-slate-100 text-amber-500">
                                         <Icon name="key-round" size={36} />
                                     </div>
-                                    <h2 className="text-3xl font-black text-slate-800">Login ด้วย PIN</h2>
+                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">Login ด้วย PIN</h2>
                                     <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อของคุณและใส่รหัส PIN 6 หลัก</p>
                                 </div>
                                 <div className="px-10">
@@ -617,12 +630,12 @@
                                                     if (pinInput.length < 6) {
                                                         const next = pinInput + num;
                                                         setPinInput(next);
-                                                        if (next.length === 6) handlePinSubmit(next);
+                                                        if (next.length === 6) handlePinAuthSubmit(next);
                                                     }
                                                 }} className="num-btn">{num}</div>
                                             ))}
                                             <div onClick={() => setPinInput("")} className="num-btn text-red-500 hover:bg-red-50 transition-colors"><Icon name="x" size={24}/></div>
-                                            <div onClick={() => { if (pinInput.length < 6) { const n = pinInput + "0"; setPinInput(n); if (n.length === 6) handlePinSubmit(n); } }} className="num-btn">0</div>
+                                            <div onClick={() => { if (pinInput.length < 6) { const n = pinInput + "0"; setPinInput(n); if (n.length === 6) handlePinAuthSubmit(n); } }} className="num-btn">0</div>
                                             <div onClick={() => setPinInput(p => p.slice(0, -1))} className="num-btn text-slate-400 hover:bg-slate-50 transition-colors"><Icon name="delete" size={24}/></div>
                                         </div>
                                     </div>
@@ -641,8 +654,8 @@
                                     </div>
                                     {regStep === 1 && (
                                         <div className="space-y-6 text-left animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนพนักงาน</h2>
-                                            <p className="text-sm text-slate-400 font-medium text-center">เลือกรายชื่อของคุณเพื่อเริ่มบันทึกใบหน้า 3 ทิศทาง</p>
+                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนใบหน้า</h2>
+                                            <p className="text-sm text-slate-400 font-medium text-center italic">เลือกรายชื่อของคุณและบันทึกใบหน้า 3 มุม</p>
                                             <select value={selectedUserCode} onChange={(e) => setSelectedUserCode(e.target.value)} className="w-full p-5 bg-slate-50 border-0 rounded-2xl font-black appearance-none text-slate-700 shadow-inner outline-none focus:ring-2 ring-blue-500/20">
                                                 <option value="">-- เลือกรายชื่อพนักงาน --</option>
                                                 {users.map((u, i) => <option key={i} value={u.code}>{u.nickname} ({u.code})</option>)}
@@ -664,7 +677,7 @@
                                                     }} className={`p-4 rounded-2xl border-2 transition-all ${capturedImages[a] ? 'bg-emerald-50 border-emerald-500 text-emerald-600 shadow-sm scale-105' : 'bg-slate-50 border-slate-100 text-slate-300'}`}>
                                                         <Icon name={capturedImages[a] ? "check-circle" : "camera"} size={22} />
                                                         <span className="text-[10px] block mt-1 font-black uppercase tracking-tighter">
-                                                            {a === 'front' ? 'หน้าตรง' : a === 'left' ? 'หันซ้าย' : 'หันขวา'}
+                                                            {a === 'front' ? 'หน้าตรง' : a === 'left' ? 'ซ้าย' : 'ขวา'}
                                                         </span>
                                                     </button>
                                                 ))}
@@ -675,7 +688,6 @@
                                     {regStep === 3 && (
                                         <div className="space-y-6 py-4 animate-in fade-in duration-300">
                                             <h3 className="text-3xl font-black text-slate-900 tracking-tight text-center">ตั้งรหัส PIN 6 หลัก</h3>
-                                            <p className="text-xs text-center text-slate-400 font-bold uppercase tracking-widest italic">กรุณาตั้งรหัสที่ไม่ซ้ำกับคนอื่น</p>
                                             <div className="space-y-4 max-w-xs mx-auto text-center">
                                                 <div className="flex justify-center gap-3 mb-6">
                                                     {[0,1,2,3,4,5].map(i => <div key={i} className={`w-4 h-4 rounded-full border-2 border-blue-100 ${regPin.length > i ? 'bg-blue-600' : ''}`}></div>)}
@@ -767,9 +779,9 @@
 
                         {view === 'admin_settings' && isAdmin && (
                             <div className="max-w-2xl mx-auto space-y-6 animate-in slide-in-from-right duration-500 px-4">
-                                <div className="flex items-center gap-4 mb-2"><button onClick={() => setView('home')} className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-slate-50 text-slate-400 transition-all"><Icon name="arrow-left" size={22} /></button><h2 className="text-3xl font-black tracking-tight">ตั้งค่าพิกัดระบบ</h2></div>
+                                <div className="flex items-center gap-4 mb-2"><button onClick={() => setView('home')} className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-slate-50 text-slate-400 transition-all"><Icon name="arrow-left" size={22} /></button><h2 className="text-3xl font-black tracking-tight text-center">ตั้งค่าพิกัดระบบ</h2></div>
                                 {['entryPoints', 'workPoints'].map(type => (
-                                    <div key={type} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6">
+                                    <div key={type} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6 shadow-xl">
                                         <h3 className="font-black text-xl flex items-center gap-2"><span className={type === 'entryPoints' ? 'text-blue-600' : 'text-indigo-600'}><Icon name={type === 'entryPoints' ? "map-pin" : "briefcase"} /></span>{type === 'entryPoints' ? 'จุดตรวจบริษัท' : 'จุดเข้างาน'}</h3>
                                         <div className="space-y-4">
                                             {config[type].map((p, i) => (
@@ -800,7 +812,7 @@
                         {[{ id: 'home', icon: 'scan-face', label: 'ลงเวลา' }, { id: 'register', icon: 'user-plus', label: 'ลงทะเบียน' }, { id: 'dashboard', icon: 'layout-dashboard', label: 'รายงาน' }].map(item => (
                             <button key={item.id} onClick={() => { setView(item.id); if(item.id === 'home' && !currentUser) setIsScanning(true); }} className={`flex flex-col items-center gap-1.5 flex-1 transition-all ${view === item.id ? 'text-blue-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
                                 <Icon name={item.icon} size={26} strokeWidth={view === item.id ? 2.5 : 2} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.1em]">{item.label}</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-center">{item.label}</span>
                             </button>
                         ))}
                         <button onClick={refreshAllData} className="flex flex-col items-center gap-1.5 text-slate-400 flex-1 hover:text-blue-600 transition-colors"><Icon name="refresh-cw" size={26} /><span className="text-[10px] font-black uppercase tracking-[0.1em]">รีเฟรช</span></button>
