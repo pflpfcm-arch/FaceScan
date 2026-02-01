@@ -42,7 +42,6 @@
         @keyframes scan-line { 0% { top: 20%; } 100% { top: 80%; } }
         input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         .dropdown-content { max-height: 250px; overflow-y: auto; }
-        
         .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #cbd5e1; transition: all 0.2s; }
         .pin-dot.active { background-color: #3b82f6; border-color: #3b82f6; transform: scale(1.2); }
         .num-btn { 
@@ -59,7 +58,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
         
         // --- CONFIGURATION ---
         const API_URL = "https://script.google.com/macros/s/AKfycbzIBHv2yvSEOnjl2rTEMYJwNPt22rh7-C3ZOjUPgby3zJoWlyaI4QcRSn5QWHiO7i2Ctw/exec"; 
@@ -87,10 +86,6 @@
 
         const formatDisplayTime = (timeStr) => {
             if (!timeStr || timeStr === '-' || timeStr === 'undefined' || timeStr === '') return '-';
-            if (typeof timeStr === 'string' && timeStr.includes('T')) {
-                const date = new Date(timeStr);
-                return !isNaN(date.getTime()) ? date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) : timeStr;
-            }
             return String(timeStr).substring(0, 5);
         };
 
@@ -120,14 +115,16 @@
             const [modelsLoaded, setModelsLoaded] = useState(false);
             const [faceMatcher, setFaceMatcher] = useState(null);
             const [scanInstruction, setScanInstruction] = useState("กำลังเตรียมพร้อมระบบ...");
-            const [livenessStage, setLivenessStage] = useState(0); 
+            const [livenessStage, setLivenessStage] = useState(0); // 0: detect, 1: down, 2: up
             
             const [users, setUsers] = useState([]);
             const [attendance, setAttendance] = useState([]);
             const [config, setConfig] = useState({ entryPoints: [], workPoints: [] });
             
             const [currentUser, setCurrentUser] = useState(null);
+            const [identifiedUser, setIdentifiedUser] = useState(null);
             const [pinInput, setPinInput] = useState("");
+            
             const [selectedUserCode, setSelectedUserCode] = useState(""); 
             const [selectedUserCodes, setSelectedUserCodes] = useState([]); 
             const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -169,18 +166,19 @@
                 return newItem;
             };
 
+            // --- AI FACE TRAINING LOGIC ---
             const trainFaceMatcher = async (userData) => {
                 if (!userData || userData.length === 0) return null;
-                setScanInstruction("กำลังเรียนรู้ใบหน้าพนักงาน...");
+                setScanInstruction("กำลังจดจำใบหน้าจากฐานข้อมูล...");
                 try {
                     const labeledDescriptors = await Promise.all(userData.map(async (user) => {
                         if (!user.faces) return null;
                         try {
                             const facesObj = JSON.parse(user.faces);
                             const descriptors = [];
-                            for (let key of ['front', 'left', 'right']) {
-                                if (!facesObj[key]) continue;
-                                const img = await faceapi.fetchImage(facesObj[key]);
+                            for (let angle of ['front', 'left', 'right']) {
+                                if (!facesObj[angle]) continue;
+                                const img = await faceapi.fetchImage(facesObj[angle]);
                                 const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                                 if (detection) descriptors.push(detection.descriptor);
                             }
@@ -188,7 +186,7 @@
                         } catch (e) { return null; }
                     }));
                     const valid = labeledDescriptors.filter(x => x);
-                    setScanInstruction("สแกนใบหน้า: กรุณาก้มและเงยหน้าเพื่อยืนยัน");
+                    setScanInstruction("สแกนใบหน้า: ก้มและเงยหน้าเพื่อ Login");
                     return valid.length > 0 ? new faceapi.FaceMatcher(valid, 0.55) : null;
                 } catch (e) { return null; }
             };
@@ -204,13 +202,7 @@
                     
                     const normUsers = (u.data || []).map(item => {
                         const n = normalizeKeys(item);
-                        return { 
-                            nickname: n.nickname || n.ชื่อเล่น || '', 
-                            code: String(n.code || n.รหัส || '').trim(), 
-                            pin: String(n.pin || '').trim(), 
-                            faces: n.faces, 
-                            ...n 
-                        };
+                        return { nickname: n.nickname || n.ชื่อเล่น || '', code: String(n.code || n.รหัส || '').trim(), pin: String(n.pin || '').trim(), faces: n.faces, ...n };
                     }).filter(d => d.nickname || d.code);
 
                     setUsers(normUsers);
@@ -226,63 +218,6 @@
                     }
                 } catch (e) { showToast("โหลดข้อมูลล้มเหลว", "error"); }
                 setLoading(false);
-            };
-
-            const startCamera = async () => {
-                try {
-                    if (!streamRef.current) {
-                        const stream = await navigator.mediaDevices.getUserMedia({ 
-                            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, 
-                            audio: false 
-                        });
-                        streamRef.current = stream;
-                    }
-                    if (videoRef.current && streamRef.current) {
-                        videoRef.current.srcObject = streamRef.current;
-                    }
-                } catch (err) { 
-                    showToast("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบสิทธิ์", "error"); 
-                }
-            };
-
-            const stopCamera = () => {
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(t => t.stop());
-                    streamRef.current = null;
-                }
-            };
-
-            const identifyUser = async () => {
-                if (!videoRef.current || !isScanning || currentUser || !modelsLoaded || !faceMatcher) return;
-                try {
-                    const detections = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                    if (detections) {
-                        const bestMatch = faceMatcher.findBestMatch(detections.descriptor);
-                        if (bestMatch.label !== 'unknown') {
-                            const matchedUser = users.find(u => u.code === bestMatch.label);
-                            if (matchedUser) {
-                                const nose = detections.landmarks.getNose()[3];
-                                const chin = detections.landmarks.getJawOutline()[8];
-                                const dist = chin.y - nose.y;
-
-                                if (livenessStage === 0) {
-                                    setScanInstruction(`สวัสดีคุณ ${matchedUser.nickname}: กรุณา "ก้มหน้า" เพื่อยืนยัน`);
-                                    if (dist < 45) setLivenessStage(1);
-                                } else if (livenessStage === 1) {
-                                    setScanInstruction(`ก้มสำเร็จ: กรุณา "เงยหน้าขึ้น"`);
-                                    if (dist > 85) {
-                                        setCurrentUser(matchedUser);
-                                        setIsScanning(false);
-                                        stopCamera();
-                                        showToast(`สแกนสำเร็จ: ยินดีต้อนรับคุณ ${matchedUser.nickname}`, "success");
-                                    }
-                                }
-                            }
-                        } else { 
-                            setScanInstruction("ไม่พบใบหน้า กรุณาใส่ PIN 6 หลัก หรือลงทะเบียนใหม่"); 
-                        }
-                    }
-                } catch (e) {}
             };
 
             useEffect(() => {
@@ -309,6 +244,63 @@
                 return () => { clearInterval(timer); navigator.geolocation.clearWatch(watchId); stopCamera(); };
             }, []);
 
+            const startCamera = async () => {
+                try {
+                    if (!streamRef.current) {
+                        const stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, 
+                            audio: false 
+                        });
+                        streamRef.current = stream;
+                    }
+                    if (videoRef.current && streamRef.current) {
+                        videoRef.current.srcObject = streamRef.current;
+                    }
+                } catch (err) { 
+                    showToast("ไม่สามารถเปิดกล้องได้", "error"); 
+                }
+            };
+
+            const stopCamera = () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(t => t.stop());
+                    streamRef.current = null;
+                }
+            };
+
+            const identifyUser = async () => {
+                if (!videoRef.current || !isScanning || currentUser || !modelsLoaded || !faceMatcher) return;
+                try {
+                    const detections = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                    if (detections) {
+                        const bestMatch = faceMatcher.findBestMatch(detections.descriptor);
+                        if (bestMatch.label !== 'unknown') {
+                            const matchedUser = users.find(u => u.code === bestMatch.label);
+                            if (matchedUser) {
+                                const nose = detections.landmarks.getNose()[3];
+                                const chin = detections.landmarks.getJawOutline()[8];
+                                const dist = chin.y - nose.y;
+
+                                if (livenessStage === 0) {
+                                    setScanInstruction(`พบคุณ ${matchedUser.nickname}: กรุณา "ก้มหน้า" เพื่อยืนยัน`);
+                                    if (dist < 45) setLivenessStage(1);
+                                } else if (livenessStage === 1) {
+                                    setScanInstruction(`ก้มสำเร็จ: กรุณา "เงยหน้าขึ้น"`);
+                                    if (dist > 85) {
+                                        setCurrentUser(matchedUser);
+                                        setIsScanning(false);
+                                        stopCamera();
+                                        showToast(`สแกนใบหน้าสำเร็จ: คุณ ${matchedUser.nickname}`, "success");
+                                    }
+                                }
+                            }
+                        } else { 
+                            setScanInstruction("ไม่พบใบหน้า กรุณาใส่ PIN 6 หลัก หรือลงทะเบียนใหม่"); 
+                        }
+                    }
+                } catch (e) {}
+            };
+
             useEffect(() => {
                 if ((view === 'home' && !currentUser && modelsLoaded) || (view === 'register' && regStep === 2)) {
                     startCamera();
@@ -331,6 +323,7 @@
             const handleClockIn = async () => {
                 const targets = isAdmin ? selectedUserCodes : (currentUser ? [currentUser.code] : []);
                 if (targets.length === 0) return showToast("กรุณาระบุตัวตนก่อน", "error");
+                
                 setLoading(true);
                 try {
                     for (const code of targets) {
@@ -352,7 +345,6 @@
             };
 
             const handlePinSubmit = (val) => {
-                // FIXED PIN MATCHING LOGIC
                 const found = users.find(u => u.code.trim() === selectedUserCode.trim() && u.pin.trim() === val.trim());
                 if (found) {
                     setCurrentUser(found);
@@ -360,7 +352,7 @@
                     setPinInput("");
                     showToast(`ยินดีต้อนรับคุณ ${found.nickname}`, "success");
                 } else {
-                    showToast("รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่", "error");
+                    showToast("รหัส PIN ไม่ถูกต้อง", "error");
                     setPinInput("");
                 }
             };
@@ -381,7 +373,7 @@
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                    showToast("ลงทะเบียนสำเร็จ", "success");
+                    showToast("อัปเดตข้อมูลพนักงานสำเร็จ", "success");
                     setRegStep(1); setSelectedUserCode(""); setCapturedImages({}); setRegPin(""); setRegPinConfirm("");
                     setView('home'); refreshAllData();
                 } catch (e) { showToast("ลงทะเบียนไม่สำเร็จ", "error"); }
@@ -445,10 +437,10 @@
                             {isAdmin ? (
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => setView('admin_settings')} className="p-2 rounded-xl bg-blue-50 text-blue-600 transition-colors"><Icon name="settings" size={20} /></button>
-                                    <button onClick={() => { setIsAdmin(false); setCurrentUser(null); setIsScanning(true); setView('home'); }} className="text-xs bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold">ออกระบบ</button>
+                                    <button onClick={() => { setIsAdmin(false); setCurrentUser(null); setIsScanning(true); setView('home'); }} className="text-xs bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold hover:bg-red-100 transition-all">ออกระบบ</button>
                                 </div>
                             ) : (
-                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-colors">Admin Login</button>
+                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-all">Admin Login</button>
                             )}
                         </div>
                     </header>
@@ -463,7 +455,7 @@
                                         <h2 className="text-7xl font-black tabular-nums tracking-tighter mb-4">{currentTime.toLocaleTimeString('th-TH', { hour12: false })}</h2>
                                         <div className={`py-2 px-6 rounded-full inline-flex items-center gap-2 text-xs font-black transition-all ${currentUser && !isAdmin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-600/20 text-blue-400'}`}>
                                             <Icon name={currentUser && !isAdmin ? "user-check" : "scan"} size={16} /> 
-                                            {currentUser && !isAdmin ? `สวัสดีคุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
+                                            {currentUser && !isAdmin ? `คุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
                                         </div>
                                     </div>
                                     {!currentUser && !isAdmin ? (
@@ -474,7 +466,7 @@
                                             </div>
                                             <div className="flex gap-3 px-4">
                                                 <button onClick={() => { setView('pin_login'); setIsScanning(false); stopCamera(); }} className="flex-1 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm text-xs font-bold text-slate-500 flex items-center justify-center gap-2 transition-colors hover:bg-slate-50">
-                                                    <Icon name="key-round" size={16} /> Login ด้วยรหัส PIN (แสงไม่พอ)
+                                                    <Icon name="key-round" size={16} /> เข้าใช้งานด้วยรหัส PIN (แสงไม่พอ)
                                                 </button>
                                             </div>
                                         </div>
@@ -489,7 +481,6 @@
 
                                 <div className={`bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6 self-start transition-all duration-500 ${(!currentUser && !isAdmin) ? 'opacity-30 grayscale pointer-events-none' : 'opacity-100'}`}>
                                     <h3 className="font-black text-xl flex items-center gap-2 text-slate-800"><Icon name="clock-3" className="text-blue-600" /> บันทึกการลงเวลา</h3>
-                                    
                                     <div className="space-y-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[11px] font-black text-slate-400 ml-2 uppercase tracking-wider">พนักงาน</label>
@@ -498,7 +489,7 @@
                                                     <button onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)} className="w-full p-4 bg-slate-50 border-0 rounded-2xl font-black text-left flex justify-between items-center shadow-inner"><span className="truncate">{selectedUserCodes.length > 0 ? `เลือก ${selectedUserCodes.length} คน` : "-- เลือกรายชื่อพนักงาน --"}</span><Icon name="chevron-down" size={20} /></button>
                                                     {isUserDropdownOpen && (
                                                         <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[80] p-2 animate-in zoom-in-95">
-                                                            <div className="dropdown-content">
+                                                            <div className="dropdown-content scrollbar-hide">
                                                                 {users.map((u, i) => (
                                                                     <label key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
                                                                         <input type="checkbox" checked={selectedUserCodes.includes(u.code)} onChange={() => toggleUserSelection(u.code)} className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
@@ -510,22 +501,15 @@
                                                         </div>
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <div className="w-full p-4 bg-slate-100 border-0 rounded-2xl font-black text-slate-700 flex items-center justify-between shadow-inner">
-                                                    <span>{currentUser ? `${currentUser.nickname} (${currentUser.code})` : 'กรุณา Login ก่อน...'}</span>
-                                                    <Icon name="lock" size={16} className="text-slate-400" />
-                                                </div>
-                                            )}
+                                            ) : <div className="w-full p-4 bg-slate-100 border-0 rounded-2xl font-black text-slate-700 shadow-inner">{currentUser ? `${currentUser.nickname} (${currentUser.code})` : '-'}</div>}
                                         </div>
-
                                         {isAdmin && (
                                             <div className="grid grid-cols-3 gap-2 pt-2 animate-in slide-in-from-left duration-300">
                                                 {['มา', 'ลา', 'ลาครึ่งวัน'].map(s => (
-                                                    <button key={s} onClick={() => setStatus(s)} className={`py-3 rounded-xl font-black text-xs transition-all border-2 ${status === s ? 'bg-amber-50 border-amber-500 text-amber-600 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}>{s}</button>
+                                                    <button key={s} onClick={() => setStatus(s)} className={`py-3 rounded-xl font-black text-sm transition-all border-2 ${status === s ? 'bg-amber-50 border-amber-500 text-amber-600 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}>{s}</button>
                                                 ))}
                                             </div>
                                         )}
-
                                         {status !== "ลา" && (
                                             <>
                                                 <div className="p-5 bg-blue-50/30 rounded-3xl border border-blue-100/50 space-y-4 shadow-inner">
@@ -554,7 +538,7 @@
                                     </div>
                                     <button onClick={handleClockIn} className={`w-full py-6 rounded-3xl font-black text-lg shadow-xl active:scale-[0.98] transition-all hover:brightness-110 flex items-center justify-center gap-3 ${isAdmin ? 'bg-gradient-to-r from-amber-500 to-orange-600 shadow-amber-200' : 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-200'}`}>
                                         <Icon name={isAdmin ? "shield-check" : "save"} /> 
-                                        {isAdmin ? `บันทึกรายการ (${selectedUserCodes.length} คน)` : 'บันทึกเวลาลงระบบ'}
+                                        {isAdmin ? `บันทึกรายการ (${selectedUserCodes.length} คน)` : 'บันทึกเวลาปฏิบัติงาน'}
                                     </button>
                                 </div>
                             </div>
@@ -567,7 +551,7 @@
                                         <Icon name="key-round" size={36} />
                                     </div>
                                     <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">Login ด้วย PIN</h2>
-                                    <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อและระบุรหัส PIN 6 หลัก</p>
+                                    <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อของคุณและระบุรหัส PIN 6 หลัก</p>
                                 </div>
                                 <div className="px-10">
                                     <label className="text-[11px] font-black text-slate-400 ml-2 uppercase">เลือกรายชื่อของคุณ</label>
@@ -616,7 +600,7 @@
                                     </div>
                                     {regStep === 1 && (
                                         <div className="space-y-6 text-left animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนพนักงาน</h2>
+                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนใบหน้า</h2>
                                             <p className="text-sm text-slate-400 font-medium text-center italic">เลือกรายชื่อพนักงานเพื่ออัปเดตข้อมูลใบหน้า 3 มุม</p>
                                             <select value={selectedUserCode} onChange={(e) => setSelectedUserCode(e.target.value)} className="w-full p-5 bg-slate-50 border-0 rounded-2xl font-black appearance-none text-slate-700 shadow-inner outline-none focus:ring-2 ring-blue-500/20">
                                                 <option value="">-- เลือกรายชื่อพนักงาน --</option>
