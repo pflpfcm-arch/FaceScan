@@ -109,7 +109,6 @@
         };
 
         function App() {
-            // View States
             const [view, setView] = useState('home'); 
             const [loading, setLoading] = useState(false);
             const [currentTime, setCurrentTime] = useState(new Date());
@@ -119,24 +118,21 @@
             const [modelsLoaded, setModelsLoaded] = useState(false);
             const [faceMatcher, setFaceMatcher] = useState(null);
             const [scanInstruction, setScanInstruction] = useState("กำลังเตรียมพร้อมระบบ...");
-            const [livenessStage, setLivenessStage] = useState(0); 
+            const [livenessStage, setLivenessStage] = useState(0); // 0: detect, 1: down, 2: nod/up confirm
             
             // Data States
             const [users, setUsers] = useState([]);
             const [attendance, setAttendance] = useState([]);
             const [config, setConfig] = useState({ entryPoints: [], workPoints: [] });
             
-            // Authentication States
+            // Auth States
             const [currentUser, setCurrentUser] = useState(null);
-            const [identifiedUser, setIdentifiedUser] = useState(null);
             const [pinInput, setPinInput] = useState("");
-            
-            // Selection States
             const [selectedUserCode, setSelectedUserCode] = useState(""); 
             const [selectedUserCodes, setSelectedUserCodes] = useState([]); 
             const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
             
-            // Attendance Form States
+            // Record States
             const [selectedEntryPoint, setSelectedEntryPoint] = useState("");
             const [selectedWorkPoint, setSelectedWorkPoint] = useState("");
             const [entryTime, setEntryTime] = useState("");
@@ -146,14 +142,14 @@
             const [notes, setNotes] = useState("");
             const [status, setStatus] = useState("มา");
 
-            // Registration Flow States
+            // Registration Workflow States
             const [regStep, setRegStep] = useState(1);
             const [capturedImages, setCapturedImages] = useState({ front: null, left: null, right: null });
             const [regPinState, setRegPinState] = useState('entering'); 
             const [regPin, setRegPin] = useState("");
             const [regPinConfirm, setRegPinConfirm] = useState("");
 
-            // Filter States
+            // Dashboard Filter
             const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
             const [filterStatuses, setFilterStatuses] = useState(['มา', 'ลา', 'ลาครึ่งวัน', 'ไม่ลงบันทึก']);
             const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -180,26 +176,25 @@
             // --- AI FACE TRAINING ---
             const trainFaceMatcher = async (userData) => {
                 if (!userData || userData.length === 0) return null;
-                setScanInstruction("กำลังจดจำใบหน้าจากฐานข้อมูล...");
+                setScanInstruction("กำลังจดจำใบหน้าพนักงาน...");
                 try {
                     const labeledDescriptors = await Promise.all(userData.map(async (user) => {
                         if (!user.faces) return null;
                         try {
-                            const facesObj = JSON.parse(user.faces);
+                            const facesObj = typeof user.faces === 'string' ? JSON.parse(user.faces) : user.faces;
                             const descriptors = [];
-                            const angles = ['front', 'left', 'right'];
-                            for (let angle of angles) {
+                            for (let angle of ['front', 'left', 'right']) {
                                 if (!facesObj[angle]) continue;
                                 const img = await faceapi.fetchImage(facesObj[angle]);
                                 const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                                 if (detection) descriptors.push(detection.descriptor);
                             }
-                            return descriptors.length > 0 ? new faceapi.LabeledFaceDescriptors(user.code, descriptors) : null;
+                            return descriptors.length > 0 ? new faceapi.LabeledFaceDescriptors(String(user.code), descriptors) : null;
                         } catch (e) { return null; }
                     }));
                     const valid = labeledDescriptors.filter(x => x);
-                    setScanInstruction("สแกนใบหน้า: กรุณาก้มและเงยหน้าเพื่อยืนยัน");
-                    return valid.length > 0 ? new faceapi.FaceMatcher(valid, 0.5) : null;
+                    setScanInstruction("พร้อมสแกน: กรุณาก้มและเงยหน้าเพื่อยืนยัน");
+                    return valid.length > 0 ? new faceapi.FaceMatcher(valid, 0.45) : null;
                 } catch (e) { return null; }
             };
 
@@ -251,7 +246,7 @@
                         videoRef.current.srcObject = streamRef.current;
                     }
                 } catch (err) { 
-                    showToast("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบสิทธิ์", "error"); 
+                    showToast("ไม่สามารถเปิดกล้องได้", "error"); 
                 }
             };
 
@@ -271,6 +266,7 @@
                         if (bestMatch.label !== 'unknown') {
                             const matchedUser = users.find(u => u.code === bestMatch.label);
                             if (matchedUser) {
+                                // Liveness movement logic
                                 const nose = detections.landmarks.getNose()[3];
                                 const chin = detections.landmarks.getJawOutline()[8];
                                 const dist = chin.y - nose.y;
@@ -284,7 +280,7 @@
                                         setCurrentUser(matchedUser);
                                         setIsScanning(false);
                                         stopCamera();
-                                        showToast(`สแกนใบหน้าสำเร็จ: คุณ ${matchedUser.nickname}`, "success");
+                                        showToast(`สแกนสำเร็จ: สวัสดีคุณ ${matchedUser.nickname}`, "success");
                                     }
                                 }
                             }
@@ -305,7 +301,6 @@
                             faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                         ]);
                         setModelsLoaded(true);
-                        setScanInstruction("กรุณาวางใบหน้าในกรอบ");
                     } catch (e) { setScanInstruction("โหลดโมเดลล้มเหลว"); }
                 };
                 loadModels();
@@ -341,7 +336,6 @@
             const handleClockIn = async () => {
                 const targets = isAdmin ? selectedUserCodes : (currentUser ? [currentUser.code] : []);
                 if (targets.length === 0) return showToast("กรุณาระบุตัวตนก่อน", "error");
-                
                 setLoading(true);
                 try {
                     for (const code of targets) {
@@ -356,13 +350,14 @@
                         await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                     }
                     showToast("บันทึกข้อมูลเรียบร้อย", "success");
-                    if (!isAdmin) { setCurrentUser(null); setLivenessStage(0); setIsScanning(true); setIdentifiedUser(null); }
+                    if (!isAdmin) { setCurrentUser(null); setLivenessStage(0); setIsScanning(true); }
                     setNotes(""); setStatus("มา"); setSelectedUserCodes([]); refreshAllData();
                 } catch (e) { showToast("บันทึกผิดพลาด", "error"); }
                 setLoading(false);
             };
 
             const handlePinSubmit = (val) => {
+                // FIXED PIN MATCHING LOGIC - Ensure everything is string before comparison
                 const found = users.find(u => String(u.code).trim() === String(selectedUserCode).trim() && String(u.pin).trim() === String(val).trim());
                 if (found) {
                     setCurrentUser(found);
@@ -370,7 +365,7 @@
                     setPinInput("");
                     showToast(`ยินดีต้อนรับคุณ ${found.nickname}`, "success");
                 } else {
-                    showToast("รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่", "error");
+                    showToast("รหัส PIN ไม่ถูกต้อง", "error");
                     setPinInput("");
                 }
             };
@@ -388,6 +383,7 @@
                             const newVal = regPin + num;
                             setRegPin(newVal);
                             if (newVal.length === 6) {
+                                // Check unique pin
                                 const isPinTaken = users.some(u => String(u.pin || '').trim() === String(newVal).trim() && String(u.code) !== String(selectedUserCode));
                                 if (isPinTaken) {
                                     showToast("รหัส PIN นี้ถูกใช้งานแล้ว กรุณาตั้งรหัสอื่น", "error");
@@ -405,7 +401,7 @@
                                 if (newVal === regPin) {
                                     submitRegistration(newVal);
                                 } else {
-                                    showToast("รหัส PIN ไม่ตรงกัน กรุณาระบุรหัสเดิมอีกครั้ง", "error");
+                                    showToast("รหัส PIN ไม่ตรงกัน กรุณาเริ่มใหม่", "error");
                                     setRegPin(""); setRegPinConfirm(""); setRegPinState('entering');
                                 }
                             }
@@ -423,7 +419,7 @@
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                    showToast("ลงทะเบียนสำเร็จ ข้อมูลพร้อมใช้งาน", "success");
+                    showToast("ลงทะเบียนและอัปเดตใบหน้าสำเร็จ", "success");
                     setRegStep(1); setSelectedUserCode(""); setCapturedImages({}); setRegPin(""); setRegPinConfirm(""); setRegPinState('entering');
                     setView('home'); refreshAllData();
                 } catch (e) { showToast("ลงทะเบียนไม่สำเร็จ", "error"); }
@@ -487,22 +483,22 @@
                     {message && <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-full shadow-lg text-white text-sm font-medium transition-all animate-in slide-in-from-top-4 duration-300 ${message.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>{message.text}</div>}
                     {loading && <div className="fixed inset-0 bg-white/70 backdrop-blur-sm z-[100] flex items-center justify-center"><div className="animate-spin text-blue-600 font-black"><Icon name="refresh-cw" size={40} /></div></div>}
                     
-                    <header className="bg-white border-b border-slate-100 p-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                    <header className="bg-white border-b border-slate-100 p-4 flex justify-between items-center sticky top-0 z-50">
                         <div className="flex items-center gap-3">
-                            <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-blue-200"><Icon name="shield-check" size={24} /></div>
+                            <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-2xl text-white shadow-lg"><Icon name="shield-check" size={24} /></div>
                             <div>
-                                <h1 className="font-bold text-slate-900 leading-tight">PFL Attendance</h1>
+                                <h1 className="font-bold text-slate-900 leading-tight tracking-tight">PFL Attendance</h1>
                                 <p className={`text-[10px] font-black tracking-widest uppercase ${isAdmin ? 'text-amber-500' : 'text-slate-400'}`}>{isAdmin ? 'Administrator Mode' : 'ฝ่ายกำกับรถพาเหรด'}</p>
                             </div>
                         </div>
                         <div className="flex gap-2">
                             {isAdmin ? (
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => setView('admin_settings')} className="p-2 rounded-xl bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100"><Icon name="settings" size={20} /></button>
+                                    <button onClick={() => setView('admin_settings')} className="p-2 rounded-xl bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 transition-all"><Icon name="settings" size={20} /></button>
                                     <button onClick={() => { setIsAdmin(false); setCurrentUser(null); setIsScanning(true); setView('home'); }} className="text-xs bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold">ออกระบบ</button>
                                 </div>
                             ) : (
-                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200">Admin Login</button>
+                                <button onClick={() => { if(prompt("รหัสผ่าน Admin:") === ADMIN_PASSWORD) setIsAdmin(true); }} className="text-xs bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-all">Admin Login</button>
                             )}
                         </div>
                     </header>
@@ -517,17 +513,17 @@
                                         <h2 className="text-7xl font-black tabular-nums tracking-tighter mb-4">{currentTime.toLocaleTimeString('th-TH', { hour12: false })}</h2>
                                         <div className={`py-2 px-6 rounded-full inline-flex items-center gap-2 text-xs font-black transition-all ${currentUser && !isAdmin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-600/20 text-blue-400'}`}>
                                             <Icon name={currentUser && !isAdmin ? "user-check" : "scan"} size={16} /> 
-                                            {currentUser && !isAdmin ? `สวัสดีคุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
+                                            {currentUser && !isAdmin ? `คุณ ${currentUser.nickname}` : (isAdmin ? 'Admin Mode: บันทึกแทนพนักงาน' : scanInstruction)}
                                         </div>
                                     </div>
                                     {!currentUser && !isAdmin ? (
                                         <div className="space-y-4">
                                             <div className="video-container active-scan ring-4 ring-blue-500/30">
                                                 <video ref={videoRef} autoPlay playsInline muted /><div className="scan-guide"></div><div className="scan-line"></div>
-                                                {!modelsLoaded && <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold animate-pulse uppercase tracking-[0.2em]">Loading AI...</div>}
+                                                {!modelsLoaded && <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold animate-pulse">Loading AI...</div>}
                                             </div>
                                             <div className="flex gap-3 px-4">
-                                                <button onClick={() => { setView('pin_login'); setPinInput(""); setIsScanning(false); stopCamera(); }} className="flex-1 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm text-xs font-bold text-slate-500 flex items-center justify-center gap-2 transition-colors hover:bg-slate-50">
+                                                <button onClick={() => { setView('pin_login'); setIsScanning(false); stopCamera(); }} className="flex-1 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm text-xs font-bold text-slate-500 flex items-center justify-center gap-2 transition-colors hover:bg-slate-50">
                                                     <Icon name="key-round" size={16} /> Login ด้วยรหัส PIN (แสงไม่พอ)
                                                 </button>
                                             </div>
@@ -535,15 +531,14 @@
                                     ) : (
                                         <div className="bg-emerald-50 rounded-[2.5rem] p-10 text-center space-y-6 border-2 border-emerald-100 animate-in zoom-in-95 duration-500 shadow-xl">
                                             <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-200"><Icon name="check" size={40} strokeWidth={3} /></div>
-                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'เข้าใช้สำเร็จ'}</h3>
+                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'เข้าใช้งานสำเร็จ'}</h3>
                                             {!isAdmin && <button onClick={() => { setCurrentUser(null); setLivenessStage(0); setIsScanning(true); }} className="text-xs font-bold text-emerald-600 underline">Logout / สแกนใหม่</button>}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className={`bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6 self-start transition-all duration-500 ${(!currentUser && !isAdmin) ? 'opacity-30 grayscale pointer-events-none' : 'opacity-100'}`}>
-                                    <h3 className="font-black text-xl flex items-center gap-2 text-slate-800"><Icon name="clock-3" className="text-blue-600" /> ข้อมูลการลงเวลา</h3>
-                                    
+                                    <h3 className="font-black text-xl flex items-center gap-2 text-slate-800"><Icon name="clock-3" className="text-blue-600" /> บันทึกการลงเวลา</h3>
                                     <div className="space-y-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[11px] font-black text-slate-400 ml-2 uppercase tracking-wider">พนักงาน</label>
@@ -564,22 +559,13 @@
                                                         </div>
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <div className="w-full p-4 bg-slate-100 border-0 rounded-2xl font-black text-slate-700 shadow-inner flex items-center justify-between">
-                                                    <span>{currentUser ? `${currentUser.nickname} (${currentUser.code})` : 'กรุณา Login ก่อน...'}</span>
-                                                    <Icon name="lock" size={16} className="text-slate-400" />
-                                                </div>
-                                            )}
+                                            ) : <div className="w-full p-4 bg-slate-100 border-0 rounded-2xl font-black text-slate-700 shadow-inner flex items-center justify-between"><span>{currentUser ? `${currentUser.nickname} (${currentUser.code})` : '-'}</span><Icon name="lock" size={16} className="text-slate-400" /></div>}
                                         </div>
-
                                         {isAdmin && (
                                             <div className="grid grid-cols-3 gap-2 pt-2 animate-in slide-in-from-left duration-300">
-                                                {['มา', 'ลา', 'ลาครึ่งวัน'].map(s => (
-                                                    <button key={s} onClick={() => setStatus(s)} className={`py-3 rounded-xl font-black text-sm transition-all border-2 ${status === s ? 'bg-amber-50 border-amber-500 text-amber-600 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}>{s}</button>
-                                                ))}
+                                                {['มา', 'ลา', 'ลาครึ่งวัน'].map(s => (<button key={s} onClick={() => setStatus(s)} className={`py-3 rounded-xl font-black text-sm transition-all border-2 ${status === s ? 'bg-amber-50 border-amber-500 text-amber-600 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}>{s}</button>))}
                                             </div>
                                         )}
-
                                         {status !== "ลา" && (
                                             <>
                                                 <div className="p-5 bg-blue-50/30 rounded-3xl border border-blue-100/50 space-y-4 shadow-inner">
@@ -589,7 +575,7 @@
                                                             <option value="">เลือกจุด...</option>
                                                             {config.entryPoints.map((p, i) => <option key={i} value={p.name}>{p.name}</option>)}
                                                         </select>
-                                                        <div className="flex gap-2"><input type="time" value={entryTime} onChange={(e) => { setEntryTime(e.target.value); setIsAutoEntryTime(false); }} className="flex-grow p-3 bg-white border-0 rounded-xl font-black shadow-sm text-sm outline-none" /><button onClick={() => { setEntryTime(formatTimeShort(new Date())); setIsAutoEntryTime(true); }} className="bg-white p-3 rounded-xl shadow-sm text-blue-500 hover:bg-blue-50 transition-colors"><Icon name="clock" size={18} /></button></div>
+                                                        <div className="flex gap-2"><input type="time" value={entryTime} onChange={(e) => { setEntryTime(e.target.value); setIsAutoEntryTime(false); }} className="flex-grow p-3 bg-white border-0 rounded-xl font-black shadow-sm text-sm outline-none" /><button onClick={() => { setEntryTime(formatTimeShort(new Date())); setIsAutoEntryTime(true); }} className="bg-white p-3 rounded-xl shadow-sm text-blue-500 hover:bg-blue-50 transition-colors transition-all"><Icon name="clock" size={18} /></button></div>
                                                     </div>
                                                 </div>
                                                 <div className="p-5 bg-indigo-50/30 rounded-3xl border border-indigo-100/50 space-y-4 shadow-inner">
@@ -599,12 +585,12 @@
                                                             <option value="">เลือกจุดงาน...</option>
                                                             {config.workPoints.map((p, i) => <option key={i} value={p.name}>{p.name}</option>)}
                                                         </select>
-                                                        <div className="flex gap-2"><input type="time" value={workTime} onChange={(e) => { setWorkTime(e.target.value); setIsAutoWorkTime(false); }} className="flex-grow p-3 bg-white border-0 rounded-xl font-black shadow-sm text-sm outline-none" /><button onClick={() => { setWorkTime(formatTimeShort(new Date())); setIsAutoWorkTime(true); }} className="bg-white p-3 rounded-xl shadow-sm text-indigo-500 transition-colors hover:bg-indigo-700"><Icon name="clock" size={18} /></button></div>
+                                                        <div className="flex gap-2"><input type="time" value={workTime} onChange={(e) => { setWorkTime(e.target.value); setIsAutoWorkTime(false); }} className="flex-grow p-3 bg-white border-0 rounded-xl font-black shadow-sm text-sm outline-none" /><button onClick={() => { setWorkTime(formatTimeShort(new Date())); setIsAutoWorkTime(true); }} className="bg-white p-3 rounded-xl shadow-sm text-indigo-500 transition-colors hover:bg-indigo-700 transition-all"><Icon name="clock" size={18} /></button></div>
                                                     </div>
                                                 </div>
                                             </>
                                         )}
-                                        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-4 bg-slate-50 border-0 rounded-2xl h-24 focus:ring-2 ring-blue-500/20 outline-none resize-none text-sm font-medium shadow-inner" placeholder="ระบุหมายเหตุเพิ่มเติม..."></textarea>
+                                        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-4 bg-slate-50 border-0 rounded-2xl h-24 focus:ring-2 ring-blue-500/20 outline-none resize-none text-sm font-medium shadow-inner" placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)..."></textarea>
                                     </div>
                                     <button onClick={handleClockIn} className={`w-full py-6 rounded-3xl font-black text-lg shadow-xl active:scale-[0.98] transition-all hover:brightness-110 flex items-center justify-center gap-3 ${isAdmin ? 'bg-gradient-to-r from-amber-500 to-orange-600 shadow-amber-200' : 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-200'}`}>
                                         <Icon name={isAdmin ? "shield-check" : "save"} /> 
@@ -620,8 +606,8 @@
                                     <div className="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-sm border border-slate-100 text-amber-500">
                                         <Icon name="key-round" size={36} />
                                     </div>
-                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">เข้าใช้งานด้วย PIN</h2>
-                                    <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อและระบุรหัส PIN 6 หลัก</p>
+                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">Login ด้วย PIN</h2>
+                                    <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อของคุณและระบุ PIN 6 หลัก</p>
                                 </div>
                                 <div className="px-10">
                                     <label className="text-[11px] font-black text-slate-400 ml-2 uppercase tracking-wider">เลือกรายชื่อของคุณ</label>
@@ -653,8 +639,8 @@
                                     <div className="flex items-center justify-center gap-2 px-10">{[1, 2, 3].map(s => <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${regStep >= s ? 'bg-blue-600 shadow-md shadow-blue-100' : 'bg-slate-100'}`}></div>)}</div>
                                     {regStep === 1 && (
                                         <div className="space-y-6 text-left animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนพนักงาน</h2>
-                                            <p className="text-sm text-slate-400 font-medium text-center italic">เลือกพนักงานเพื่ออัปเดตข้อมูลใบหน้าและรหัสผ่าน</p>
+                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center">ลงทะเบียนใบหน้า</h2>
+                                            <p className="text-sm text-slate-400 font-medium text-center italic">เลือกชื่อพนักงานเพื่ออัปเดตข้อมูลใบหน้าและ PIN</p>
                                             <select value={selectedUserCode} onChange={(e) => setSelectedUserCode(e.target.value)} className="w-full p-5 bg-slate-50 border-0 rounded-2xl font-black appearance-none text-slate-700 shadow-inner outline-none focus:ring-2 ring-blue-500/20">
                                                 <option value="">-- เลือกรายชื่อพนักงาน --</option>
                                                 {users.map((u, i) => <option key={i} value={u.code}>{u.nickname} ({u.code})</option>)}
@@ -679,7 +665,7 @@
                                                     </button>
                                                 ))}
                                             </div>
-                                            <div className="flex gap-3 pt-4"><button onClick={() => { stopCamera(); setRegStep(1); }} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm transition-colors hover:bg-slate-200">กลับ</button><button disabled={!capturedImages.front || !capturedImages.left || !capturedImages.right} onClick={() => { stopCamera(); setRegStep(3); }} className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg transition-all">ต่อไป: ตั้ง PIN</button></div>
+                                            <div className="flex gap-3 pt-4"><button onClick={() => { stopCamera(); setRegStep(1); }} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm transition-colors hover:bg-slate-200 transition-all">กลับ</button><button disabled={!capturedImages.front || !capturedImages.left || !capturedImages.right} onClick={() => { stopCamera(); setRegStep(3); }} className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg transition-all transition-all">ต่อไป: ตั้ง PIN</button></div>
                                         </div>
                                     )}
                                     {regStep === 3 && (
@@ -692,7 +678,7 @@
                                                 </div>
                                                 <PinPad onKey={handlePinKeyPress} onClear={() => { regPinState === 'entering' ? setRegPin("") : setRegPinConfirm("") }} onBack={() => { regPinState === 'entering' ? setRegPin(p => p.slice(0, -1)) : setRegPinConfirm(p => p.slice(0, -1)) }} />
                                             </div>
-                                            <div className="flex gap-3 pt-4"><button onClick={() => { setRegStep(2); setRegPin(""); setRegPinConfirm(""); setRegPinState('entering'); }} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm transition-colors hover:bg-slate-200">กลับ</button></div>
+                                            <div className="flex gap-3 pt-4"><button onClick={() => { setRegStep(2); setRegPin(""); setRegPinConfirm(""); setRegPinState('entering'); }} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm transition-colors hover:bg-slate-200 transition-all">กลับ</button></div>
                                         </div>
                                     )}
                                 </div>
@@ -709,7 +695,7 @@
                         )}
 
                         {view === 'admin_settings' && isAdmin && (
-                            <div className="max-w-2xl mx-auto space-y-6 animate-in slide-in-from-right duration-500 px-4"><div className="flex items-center gap-4 mb-2"><button onClick={() => setView('home')} className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-slate-50 text-slate-400 transition-all"><Icon name="arrow-left" size={22} /></button><h2 className="text-3xl font-black tracking-tight text-center">ตั้งค่าพิกัดระบบ</h2></div>{['entryPoints', 'workPoints'].map(type => (<div key={type} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6 shadow-xl"><h3 className="font-black text-xl flex items-center gap-2"><span className={type === 'entryPoints' ? 'text-blue-600' : 'text-indigo-600'}><Icon name={type === 'entryPoints' ? "map-pin" : "briefcase"} /></span>{type === 'entryPoints' ? 'จุดตรวจบริษัท' : 'จุดเข้างาน'}</h3><div className="space-y-4">{config[type].map((p, i) => (<div key={i} className="p-6 bg-slate-50 rounded-[1.8rem] border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-lg transition-all border-l-4 border-l-slate-200 hover:border-l-blue-500"><div><p className="font-black text-slate-800 text-lg">{p.name}</p><div className="flex items-center gap-3 mt-1.5"><p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider bg-white px-2 py-0.5 rounded-lg border border-slate-100">Lat: {String(p.lat).substring(0, 10)}</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider bg-white px-2 py-0.5 rounded-lg border border-slate-100">Lng: {String(p.lng).substring(0, 10)}</p></div></div><div className="flex gap-2"><button onClick={() => { const newName = prompt("แก้ไขชื่อจุด:", p.name); if (!newName) return; const newList = [...config[type]]; newList[i] = { name: newName, lat: p.lat, lng: p.lng, radius: 50 }; saveConfig(type === 'entryPoints' ? 'entry' : 'work', newList); }} className="text-blue-500 p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-blue-50 transition-colors hover:text-blue-700 transition-all"><Icon name="edit-3" size={18} /></button><button onClick={() => { if(confirm("ต้องการลบจุดพิกัดนี้หรือไม่?")) saveConfig(type === 'entryPoints' ? 'entry' : 'work', config[type].filter((_, idx) => idx !== i)); }} className="text-red-400 p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-red-50 transition-colors hover:text-red-600 transition-all"><Icon name="trash-2" size={18} /></button></div></div>))}<button onClick={() => { const name = prompt("ชื่อจุดใหม่:"); if(!name) return; saveConfig(type === 'entryPoints' ? 'entry' : 'work', [...config[type], { name, lat: location.lat || "", lng: location.lng || "", radius: 50 }]); }} className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 font-black flex items-center justify-center gap-3 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all group shadow-sm"><Icon name="plus-circle" size={24} /> เพิ่มข้อมูลพิกัด</button></div></div>))}</div>
+                            <div className="max-w-2xl mx-auto space-y-6 animate-in slide-in-from-right duration-500 px-4"><div className="flex items-center gap-4 mb-2"><button onClick={() => setView('home')} className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-slate-50 text-slate-400 transition-all transition-all"><Icon name="arrow-left" size={22} /></button><h2 className="text-3xl font-black tracking-tight text-center">ตั้งค่าพิกัดระบบ</h2></div>{['entryPoints', 'workPoints'].map(type => (<div key={type} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6 shadow-xl"><h3 className="font-black text-xl flex items-center gap-2"><span className={type === 'entryPoints' ? 'text-blue-600' : 'text-indigo-600'}><Icon name={type === 'entryPoints' ? "map-pin" : "briefcase"} /></span>{type === 'entryPoints' ? 'จุดตรวจบริษัท' : 'จุดเข้างาน'}</h3><div className="space-y-4">{config[type].map((p, i) => (<div key={i} className="p-6 bg-slate-50 rounded-[1.8rem] border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-lg transition-all transition-all border-l-4 border-l-slate-200 hover:border-l-blue-500"><div><p className="font-black text-slate-800 text-lg">{p.name}</p><div className="flex items-center gap-3 mt-1.5"><p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider bg-white px-2 py-0.5 rounded-lg border border-slate-100 transition-all">Lat: {String(p.lat).substring(0, 10)}</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider bg-white px-2 py-0.5 rounded-lg border border-slate-100 transition-all">Lng: {String(p.lng).substring(0, 10)}</p></div></div><div className="flex gap-2"><button onClick={() => { const newName = prompt("แก้ไขชื่อจุด:", p.name); if (!newName) return; const newList = [...config[type]]; newList[i] = { name: newName, lat: p.lat, lng: p.lng, radius: 50 }; saveConfig(type === 'entryPoints' ? 'entry' : 'work', newList); }} className="text-blue-500 p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-blue-50 transition-colors hover:text-blue-700 transition-all transition-all"><Icon name="edit-3" size={18} /></button><button onClick={() => { if(confirm("ต้องการลบจุดพิกัดนี้หรือไม่?")) saveConfig(type === 'entryPoints' ? 'entry' : 'work', config[type].filter((_, idx) => idx !== i)); }} className="text-red-400 p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:bg-red-50 transition-colors hover:text-red-600 transition-all transition-all"><Icon name="trash-2" size={18} /></button></div></div>))}<button onClick={() => { const name = prompt("ชื่อจุดใหม่:"); if(!name) return; saveConfig(type === 'entryPoints' ? 'entry' : 'work', [...config[type], { name, lat: location.lat || "", lng: location.lng || "", radius: 50 }]); }} className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 font-black flex items-center justify-center gap-3 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all transition-all group shadow-sm transition-all"><Icon name="plus-circle" size={24} /> เพิ่มข้อมูลพิกัด</button></div></div>))}</div>
                         )}
                     </main>
 
