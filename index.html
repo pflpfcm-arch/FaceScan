@@ -82,9 +82,7 @@
 
         const isSameDay = (d1, d2) => {
             if (!d1 || !d2) return false;
-            return d1.getFullYear() === d2.getFullYear() &&
-                   d1.getMonth() === d2.getMonth() &&
-                   d1.getDate() === d2.getDate();
+            return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
         };
 
         const formatDisplayTime = (timeStr) => {
@@ -129,9 +127,7 @@
             const [config, setConfig] = useState({ entryPoints: [], workPoints: [] });
             
             const [currentUser, setCurrentUser] = useState(null);
-            const [identifiedUser, setIdentifiedUser] = useState(null);
             const [pinInput, setPinInput] = useState("");
-            
             const [selectedUserCode, setSelectedUserCode] = useState(""); 
             const [selectedUserCodes, setSelectedUserCodes] = useState([]); 
             const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -175,17 +171,16 @@
 
             const trainFaceMatcher = async (userData) => {
                 if (!userData || userData.length === 0) return null;
-                setScanInstruction("กำลังเรียนรู้ใบหน้า...");
+                setScanInstruction("กำลังเรียนรู้ใบหน้าพนักงาน...");
                 try {
                     const labeledDescriptors = await Promise.all(userData.map(async (user) => {
                         if (!user.faces) return null;
                         try {
                             const facesObj = JSON.parse(user.faces);
                             const descriptors = [];
-                            const angles = ['front', 'left', 'right'];
-                            for (let angle of angles) {
-                                if (!facesObj[angle]) continue;
-                                const img = await faceapi.fetchImage(facesObj[angle]);
+                            for (let key of ['front', 'left', 'right']) {
+                                if (!facesObj[key]) continue;
+                                const img = await faceapi.fetchImage(facesObj[key]);
                                 const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                                 if (detection) descriptors.push(detection.descriptor);
                             }
@@ -209,7 +204,13 @@
                     
                     const normUsers = (u.data || []).map(item => {
                         const n = normalizeKeys(item);
-                        return { nickname: n.nickname || n.ชื่อเล่น || '', code: String(n.code || n.รหัส || ''), pin: String(n.pin || ''), faces: n.faces, ...n };
+                        return { 
+                            nickname: n.nickname || n.ชื่อเล่น || '', 
+                            code: String(n.code || n.รหัส || '').trim(), 
+                            pin: String(n.pin || '').trim(), 
+                            faces: n.faces, 
+                            ...n 
+                        };
                     }).filter(d => d.nickname || d.code);
 
                     setUsers(normUsers);
@@ -330,7 +331,6 @@
             const handleClockIn = async () => {
                 const targets = isAdmin ? selectedUserCodes : (currentUser ? [currentUser.code] : []);
                 if (targets.length === 0) return showToast("กรุณาระบุตัวตนก่อน", "error");
-                
                 setLoading(true);
                 try {
                     for (const code of targets) {
@@ -352,14 +352,15 @@
             };
 
             const handlePinSubmit = (val) => {
-                const found = users.find(u => u.code === selectedUserCode && u.pin === val);
+                // FIXED PIN MATCHING LOGIC
+                const found = users.find(u => u.code.trim() === selectedUserCode.trim() && u.pin.trim() === val.trim());
                 if (found) {
                     setCurrentUser(found);
                     setView('home');
                     setPinInput("");
                     showToast(`ยินดีต้อนรับคุณ ${found.nickname}`, "success");
                 } else {
-                    showToast("รหัส PIN ไม่ถูกต้อง", "error");
+                    showToast("รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่", "error");
                     setPinInput("");
                 }
             };
@@ -369,7 +370,7 @@
                 if (regPin !== regPinConfirm) return showToast("PIN ยืนยันไม่ตรงกัน", "error");
                 if (regPin.length !== 6) return showToast("PIN ต้องมีความยาว 6 หลัก", "error");
                 
-                const isPinTaken = users.some(u => u.pin === regPin && u.code !== selectedUserCode);
+                const isPinTaken = users.some(u => u.pin.trim() === regPin.trim() && u.code !== selectedUserCode);
                 if (isPinTaken) return showToast("รหัส PIN นี้ถูกใช้งานแล้ว กรุณาตั้งรหัสอื่น", "error");
 
                 setLoading(true);
@@ -480,24 +481,21 @@
                                     ) : (
                                         <div className="bg-emerald-50 rounded-[2.5rem] p-10 text-center space-y-6 border-2 border-emerald-100 animate-in zoom-in-95 duration-500 shadow-xl">
                                             <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-200"><Icon name="check" size={40} strokeWidth={3} /></div>
-                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดผู้ดูแลระบบ' : 'เข้าสู่หน้าลงเวลาสำเร็จ'}</h3>
+                                            <h3 className="text-2xl font-black text-emerald-800">{isAdmin ? 'โหมดบันทึกแทน' : 'สแกนสำเร็จ'}</h3>
                                             {!isAdmin && <button onClick={() => { setCurrentUser(null); setLivenessStage(0); setIsScanning(true); }} className="text-xs font-bold text-emerald-600 underline">Logout / สแกนใหม่</button>}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className={`bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6 self-start transition-all duration-500 ${(!currentUser && !isAdmin) ? 'opacity-30 grayscale pointer-events-none' : 'opacity-100'}`}>
-                                    <h3 className="font-black text-xl flex items-center gap-2 text-slate-800"><Icon name="clock-3" className="text-blue-600" /> ข้อมูลการลงเวลา</h3>
+                                    <h3 className="font-black text-xl flex items-center gap-2 text-slate-800"><Icon name="clock-3" className="text-blue-600" /> บันทึกการลงเวลา</h3>
                                     
                                     <div className="space-y-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[11px] font-black text-slate-400 ml-2 uppercase tracking-wider">พนักงาน</label>
                                             {isAdmin ? (
                                                 <div className="relative">
-                                                    <button onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)} className="w-full p-4 bg-slate-50 border-0 rounded-2xl font-black text-left flex justify-between items-center shadow-inner">
-                                                        <span className="truncate">{selectedUserCodes.length > 0 ? `เลือก ${selectedUserCodes.length} คน` : "-- เลือกรายชื่อพนักงาน --"}</span>
-                                                        <Icon name="chevron-down" size={20} />
-                                                    </button>
+                                                    <button onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)} className="w-full p-4 bg-slate-50 border-0 rounded-2xl font-black text-left flex justify-between items-center shadow-inner"><span className="truncate">{selectedUserCodes.length > 0 ? `เลือก ${selectedUserCodes.length} คน` : "-- เลือกรายชื่อพนักงาน --"}</span><Icon name="chevron-down" size={20} /></button>
                                                     {isUserDropdownOpen && (
                                                         <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[80] p-2 animate-in zoom-in-95">
                                                             <div className="dropdown-content">
@@ -547,7 +545,7 @@
                                                             <option value="">เลือกจุดงาน...</option>
                                                             {config.workPoints.map((p, i) => <option key={i} value={p.name}>{p.name}</option>)}
                                                         </select>
-                                                        <div className="flex gap-2"><input type="time" value={workTime} onChange={(e) => { setWorkTime(e.target.value); setIsAutoWorkTime(false); }} className="flex-grow p-3 bg-white border-0 rounded-xl font-black shadow-sm text-sm outline-none" /><button onClick={() => { setWorkTime(formatTimeShort(new Date())); setIsAutoWorkTime(true); }} className="bg-white p-3 rounded-xl shadow-sm text-indigo-500 transition-colors hover:bg-indigo-50"><Icon name="clock" size={18} /></button></div>
+                                                        <div className="flex gap-2"><input type="time" value={workTime} onChange={(e) => { setWorkTime(e.target.value); setIsAutoWorkTime(false); }} className="flex-grow p-3 bg-white border-0 rounded-xl font-black shadow-sm text-sm outline-none" /><button onClick={() => { setWorkTime(formatTimeShort(new Date())); setIsAutoWorkTime(true); }} className="bg-white p-3 rounded-xl shadow-sm text-indigo-500 transition-colors hover:bg-indigo-700"><Icon name="clock" size={18} /></button></div>
                                                     </div>
                                                 </div>
                                             </>
@@ -569,7 +567,7 @@
                                         <Icon name="key-round" size={36} />
                                     </div>
                                     <h2 className="text-3xl font-black text-slate-800 tracking-tight text-center">Login ด้วย PIN</h2>
-                                    <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อของคุณและใส่รหัส PIN 6 หลัก</p>
+                                    <p className="text-slate-400 font-medium italic text-center">เลือกรายชื่อและระบุรหัส PIN 6 หลัก</p>
                                 </div>
                                 <div className="px-10">
                                     <label className="text-[11px] font-black text-slate-400 ml-2 uppercase">เลือกรายชื่อของคุณ</label>
@@ -629,7 +627,7 @@
                                     )}
                                     {regStep === 2 && (
                                         <div className="space-y-6 animate-in fade-in duration-300">
-                                            <h3 className="text-xl font-black text-slate-800 text-center">สแกนใบหน้า 3 ทิศทาง</h3>
+                                            <h3 className="text-xl font-black text-slate-800 text-center">บันทึกใบหน้า 3 ทิศทาง</h3>
                                             <div className="video-container border-4 border-white shadow-2xl active-scan"><video ref={videoRef} autoPlay playsInline muted /><div className="scan-guide"></div><div className="scan-line"></div></div>
                                             <div className="grid grid-cols-3 gap-2 px-4">
                                                 {['front', 'left', 'right'].map(a => (
