@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFL Attendance - Face ID & PIN</title>
+    <title>PFL Attendance - Face ID (Front Only) & PIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -107,8 +107,8 @@
             // Registration Logic States
             const [regStep, setRegStep] = useState(1); 
             const [selectedUser, setSelectedUser] = useState(null);
-            const [capturedFaces, setCapturedFaces] = useState({ front: null, left: null, right: null });
-            const [capturedEmbeddings, setCapturedEmbeddings] = useState({});
+            const [capturedFace, setCapturedFace] = useState(null);
+            const [capturedEmbedding, setCapturedEmbedding] = useState(null);
             const [tempPin, setTempPin] = useState("");
             const [confirmPin, setConfirmPin] = useState("");
             const [showSuccess, setShowSuccess] = useState(false);
@@ -195,33 +195,35 @@
             };
 
             const processRegisterDetection = async (yaw, pitch) => {
-                if (!capturedFaces.front) {
-                    setStatus("กรุณาหันหน้าตรง");
-                    if (Math.abs(yaw) < 1.8 && Math.abs(pitch) < 3) await capturePose('front');
-                } else if (!capturedFaces.left) {
-                    setStatus("กรุณาหันหน้าไปทางซ้าย");
-                    if (yaw > 8) await capturePose('left');
-                } else if (!capturedFaces.right) {
-                    setStatus("กรุณาหันหน้าไปทางขวา");
-                    if (yaw < -8) await capturePose('right');
-                } else {
-                    setStatus("สแกนครบถ้วนแล้ว!");
-                    setTimeout(() => {
-                        stopCamera();
-                        setRegStep(3);
-                    }, 1000);
+                if (!capturedFace) {
+                    setStatus("กรุณามองหน้าตรงให้ตรงกรอบ");
+                    // ตรวจสอบหน้าตรง (Yaw และ Pitch มีค่าใกล้เคียง 0)
+                    if (Math.abs(yaw) < 1.8 && Math.abs(pitch) < 3) {
+                        await capturePose();
+                    }
                 }
             };
 
-            const capturePose = async (pose) => {
+            const capturePose = async () => {
                 const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
                 if (detection) {
-                    setCapturedFaces(prev => ({ ...prev, [pose]: "captured" }));
-                    setCapturedEmbeddings(prev => ({ ...prev, [pose]: Array.from(detection.descriptor) }));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = videoRef.current.videoWidth;
+                    canvas.height = videoRef.current.videoHeight;
+                    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
+                    
+                    setCapturedFace(canvas.toDataURL('image/jpeg', 0.5));
+                    setCapturedEmbedding(Array.from(detection.descriptor));
                     
                     // Show Success Feedback
                     setShowSuccess(true);
-                    setTimeout(() => setShowSuccess(false), 1200);
+                    setStatus("บันทึกสำเร็จ!");
+                    
+                    setTimeout(() => {
+                        setShowSuccess(false);
+                        stopCamera();
+                        setRegStep(3); // ไปขั้นตอนตั้ง PIN
+                    }, 1200);
                 }
             };
 
@@ -256,8 +258,8 @@
                     action: 'registerFace',
                     code: selectedUser.code,
                     pin: finalPin,
-                    faces: capturedFaces,
-                    embeddings: capturedEmbeddings
+                    faces: { front: capturedFace }, // บันทึกเฉพาะหน้าตรง
+                    embeddings: { front: capturedEmbedding }
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
@@ -271,7 +273,8 @@
                 setView('home');
                 setRegStep(1);
                 setSelectedUser(null);
-                setCapturedFaces({ front: null, left: null, right: null });
+                setCapturedFace(null);
+                setCapturedEmbedding(null);
                 setTempPin("");
                 setConfirmPin("");
                 stopCamera();
@@ -283,7 +286,7 @@
                     {/* Header */}
                     <div className="w-full max-w-md bg-white p-5 rounded-3xl shadow-sm mb-6 flex justify-between items-center border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-2xl text-white shadow-lg"><Icon name="shield-check" size={20} /></div>
+                            <div className="bg-blue-600 p-2 rounded-2xl text-white shadow-lg shadow-blue-100"><Icon name="shield-check" size={20} /></div>
                             <h1 className="font-bold text-slate-800 text-lg">PFL Attendance</h1>
                         </div>
                         <div className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">GPS: {gps || 'Wait'}</div>
@@ -324,7 +327,7 @@
 
                                 {/* Step Indicator */}
                                 <div className="flex justify-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-50">
-                                    {["เลือกชื่อ", "จัดวางใบหน้า", "รหัส PIN"].map((l, i) => (
+                                    {["เลือกรายชื่อ", "บันทึกหน้าตรง", "รหัส PIN"].map((l, i) => (
                                         <div key={i} className={`step-pill ${ (i===0 && regStep===1) || (i===1 && regStep===2) || (i===2 && regStep>=3) ? 'step-active' : 'step-inactive'}`}>{l}</div>
                                     ))}
                                 </div>
@@ -343,7 +346,7 @@
                                                     >
                                                         <div>
                                                             <p className="font-bold text-slate-800 text-lg">{u.nickname}</p>
-                                                            <p className="text-[10px] text-slate-400 font-bold uppercase">Employee ID: {u.code}</p>
+                                                            <p className="text-[10px] text-slate-400 font-bold uppercase">ID: {u.code}</p>
                                                         </div>
                                                         {selectedUser?.code === u.code && <Icon name="check-circle" className="text-blue-600" size={20} />}
                                                     </button>
@@ -354,7 +357,7 @@
                                             disabled={!selectedUser}
                                             onClick={() => { setRegStep(2); startCamera(); }}
                                             className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold shadow-xl disabled:opacity-30 active:scale-95 transition-all"
-                                        >เริ่มต้นสแกนใบหน้า</button>
+                                        >เริ่มการสแกนหน้าตรง</button>
                                     </div>
                                 )}
 
@@ -369,23 +372,14 @@
                                             <div className={`success-overlay ${showSuccess ? 'show' : ''}`}>
                                                 <div className="bg-white/90 px-8 py-4 rounded-3xl shadow-2xl flex flex-col items-center gap-2 transform transition-transform duration-500 scale-110">
                                                     <Icon name="check-circle" className="text-emerald-500" size={48} />
-                                                    <span className="text-emerald-600 font-bold text-2xl">บันทึกสำเร็จ</span>
+                                                    <span className="text-emerald-600 font-bold text-2xl text-center">บันทึกสำเร็จ<br/><span className="text-sm font-medium text-slate-400">กำลังสลับไปหน้าตั้งรหัส</span></span>
                                                 </div>
                                             </div>
 
                                             <video ref={videoRef} autoPlay playsInline muted />
                                             <canvas />
                                         </div>
-
-                                        <div className="grid grid-cols-3 gap-3 px-4">
-                                            {['front', 'left', 'right'].map(pos => (
-                                                <div key={pos} className={`p-4 rounded-3xl text-center border-2 transition-all ${capturedFaces[pos] ? 'border-emerald-500 bg-emerald-50' : 'border-white bg-white shadow-sm'}`}>
-                                                    <div className={capturedFaces[pos] ? "text-emerald-600" : "text-slate-200"}><Icon name={capturedFaces[pos] ? "check-circle" : "user"} size={28} /></div>
-                                                    <p className="text-[10px] font-black mt-2 uppercase tracking-tighter">{pos === 'front' ? 'ตรง' : pos === 'left' ? 'ซ้าย' : 'ขวา'}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <p className="text-center text-xs text-slate-400 font-medium italic">* จัดวางใบหน้าให้อยู่ภายในกรอบวงกลม</p>
+                                        <p className="text-center text-xs text-slate-400 font-medium italic">* จัดวางใบหน้าให้พอดีกับกรอบและมองตรง</p>
                                     </div>
                                 )}
 
@@ -394,7 +388,7 @@
                                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm text-center space-y-8 animate-in zoom-in-95 border border-slate-100">
                                         <div className="space-y-2">
                                             <h3 className="text-2xl font-black text-slate-800">{regStep === 3 ? "กำหนดรหัส PIN 6 หลัก" : "ยืนยันรหัส PIN อีกครั้ง"}</h3>
-                                            <p className="text-sm text-slate-400">{regStep === 3 ? "เพื่อใช้เข้างานในกรณีแสงสว่างไม่เพียงพอ" : "กรุณากดรหัสเดิมเพื่อตรวจสอบความถูกต้อง"}</p>
+                                            <p className="text-sm text-slate-400">{regStep === 3 ? "รหัสนี้จะใช้เป็นรหัสสำรองในการเข้างาน" : "กรุณากดรหัสเดิมเพื่อตรวจสอบความถูกต้อง"}</p>
                                         </div>
 
                                         <div className="flex justify-center gap-4 py-4">
