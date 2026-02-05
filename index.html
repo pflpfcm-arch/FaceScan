@@ -25,6 +25,19 @@
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
         
+        /* Face Guide Frame */
+        .face-guide {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 70%; height: 65%;
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; /* Human face shape */
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+            transition: border-color 0.3s ease;
+            z-index: 5;
+        }
+        .face-guide.success { border-color: #10b981; border-width: 5px; }
+
         /* Numpad Styling */
         .numpad-grid {
             display: grid;
@@ -42,13 +55,18 @@
         }
         .pin-dot.filled { @apply bg-blue-600 border-blue-600 scale-125; }
         
-        .step-pill { @apply px-4 py-1.5 rounded-full text-xs font-bold transition-all; }
-        .step-active { @apply bg-blue-600 text-white shadow-md; }
-        .step-inactive { @apply bg-slate-100 text-slate-400; }
+        .step-pill { @apply px-3 py-1 rounded-full text-xs font-bold transition-all; }
+        .step-active { @apply bg-blue-600 text-white shadow-lg; }
+        .step-inactive { @apply bg-slate-200 text-slate-500; }
         
         .instruction-banner {
-            @apply absolute top-4 left-4 right-4 py-3 px-4 rounded-2xl bg-black/60 backdrop-blur-md text-white text-center font-bold text-lg z-10 animate-pulse;
+            @apply absolute top-6 left-4 right-4 py-3 px-4 rounded-2xl bg-black/70 backdrop-blur-md text-white text-center font-bold text-lg z-10;
         }
+
+        .success-overlay {
+            @apply absolute inset-0 flex items-center justify-center bg-emerald-500/20 z-20 pointer-events-none opacity-0 transition-opacity duration-300;
+        }
+        .success-overlay.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -78,21 +96,22 @@
         };
 
         function App() {
-            const [view, setView] = useState('home'); // home, register, login, attendance
+            const [view, setView] = useState('home'); 
             const [loading, setLoading] = useState(false);
             const [status, setStatus] = useState("เตรียมระบบ...");
             const [modelsLoaded, setModelsLoaded] = useState(false);
             const [users, setUsers] = useState([]);
-            const [config, setConfig] = useState({ entryPoints: [], workPoints: [] });
             const [currentTime, setCurrentTime] = useState(new Date());
             const [gps, setGps] = useState(null);
 
             // Registration Logic States
-            const [regStep, setRegStep] = useState(1); // 1:Select User, 2:Face Scan, 3:Set PIN, 4:Confirm PIN
+            const [regStep, setRegStep] = useState(1); 
             const [selectedUser, setSelectedUser] = useState(null);
             const [capturedFaces, setCapturedFaces] = useState({ front: null, left: null, right: null });
+            const [capturedEmbeddings, setCapturedEmbeddings] = useState({});
             const [tempPin, setTempPin] = useState("");
             const [confirmPin, setConfirmPin] = useState("");
+            const [showSuccess, setShowSuccess] = useState(false);
 
             const videoRef = useRef(null);
             const faceMeshRef = useRef(null);
@@ -119,24 +138,20 @@
                             faceMeshRef.current.onResults(handleFaceMeshResults);
                         }
                         setModelsLoaded(true);
-                        fetchInitialData();
+                        fetchUsers();
                     } catch (err) { setStatus("Error loading AI"); }
                 };
                 init();
-                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-                navigator.geolocation.getCurrentPosition(p => setGps(`${p.coords.latitude},${p.coords.longitude}`), () => setGps("OFF"));
-                return () => clearInterval(timer);
+                const t = setInterval(() => setCurrentTime(new Date()), 1000);
+                navigator.geolocation.getCurrentPosition(p => setGps(`${p.coords.latitude.toFixed(4)},${p.coords.longitude.toFixed(4)}`), () => setGps("OFF"));
+                return () => clearInterval(t);
             }, []);
 
-            const fetchInitialData = async () => {
+            const fetchUsers = async () => {
                 try {
-                    const [resU, resC] = await Promise.all([
-                        fetch(`${API_URL}?action=getUsers`).then(r => r.json()),
-                        fetch(`${API_URL}?action=getConfig`).then(r => r.json())
-                    ]);
-                    if (resU.status === 'success') setUsers(resU.data);
-                    if (resC.status === 'success') setConfig(resC.data);
-                    setStatus("ระบบพร้อมใช้งาน");
+                    const res = await fetch(`${API_URL}?action=getUsers`);
+                    const json = await res.json();
+                    if (json.status === 'success') setUsers(json.data);
                 } catch (e) { setStatus("Sync Error"); }
             };
 
@@ -165,38 +180,49 @@
 
             // FaceMesh Detection Logic for Registration
             const handleFaceMeshResults = async (results) => {
-                if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
-                
+                if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+                    if (view === 'register' && regStep === 2) setStatus("ไม่พบใบหน้าในกรอบ");
+                    return;
+                }
+
                 const landmarks = results.multiFaceLandmarks[0];
                 const yaw = (landmarks[33].z - landmarks[263].z) * 100;
                 const pitch = (landmarks[10].z - landmarks[152].z) * 100;
 
-                if (view === 'register' && regStep === 2) {
-                    if (!capturedFaces.front) {
-                        setStatus("กรุณาหันหน้าตรง");
-                        if (Math.abs(yaw) < 1.8 && Math.abs(pitch) < 3) captureSnapshot('front');
-                    } else if (!capturedFaces.left) {
-                        setStatus("กรุณาหันซ้าย");
-                        if (yaw > 7) captureSnapshot('left');
-                    } else if (!capturedFaces.right) {
-                        setStatus("กรุณาหันขวา");
-                        if (yaw < -7) captureSnapshot('right');
-                    } else {
-                        setStatus("บันทึกใบหน้าสำเร็จ!");
-                        setTimeout(() => {
-                            stopCamera();
-                            setRegStep(3); // ไปขั้นตอนตั้ง PIN
-                        }, 1000);
-                    }
+                if (view === 'register' && regStep === 2 && !showSuccess) {
+                    processRegisterDetection(yaw, pitch);
                 }
             };
 
-            const captureSnapshot = (pose) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = videoRef.current.videoWidth;
-                canvas.height = videoRef.current.videoHeight;
-                canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-                setCapturedFaces(prev => ({ ...prev, [pose]: canvas.toDataURL('image/jpeg', 0.5) }));
+            const processRegisterDetection = async (yaw, pitch) => {
+                if (!capturedFaces.front) {
+                    setStatus("กรุณาหันหน้าตรง");
+                    if (Math.abs(yaw) < 1.8 && Math.abs(pitch) < 3) await capturePose('front');
+                } else if (!capturedFaces.left) {
+                    setStatus("กรุณาหันหน้าไปทางซ้าย");
+                    if (yaw > 8) await capturePose('left');
+                } else if (!capturedFaces.right) {
+                    setStatus("กรุณาหันหน้าไปทางขวา");
+                    if (yaw < -8) await capturePose('right');
+                } else {
+                    setStatus("สแกนครบถ้วนแล้ว!");
+                    setTimeout(() => {
+                        stopCamera();
+                        setRegStep(3);
+                    }, 1000);
+                }
+            };
+
+            const capturePose = async (pose) => {
+                const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
+                if (detection) {
+                    setCapturedFaces(prev => ({ ...prev, [pose]: "captured" }));
+                    setCapturedEmbeddings(prev => ({ ...prev, [pose]: Array.from(detection.descriptor) }));
+                    
+                    // Show Success Feedback
+                    setShowSuccess(true);
+                    setTimeout(() => setShowSuccess(false), 1200);
+                }
             };
 
             const handleNumpad = (num) => {
@@ -230,11 +256,12 @@
                     action: 'registerFace',
                     code: selectedUser.code,
                     pin: finalPin,
-                    faces: capturedFaces
+                    faces: capturedFaces,
+                    embeddings: capturedEmbeddings
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    alert("ลงทะเบียนพนักงานสำเร็จ! คุณสามารถใช้ใบหน้าหรือ PIN เพื่อเข้างานได้ทันที");
+                    alert("ลงทะเบียนพนักงานสำเร็จ!");
                     resetAll();
                 } catch (e) { alert("เกิดข้อผิดพลาดในการบันทึก"); }
                 setLoading(false);
@@ -256,14 +283,14 @@
                     {/* Header */}
                     <div className="w-full max-w-md bg-white p-5 rounded-3xl shadow-sm mb-6 flex justify-between items-center border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-2xl text-white shadow-lg shadow-blue-100"><Icon name="shield-check" size={20} /></div>
+                            <div className="bg-blue-600 p-2 rounded-2xl text-white shadow-lg"><Icon name="shield-check" size={20} /></div>
                             <h1 className="font-bold text-slate-800 text-lg">PFL Attendance</h1>
                         </div>
-                        <div className="text-[10px] font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full uppercase tracking-widest">GPS: {gps || 'Wait'}</div>
+                        <div className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">GPS: {gps || 'Wait'}</div>
                     </div>
 
                     {/* MAIN CONTENT */}
-                    <main className="w-full max-w-md px-2">
+                    <main className="w-full max-w-md px-2 pb-20">
                         
                         {/* VIEW: HOME */}
                         {view === 'home' && (
@@ -291,13 +318,13 @@
                         {view === 'register' && (
                             <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
                                 <div className="flex items-center gap-4">
-                                    <button onClick={resetAll} className="p-2.5 bg-white rounded-2xl shadow-sm border hover:bg-slate-50"><Icon name="chevron-left" /></button>
-                                    <h2 className="font-bold text-xl text-slate-800">ขั้นตอนการลงทะเบียน</h2>
+                                    <button onClick={resetAll} className="p-2.5 bg-white rounded-xl shadow-sm border hover:bg-slate-50"><Icon name="chevron-left" /></button>
+                                    <h2 className="font-bold text-xl text-slate-800">ลงทะเบียนสมาชิกใหม่</h2>
                                 </div>
 
                                 {/* Step Indicator */}
                                 <div className="flex justify-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-50">
-                                    {["ระบุตัวตน", "สแกนใบหน้า", "ตั้งรหัส PIN"].map((l, i) => (
+                                    {["เลือกชื่อ", "จัดวางใบหน้า", "รหัส PIN"].map((l, i) => (
                                         <div key={i} className={`step-pill ${ (i===0 && regStep===1) || (i===1 && regStep===2) || (i===2 && regStep>=3) ? 'step-active' : 'step-inactive'}`}>{l}</div>
                                     ))}
                                 </div>
@@ -306,47 +333,59 @@
                                 {regStep === 1 && (
                                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm space-y-6 border border-slate-100">
                                         <div className="space-y-3">
-                                            <label className="text-xs font-black text-slate-400 uppercase ml-2 tracking-widest">ค้นหารายชื่อของคุณ</label>
+                                            <label className="text-xs font-black text-slate-400 uppercase ml-2 tracking-widest text-center block">ระบุรายชื่อของคุณ</label>
                                             <div className="space-y-2 max-h-80 overflow-y-auto pr-1 scrollbar-hide">
-                                                {users.map(u => (
+                                                {users.length > 0 ? users.map(u => (
                                                     <button 
                                                         key={u.code}
                                                         onClick={() => setSelectedUser(u)}
                                                         className={`w-full p-5 rounded-2xl text-left border-2 transition-all flex justify-between items-center ${selectedUser?.code === u.code ? 'border-blue-600 bg-blue-50 ring-4 ring-blue-100' : 'border-slate-50 bg-slate-50'}`}
                                                     >
                                                         <div>
-                                                            <p className="font-bold text-slate-800">{u.nickname}</p>
-                                                            <p className="text-[10px] text-slate-400 font-bold uppercase">ID: {u.code}</p>
+                                                            <p className="font-bold text-slate-800 text-lg">{u.nickname}</p>
+                                                            <p className="text-[10px] text-slate-400 font-bold uppercase">Employee ID: {u.code}</p>
                                                         </div>
                                                         {selectedUser?.code === u.code && <Icon name="check-circle" className="text-blue-600" size={20} />}
                                                     </button>
-                                                ))}
+                                                )) : <div className="text-center py-10 text-slate-400">ไม่พบข้อมูลพนักงาน</div>}
                                             </div>
                                         </div>
                                         <button 
                                             disabled={!selectedUser}
                                             onClick={() => { setRegStep(2); startCamera(); }}
                                             className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold shadow-xl disabled:opacity-30 active:scale-95 transition-all"
-                                        >เริ่มการสแกน 3 มุม</button>
+                                        >เริ่มต้นสแกนใบหน้า</button>
                                     </div>
                                 )}
 
-                                {/* STEP 2: Face Scan */}
+                                {/* STEP 2: Face Scan with Guide */}
                                 {regStep === 2 && (
                                     <div className="space-y-6 animate-in fade-in">
                                         <div className="video-container">
                                             <div className="instruction-banner shadow-xl">{status}</div>
+                                            
+                                            <div className={`face-guide ${showSuccess ? 'success' : ''}`}></div>
+                                            
+                                            <div className={`success-overlay ${showSuccess ? 'show' : ''}`}>
+                                                <div className="bg-white/90 px-8 py-4 rounded-3xl shadow-2xl flex flex-col items-center gap-2 transform transition-transform duration-500 scale-110">
+                                                    <Icon name="check-circle" className="text-emerald-500" size={48} />
+                                                    <span className="text-emerald-600 font-bold text-2xl">บันทึกสำเร็จ</span>
+                                                </div>
+                                            </div>
+
                                             <video ref={videoRef} autoPlay playsInline muted />
                                             <canvas />
                                         </div>
+
                                         <div className="grid grid-cols-3 gap-3 px-4">
                                             {['front', 'left', 'right'].map(pos => (
-                                                <div key={pos} className={`p-4 rounded-3xl text-center border-2 transition-all ${capturedFaces[pos] ? 'border-green-500 bg-green-50' : 'border-white bg-white shadow-sm'}`}>
-                                                    <div className={capturedFaces[pos] ? "text-green-600" : "text-slate-200"}><Icon name={capturedFaces[pos] ? "check-circle" : "user"} size={28} /></div>
-                                                    <p className="text-[10px] font-black mt-2 uppercase tracking-tighter">{pos === 'front' ? 'หน้าตรง' : pos === 'left' ? 'ด้านซ้าย' : 'ด้านขวา'}</p>
+                                                <div key={pos} className={`p-4 rounded-3xl text-center border-2 transition-all ${capturedFaces[pos] ? 'border-emerald-500 bg-emerald-50' : 'border-white bg-white shadow-sm'}`}>
+                                                    <div className={capturedFaces[pos] ? "text-emerald-600" : "text-slate-200"}><Icon name={capturedFaces[pos] ? "check-circle" : "user"} size={28} /></div>
+                                                    <p className="text-[10px] font-black mt-2 uppercase tracking-tighter">{pos === 'front' ? 'ตรง' : pos === 'left' ? 'ซ้าย' : 'ขวา'}</p>
                                                 </div>
                                             ))}
                                         </div>
+                                        <p className="text-center text-xs text-slate-400 font-medium italic">* จัดวางใบหน้าให้อยู่ภายในกรอบวงกลม</p>
                                     </div>
                                 )}
 
@@ -355,7 +394,7 @@
                                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm text-center space-y-8 animate-in zoom-in-95 border border-slate-100">
                                         <div className="space-y-2">
                                             <h3 className="text-2xl font-black text-slate-800">{regStep === 3 ? "กำหนดรหัส PIN 6 หลัก" : "ยืนยันรหัส PIN อีกครั้ง"}</h3>
-                                            <p className="text-sm text-slate-400">{regStep === 3 ? "รหัสสำหรับระบุตัวตนสำรอง" : "กรุณากดรหัสเดิมเพื่อตรวจสอบความถูกต้อง"}</p>
+                                            <p className="text-sm text-slate-400">{regStep === 3 ? "เพื่อใช้เข้างานในกรณีแสงสว่างไม่เพียงพอ" : "กรุณากดรหัสเดิมเพื่อตรวจสอบความถูกต้อง"}</p>
                                         </div>
 
                                         <div className="flex justify-center gap-4 py-4">
@@ -382,7 +421,7 @@
                     {loading && (
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex flex-col items-center justify-center gap-4">
                             <div className="w-16 h-16 border-4 border-white border-t-blue-500 rounded-full animate-spin"></div>
-                            <p className="font-bold text-white tracking-widest uppercase">Saving Data...</p>
+                            <p className="font-bold text-white tracking-widest uppercase">กำลังบันทึกข้อมูล...</p>
                         </div>
                     )}
                 </div>
