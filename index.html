@@ -3,55 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFL Attendance - Face Login</title>
-    <!-- CSS & UI -->
+    <title>PFL Attendance - Face ID System</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <!-- Scripts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- AI Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
     <style>
-        body { font-family: 'Kanit', sans-serif; background: #f8fafc; }
-        .camera-box { position: relative; width: 100%; max-width: 500px; aspect-ratio: 4/3; background: #000; border-radius: 1.5rem; overflow: hidden; border: 4px solid white; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        .video-container {
+            position: relative; width: 100%; max-width: 480px; aspect-ratio: 4/3;
+            background: #000; border-radius: 1.5rem; overflow: hidden; margin: 0 auto;
+            border: 4px solid white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
-        .scan-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 3px dashed rgba(255,255,255,0.3); border-radius: 1.5rem; pointer-events: none; }
-        .instruction { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 8px 20px; border-radius: 99px; font-weight: 500; z-index: 10; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
+        .step-bubble { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; transition: all 0.3s ease; }
+        .step-active { background: #2563eb; color: white; transform: scale(1.1); box-shadow: 0 0 15px rgba(37,99,235,0.4); }
+        .step-done { background: #10b981; color: white; }
+        .step-pending { background: #e2e8f0; color: #64748b; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
+        // *** ใส่ URL ของ Web App หลังจาก Deploy ที่นี่ ***
         const API_URL = "https://script.google.com/macros/s/AKfycbzIBHv2yvSEOnjl2rTEMYJwNPt22rh7-C3ZOjUPgby3zJoWlyaI4QcRSn5QWHiO7i2Ctw/exec";
 
-        const App = () => {
-            const [view, setView] = useState('login'); // login, register, dashboard
+        const POSES = [
+            { id: 'front', label: 'หน้าตรง', instruction: 'มองตรงที่กล้อง' },
+            { id: 'left', label: 'หันซ้าย', instruction: 'หันหน้าไปทางซ้าย' },
+            { id: 'right', label: 'หันขวา', instruction: 'หันหน้าไปทางขวา' },
+            { id: 'up', label: 'เงยหน้า', instruction: 'เงยหน้าขึ้นด้านบน' },
+            { id: 'down', label: 'ก้มหน้า', instruction: 'ก้มหน้าลงด้านล่าง' }
+        ];
+
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    iconRef.current.innerHTML = '';
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', name);
+                    if (className) icon.className = className;
+                    icon.style.width = `${size}px`;
+                    icon.style.height = `${size}px`;
+                    iconRef.current.appendChild(icon);
+                    window.lucide.createIcons();
+                }
+            }, [name, size, className]);
+            return <span ref={iconRef} style={{ display: 'inline-flex', alignItems: 'center' }}></span>;
+        };
+
+        function App() {
+            const [view, setView] = useState('home');
             const [loading, setLoading] = useState(false);
-            const [isAiReady, setIsAiReady] = useState(false);
-            const [status, setStatus] = useState('กำลังเตรียมระบบ...');
-            const [currentTime, setCurrentTime] = useState(new Date());
-            const [users, setUsers] = useState([]);
+            const [status, setStatus] = useState("กำลังเชื่อมต่อฐานข้อมูล...");
             
-            // Camera & AI Refs
+            const [users, setUsers] = useState([]);
+            const [dbEmbeddings, setDbEmbeddings] = useState([]);
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [gps, setGps] = useState(null);
+
+            const [step, setStep] = useState(0);
+            const [isLivenessPassed, setIsLivenessPassed] = useState(false);
+            const [capturedFaces, setCapturedFaces] = useState({});
+            const [capturedEmbeddings, setCapturedEmbeddings] = useState({});
+            const [matchedUser, setMatchedUser] = useState(null);
+
+            const [regSelection, setRegSelection] = useState("");
+            const [regPin, setRegPin] = useState("");
+            const [attForm, setAttForm] = useState({ workPoint: 'PFL Office', compPoint: 'Main Gate', note: '' });
+
             const videoRef = useRef(null);
             const faceMeshRef = useRef(null);
-            const matcherRef = useRef(null);
-            
-            // Liveness State
-            const [livenessStage, setLivenessStage] = useState(0); // 0: Start, 1: Blink, 2: Nod, 3: Success
-
-            // Register Form
-            const [regForm, setRegForm] = useState({ name: '', id: '', pin: '' });
+            const streamRef = useRef(null);
+            const cameraRef = useRef(null);
 
             useEffect(() => {
                 const init = async () => {
@@ -63,214 +98,247 @@
                             window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                             window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                         ]);
-                        
+
                         if (window.FaceMesh) {
                             faceMeshRef.current = new window.FaceMesh({
                                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
                             });
-                            faceMeshRef.current.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-                            faceMeshRef.current.onResults(onResults);
+                            faceMeshRef.current.setOptions({
+                                maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
+                            });
+                            faceMeshRef.current.onResults(handleFaceMeshResults);
                         }
-                        
-                        setIsAiReady(true);
-                        setStatus('พร้อมใช้งาน');
-                        await fetchUsers();
-                    } catch (e) {
-                        setStatus('โหลดระบบล้มเหลว');
-                        console.error(e);
+                        await refreshUserList();
+                    } catch (err) {
+                        setStatus("โหลดระบบล้มเหลว");
                     }
                     setLoading(false);
                 };
                 init();
                 setInterval(() => setCurrentTime(new Date()), 1000);
+                navigator.geolocation.getCurrentPosition(p => setGps(`${p.coords.latitude}, ${p.coords.longitude}`), () => setGps("OFF"));
             }, []);
 
-            const fetchUsers = async () => {
-                const res = await fetch(`${API_URL}?action=getUsers`);
-                const json = await res.json();
-                if (json.data) {
-                    setUsers(json.data);
-                    const labeledDescriptors = json.data.map(u => {
-                        if (!u.embedding) return null;
-                        return new window.faceapi.LabeledFaceDescriptors(u.code.toString(), [new Float32Array(JSON.parse(u.embedding))]);
-                    }).filter(x => x);
-                    if (labeledDescriptors.length > 0) {
-                        matcherRef.current = new window.faceapi.FaceMatcher(labeledDescriptors, 0.45);
-                    }
-                }
+            const refreshUserList = async () => {
+                try {
+                    const res = await fetch(`${API_URL}?action=getUsers`);
+                    const json = await res.json();
+                    if (json.status === 'success') setUsers(json.data);
+                    
+                    const resE = await fetch(`${API_URL}?action=getEmbeddings`);
+                    const jsonE = await resE.json();
+                    if (jsonE.status === 'success') setDbEmbeddings(jsonE.data);
+                    
+                    setStatus("พร้อมใช้งาน");
+                } catch (e) { setStatus("เชื่อมต่อฐานข้อมูลล้มเหลว"); }
             };
 
             const startCamera = async () => {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    videoRef.current.srcObject = stream;
-                    const camera = new window.Camera(videoRef.current, {
-                        onFrame: async () => {
-                            if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
-                        },
-                        width: 640, height: 480
-                    });
-                    camera.start();
-                } catch (e) { alert('ไม่สามารถเข้าถึงกล้องได้'); }
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        streamRef.current = stream;
+                        cameraRef.current = new window.Camera(videoRef.current, {
+                            onFrame: async () => {
+                                if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
+                            },
+                            width: 640, height: 480
+                        });
+                        cameraRef.current.start();
+                    }
+                } catch (err) { alert("เปิดกล้องไม่ได้"); }
             };
 
-            const onResults = async (results) => {
+            const stopCamera = () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+                if (cameraRef.current) cameraRef.current.stop();
+            };
+
+            const handleFaceMeshResults = async (results) => {
                 if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                    setStatus('กรุณาวางใบหน้าในกรอบ'); return;
+                    setStatus("ไม่พบใบหน้า");
+                    return;
                 }
-                
+
                 const landmarks = results.multiFaceLandmarks[0];
-                
-                // Liveness Check logic (Simple example: Nod detection)
-                const nose = landmarks[1];
-                const topHead = landmarks[10];
-                const chin = landmarks[152];
-                const pitch = (topHead.z - chin.z) * 100;
+                const yaw = (landmarks[33].z - landmarks[263].z) * 100;
+                const pitch = (landmarks[10].z - landmarks[152].z) * 100;
 
-                if (livenessStage === 0) {
-                    setStatus('กรุณามองตรง');
-                    if (Math.abs(pitch) < 3) setLivenessStage(1);
-                } else if (livenessStage === 1) {
-                    setStatus('กรุณา "พยักหน้า" (ก้มลง)');
-                    if (pitch < -5) setLivenessStage(2);
-                } else if (livenessStage === 2) {
-                    setStatus('กรุณา "เงยหน้าขึ้น"');
-                    if (pitch > 5) {
-                        setLivenessStage(3);
-                        processIdentification();
+                const currentTarget = POSES[step];
+                let isCorrectPose = false;
+
+                if (currentTarget.id === 'front') isCorrectPose = Math.abs(yaw) < 2 && Math.abs(pitch) < 3;
+                else if (currentTarget.id === 'left') isCorrectPose = yaw > 7;
+                else if (currentTarget.id === 'right') isCorrectPose = yaw < -7;
+                else if (currentTarget.id === 'up') isCorrectPose = pitch > 8;
+                else if (currentTarget.id === 'down') isCorrectPose = pitch < -6;
+
+                if (isCorrectPose) {
+                    if (view === 'enroll') {
+                        const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
+                        if (detection) {
+                            setCapturedFaces(prev => ({ ...prev, [currentTarget.id]: "captured" }));
+                            setCapturedEmbeddings(prev => ({ ...prev, [currentTarget.id]: Array.from(detection.descriptor) }));
+                            if (step < 4) setStep(prev => prev + 1);
+                            else { setIsLivenessPassed(true); stopCamera(); }
+                        }
+                    } else if (view === 'attendance') {
+                        if (currentTarget.id === 'front' && !matchedUser) {
+                            const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
+                            if (detection) {
+                                let bestMatch = { label: 'unknown', distance: 1 };
+                                dbEmbeddings.forEach(u => {
+                                    u.embeddings.forEach(e => {
+                                        const dist = window.faceapi.euclideanDistance(detection.descriptor, new Float32Array(e));
+                                        if (dist < bestMatch.distance) bestMatch = { label: u.code, name: u.name, distance: dist };
+                                    });
+                                });
+                                if (bestMatch.distance <= 0.55) { setMatchedUser(bestMatch); setStep(prev => prev + 1); }
+                                else setStatus("ไม่พบข้อมูลพนักงาน");
+                            }
+                        } else if (matchedUser) {
+                            if (step < 4) setStep(prev => prev + 1);
+                            else { setIsLivenessPassed(true); stopCamera(); }
+                        }
                     }
+                } else {
+                    setStatus(`กรุณา ${currentTarget.instruction}`);
                 }
             };
 
-            const processIdentification = async () => {
-                if (!matcherRef.current) return;
-                setStatus('กำลังตรวจสอบใบหน้า...');
-                const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
-                if (detection) {
-                    const bestMatch = matcherRef.current.findBestMatch(detection.descriptor);
-                    if (bestMatch.label !== 'unknown') {
-                        const user = users.find(u => u.code == bestMatch.label);
-                        handleSuccessLogin(user, bestMatch.distance);
-                    } else {
-                        setStatus('ไม่พบข้อมูลใบหน้าในระบบ');
-                        setLivenessStage(0);
-                    }
-                }
+            const submitEnroll = async () => {
+                setLoading(true);
+                const payload = {
+                    action: 'registerFace',
+                    code: regSelection,
+                    pin: regPin,
+                    faces: { front: "saved", left: "saved", right: "saved", up: "saved", down: "saved" },
+                    embeddings: capturedEmbeddings
+                };
+                try {
+                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    alert("ลงทะเบียนสำเร็จ");
+                    resetState();
+                } catch (e) { alert("ล้มเหลว"); }
+                setLoading(false);
             };
 
-            const handleSuccessLogin = async (user, distance) => {
-                setStatus('บันทึกเวลาสำเร็จ!');
+            const submitAttendance = async () => {
                 setLoading(true);
                 const payload = {
                     action: 'saveAttendance',
-                    user_id: user.code,
-                    name: user.nickname,
-                    type: 'Check-in',
-                    score: (1 - distance).toFixed(2),
-                    location: 'Office A',
-                    note: 'Face ID'
+                    user_id: matchedUser.label,
+                    name: matchedUser.name,
+                    score: (1 - matchedUser.distance).toFixed(2),
+                    workplace_entry_time: new Date().toLocaleTimeString('th-TH'),
+                    workplace_entry_point: attForm.workPoint,
+                    company_entry_time: new Date().toLocaleTimeString('th-TH'),
+                    company_entry_point: attForm.compPoint,
+                    note: attForm.note,
+                    gps_status: gps
                 };
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                try {
+                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    alert(`บันทึกเวลาสำเร็จ: ${payload.name}`);
+                    resetState();
+                } catch (e) { alert("ล้มเหลว"); }
                 setLoading(false);
-                setView('dashboard');
             };
 
-            const handleRegister = async () => {
-                setLoading(true);
-                const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
-                if (detection) {
-                    const payload = {
-                        action: 'registerFace',
-                        nickname: regForm.name,
-                        code: regForm.id,
-                        pin: regForm.pin,
-                        embedding: Array.from(detection.descriptor)
-                    };
-                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    alert('ลงทะเบียนสำเร็จ');
-                    location.reload();
-                } else {
-                    alert('ไม่พบใบหน้า กรุณาลองใหม่');
-                }
-                setLoading(false);
+            const resetState = () => {
+                setView('home'); setStep(0); setIsLivenessPassed(false); setMatchedUser(null); stopCamera(); refreshUserList();
             };
 
             return (
-                <div className="flex flex-col min-h-screen">
-                    <header className="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
+                <div className="max-w-md mx-auto min-h-screen flex flex-col p-4 bg-slate-50">
+                    {/* Header */}
+                    <header className="bg-white rounded-3xl p-4 flex justify-between items-center mb-6 shadow-sm">
                         <div className="flex items-center gap-2">
-                            <div className="bg-blue-600 p-2 rounded-xl text-white"><i data-lucide="shield-check"></i></div>
-                            <h1 className="font-bold text-xl text-slate-800">Face Attendance</h1>
+                            <div className="bg-blue-600 p-2 rounded-2xl text-white"><Icon name="shield-check" size={24} /></div>
+                            <h1 className="font-bold text-slate-800">PFL Attendance</h1>
                         </div>
-                        <div className="text-sm font-medium text-slate-500">{currentTime.toLocaleTimeString('th-TH')}</div>
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold ${gps !== 'OFF' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>GPS: {gps || 'Checking'}</div>
                     </header>
 
-                    <main className="flex-grow flex flex-col items-center p-6 space-y-6">
-                        {view === 'login' && (
-                            <div className="w-full max-w-md space-y-6 text-center animate-in fade-in">
-                                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-8 opacity-10"><i data-lucide="clock" style={{width:100, height:100}}></i></div>
-                                    <h2 className="text-5xl font-black">{currentTime.toLocaleTimeString('th-TH', {hour12:false})}</h2>
-                                    <p className="text-blue-400 mt-2">{currentTime.toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'})}</p>
+                    {/* Content */}
+                    <main className="flex-grow">
+                        {view === 'home' && (
+                            <div className="space-y-6 animate-in fade-in">
+                                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white text-center shadow-xl relative overflow-hidden">
+                                   <div className="absolute top-0 right-0 p-6 opacity-10"><Icon name="clock" size={80} /></div>
+                                   <p className="text-blue-400 font-bold mb-1 uppercase tracking-widest">{currentTime.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                   <h2 className="text-6xl font-black">{currentTime.toLocaleTimeString('th-TH', { hour12: false })}</h2>
                                 </div>
-                                
-                                <div className="camera-box">
-                                    <video ref={videoRef} autoPlay playsInline muted />
-                                    <canvas />
-                                    <div className="instruction">{status}</div>
-                                    <div className="scan-overlay"></div>
-                                </div>
-
-                                <div className="flex flex-col gap-3">
-                                    <button onClick={startCamera} className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
-                                        <i data-lucide="camera"></i> เปิดกล้องสแกน
+                                <div className="grid grid-cols-1 gap-4">
+                                    <button onClick={() => { setView('attendance'); startCamera(); }} className="bg-blue-600 p-8 rounded-3xl text-white flex flex-col items-center gap-3 shadow-lg active:scale-95 transition-all">
+                                        <Icon name="camera" size={32} /><span className="text-xl font-bold">สแกนใบหน้าเข้างาน</span>
                                     </button>
-                                    <button onClick={() => setView('register')} className="text-slate-500 text-sm font-medium hover:underline">ลงทะเบียนพนักงานใหม่</button>
+                                    <button onClick={() => setView('enroll')} className="bg-white p-6 rounded-3xl text-slate-700 flex items-center justify-center gap-4 shadow-sm border border-slate-200 active:scale-95 transition-all">
+                                        <Icon name="user-plus" size={24} /><span className="text-lg font-bold">ลงทะเบียนพนักงาน</span>
+                                    </button>
                                 </div>
                             </div>
                         )}
 
-                        {view === 'register' && (
-                            <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-sm border space-y-6 animate-in slide-in-from-bottom-4">
-                                <h2 className="text-2xl font-bold text-center">ลงทะเบียนใบหน้า</h2>
+                        {view === 'enroll' && !streamRef.current && !isLivenessPassed && (
+                            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm space-y-5 animate-in slide-in-from-bottom-4">
+                                <h2 className="text-2xl font-bold text-center">ลงทะเบียนใหม่</h2>
+                                <select className="w-full p-4 rounded-2xl bg-slate-50 border-0 ring-1 ring-slate-200 font-bold focus:ring-2 ring-blue-500" onChange={e => setRegSelection(e.target.value)}>
+                                    <option value="">-- เลือกรายชื่อพนักงาน --</option>
+                                    {users.map(u => <option key={u.code} value={u.code}>{u.nickname} ({u.code}) {u.embedding_front ? "✅" : "❌"}</option>)}
+                                </select>
+                                <input placeholder="ตั้งรหัส PIN 6 หลัก" maxLength={6} type="password" className="w-full p-4 rounded-2xl bg-slate-50 border-0 ring-1 ring-slate-200 text-center text-xl font-bold" onChange={e => setRegPin(e.target.value)} />
+                                <button disabled={!regSelection || regPin.length < 6} onClick={startCamera} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-30">เริ่มการสแกนใบหน้า</button>
+                            </div>
+                        )}
+
+                        {(streamRef.current && !isLivenessPassed) && (
+                            <div className="space-y-6 text-center">
+                                <div className="flex justify-center gap-2">
+                                    {POSES.map((p, i) => <div key={p.id} className={`step-bubble ${step === i ? 'step-active' : step > i ? 'step-done' : 'step-pending'}`}>{step > i ? "✓" : i + 1}</div>)}
+                                </div>
+                                <div className="video-container"><video ref={videoRef} autoPlay playsInline muted /><div className="absolute top-4 left-0 right-0"><span className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold animate-pulse">{status}</span></div></div>
+                            </div>
+                        )}
+
+                        {isLivenessPassed && view === 'enroll' && (
+                            <div className="bg-white p-10 rounded-[2.5rem] text-center space-y-6 animate-in zoom-in">
+                                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto"><Icon name="check-circle" size={48} /></div>
+                                <h3 className="text-2xl font-bold">ข้อมูลพร้อมบันทึก</h3>
+                                <button onClick={submitEnroll} className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-lg">ยืนยันและบันทึก</button>
+                            </div>
+                        )}
+
+                        {isLivenessPassed && view === 'attendance' && (
+                            <div className="bg-white p-8 rounded-[2.5rem] space-y-6 animate-in zoom-in">
+                                <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-3xl">
+                                    <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xl font-bold uppercase">{matchedUser.name?.charAt(0)}</div>
+                                    <div><h3 className="font-black text-xl">คุณ {matchedUser.name}</h3><p className="text-blue-600 text-xs font-bold">MATCHED</p></div>
+                                </div>
                                 <div className="space-y-4">
-                                    <input placeholder="ชื่อเล่น" className="w-full p-4 rounded-xl bg-slate-50 border-0 ring-1 ring-slate-200 focus:ring-2 ring-blue-500" onChange={e => setRegForm({...regForm, name: e.target.value})} />
-                                    <input placeholder="รหัสพนักงาน" className="w-full p-4 rounded-xl bg-slate-50 border-0 ring-1 ring-slate-200 focus:ring-2 ring-blue-500" onChange={e => setRegForm({...regForm, id: e.target.value})} />
-                                    <input placeholder="PIN (ถ้ามี)" className="w-full p-4 rounded-xl bg-slate-50 border-0 ring-1 ring-slate-200 focus:ring-2 ring-blue-500" onChange={e => setRegForm({...regForm, pin: e.target.value})} />
+                                    <select className="w-full p-4 bg-slate-50 rounded-xl border-0 font-bold" onChange={e => setAttForm({...attForm, workPoint: e.target.value})}><option>PFL Office</option><option>Production Line 1</option></select>
+                                    <textarea placeholder="หมายเหตุ..." className="w-full p-4 bg-slate-50 rounded-xl border-0 h-20 resize-none" onChange={e => setAttForm({...attForm, note: e.target.value})} />
                                 </div>
-                                <div className="camera-box !max-w-full"><video ref={videoRef} autoPlay playsInline muted /></div>
-                                <div className="flex gap-3">
-                                    <button onClick={startCamera} className="flex-1 py-4 bg-slate-100 rounded-xl font-bold">เปิดกล้อง</button>
-                                    <button onClick={handleRegister} className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold">บันทึกข้อมูล</button>
-                                </div>
-                                <button onClick={() => setView('login')} className="w-full text-center text-slate-400 text-sm">ย้อนกลับ</button>
-                            </div>
-                        )}
-
-                        {view === 'dashboard' && (
-                            <div className="w-full max-w-lg bg-white p-8 rounded-3xl shadow-sm border text-center space-y-6">
-                                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto"><i data-lucide="check-circle" style={{width:40, height:40}}></i></div>
-                                <h2 className="text-3xl font-bold">เข้างานเรียบร้อยแล้ว</h2>
-                                <p className="text-slate-500">ระบบได้บันทึกเวลาและพิกัดของคุณเข้าสู่ฐานข้อมูลแล้ว</p>
-                                <button onClick={() => location.reload()} className="px-10 py-3 bg-slate-900 text-white rounded-full font-bold">กลับหน้าแรก</button>
+                                <button onClick={submitAttendance} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg">บันทึกเวลาเข้างาน</button>
                             </div>
                         )}
                     </main>
 
                     {loading && (
                         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[200] flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+                            <Icon name="refresh-cw" className="animate-spin text-blue-600" size={40} />
                         </div>
                     )}
                 </div>
             );
-        };
+        }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-        
-        // Initialize Icons
-        setTimeout(() => { if(window.lucide) window.lucide.createIcons(); }, 1000);
     </script>
 </body>
 </html>
