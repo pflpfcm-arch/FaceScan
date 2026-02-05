@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFL Attendance - AI Face Recognition System</title>
+    <title>PFL Attendance - Face AI System</title>
     <!-- CSS & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
         .video-container {
             position: relative; width: 100%; max-width: 440px; aspect-ratio: 3/4;
             background: #111827; border-radius: 2.5rem; overflow: hidden; margin: 0 auto;
@@ -27,27 +27,24 @@
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
         
-        /* Face Guide UI - Fixed Orientation */
+        /* Face Guide (Upright Egg Shape) */
         .face-guide {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%);
             width: 70%; height: 65%; 
             border: 3px solid rgba(255, 255, 255, 0.8);
-            /* มาตรฐานสากล: หน้าผากโค้งกว้าง (บน) คางมนเรียว (ล่าง) */
             border-radius: 50% 50% 50% 50% / 45% 45% 55% 55%; 
             box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.7); 
             z-index: 10;
-            transition: all 0.3s ease;
         }
-        .face-guide.active { border-color: #3b82f6; border-width: 4px; border-style: dashed; animation: pulse 2s infinite; }
         .face-guide.success { border-color: #10b981; border-width: 5px; box-shadow: 0 0 0 1000px rgba(16, 185, 129, 0.2); }
 
-        @keyframes pulse {
-            0% { transform: translate(-50%, -55%) scale(1); opacity: 0.8; }
-            50% { transform: translate(-50%, -55%) scale(1.02); opacity: 1; }
-            100% { transform: translate(-50%, -55%) scale(1); opacity: 0.8; }
+        /* Success Overlay */
+        .success-overlay {
+            @apply absolute inset-0 flex items-center justify-center bg-emerald-500/20 z-20 pointer-events-none opacity-0 transition-opacity duration-300;
         }
+        .success-overlay.show { opacity: 1; }
 
-        /* Numpad Glassmorphism */
+        /* Numpad Styling */
         .numpad-btn {
             @apply w-16 h-16 flex items-center justify-center text-2xl font-bold rounded-2xl bg-white shadow-sm active:scale-90 transition-all duration-100 border border-slate-100;
         }
@@ -55,8 +52,6 @@
             @apply w-4 h-4 rounded-full border-2 border-slate-300 transition-all duration-300;
         }
         .pin-dot.active { @apply bg-blue-600 border-blue-600 scale-125; }
-        
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
@@ -66,8 +61,8 @@
         const { useState, useEffect, useRef } = React;
 
         // --- CONFIGURATION ---
+        // เปลี่ยน URL นี้เป็น Web App URL ของคุณ
         const API_URL = "https://script.google.com/macros/s/AKfycbzIBHv2yvSEOnjl2rTEMYJwNPt22rh7-C3ZOjUPgby3zJoWlyaI4QcRSn5QWHiO7i2Ctw/exec";
-        const MATCH_THRESHOLD = 0.45;
 
         const Icon = ({ name, size = 24, className = "" }) => {
             const iconRef = useRef(null);
@@ -90,14 +85,13 @@
             const [view, setView] = useState('home');
             const [loading, setLoading] = useState(false);
             const [status, setStatus] = useState("กำลังเตรียมพร้อมระบบ...");
-            const [modelsReady, setModelsReady] = useState(false);
-            
             const [users, setUsers] = useState([]);
             const [dbEmbeddings, setDbEmbeddings] = useState([]);
             const [config, setConfig] = useState({ entryPoints: [], workPoints: [] });
             const [currentTime, setCurrentTime] = useState(new Date());
             const [gps, setGps] = useState(null);
 
+            // Enrollment & Login States
             const [regStep, setRegStep] = useState(1); 
             const [selectedUser, setSelectedUser] = useState(null);
             const [tempPin, setTempPin] = useState("");
@@ -105,6 +99,7 @@
             const [isFaceValid, setIsFaceValid] = useState(false);
             const [isCaptured, setIsCaptured] = useState(false);
             const [matchedUser, setMatchedUser] = useState(null);
+            const [showSuccess, setShowSuccess] = useState(false);
             
             const [attForm, setAttForm] = useState({ entry: '', work: '', note: '' });
 
@@ -131,7 +126,6 @@
                             });
                             faceMeshRef.current.onResults(handleAIResults);
                         }
-                        setModelsReady(true);
                         await refreshData();
                     } catch (e) { setStatus("AI Engine Error"); }
                 };
@@ -149,41 +143,30 @@
                     ]);
                     if (resU.status === 'success') {
                         setUsers(resU.data);
-                        const embeddings = resU.data
-                            .filter(u => u.embedding_front)
-                            .map(u => ({
-                                code: u.code,
-                                name: u.nickname,
-                                descriptor: new Float32Array(JSON.parse(u.embedding_front))
-                            }));
-                        setDbEmbeddings(embeddings);
+                        const resE = await fetch(`${API_URL}?action=getEmbeddings`).then(r => r.json());
+                        if(resE.status === 'success') setDbEmbeddings(resE.data);
                     }
                     if (resC.status === 'success') setConfig(resC.data);
-                    setStatus("ระบบพร้อมใช้งาน");
+                    setStatus("พร้อมใช้งาน");
                 } catch (e) { setStatus("Sync Error"); }
             };
 
             const startCamera = async () => {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = stream;
-                        streamRef.current = stream;
-                        cameraRef.current = new window.Camera(videoRef.current, {
-                            onFrame: async () => {
-                                if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
-                            }
-                        });
-                        cameraRef.current.start();
-                    }
+                    videoRef.current.srcObject = stream;
+                    streamRef.current = stream;
+                    cameraRef.current = new window.Camera(videoRef.current, {
+                        onFrame: async () => {
+                            if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
+                        }
+                    });
+                    cameraRef.current.start();
                 } catch (err) { alert("กรุณาอนุญาตการเข้าถึงกล้อง"); }
             };
 
             const stopCamera = () => {
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(t => t.stop());
-                    streamRef.current = null;
-                }
+                if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
                 if (cameraRef.current) cameraRef.current.stop();
             };
 
@@ -192,7 +175,6 @@
                     setIsFaceValid(false);
                     return;
                 }
-
                 const landmarks = results.multiFaceLandmarks[0];
                 const yaw = (landmarks[33].z - landmarks[263].z) * 100;
                 const pitch = (landmarks[10].z - landmarks[152].z) * 100;
@@ -203,9 +185,8 @@
                 if (isCentered && !isCaptured) {
                     if (view === 'register' && regStep === 2) {
                         setStatus("ตำแหน่งถูกต้อง นิ่งค้างไว้...");
-                        setTimeout(() => captureForEnroll(), 1000);
+                        setTimeout(() => captureForEnroll(), 800);
                     } else if (view === 'login') {
-                        setStatus("กำลังตรวจสอบตัวตน...");
                         await identifyUser();
                     }
                 }
@@ -217,8 +198,14 @@
                 if (detection) {
                     setIsCaptured(true);
                     setSelectedUser({ ...selectedUser, descriptor: Array.from(detection.descriptor) });
+                    setShowSuccess(true);
                     setStatus("บันทึกใบหน้าสำเร็จ!");
-                    setTimeout(() => { stopCamera(); setRegStep(3); }, 1200);
+                    setTimeout(() => { 
+                        setShowSuccess(false);
+                        stopCamera(); 
+                        setRegStep(3); 
+                        setIsCaptured(false);
+                    }, 1200);
                 }
             };
 
@@ -228,18 +215,21 @@
                 if (detection && dbEmbeddings.length > 0) {
                     let bestMatch = { code: null, score: 0 };
                     dbEmbeddings.forEach(u => {
-                        const dist = window.faceapi.euclideanDistance(detection.descriptor, u.descriptor);
+                        const dist = window.faceapi.euclideanDistance(detection.descriptor, new Float32Array(u.descriptor));
                         const score = 1 - dist;
                         if (score > bestMatch.score) bestMatch = { ...u, score };
                     });
 
-                    if (bestMatch.score >= MATCH_THRESHOLD) {
+                    if (bestMatch.score >= 0.45) {
                         setMatchedUser(bestMatch);
                         setIsCaptured(true);
+                        setShowSuccess(true);
                         setStatus(`สวัสดีคุณ ${bestMatch.name}`);
-                        setTimeout(() => { stopCamera(); setView('attendance'); }, 1500);
-                    } else {
-                        setStatus("ไม่พบข้อมูลพนักงาน");
+                        setTimeout(() => { 
+                            setShowSuccess(false);
+                            stopCamera(); 
+                            setView('attendance'); 
+                        }, 1500);
                     }
                 }
             };
@@ -263,12 +253,11 @@
                     action: 'registerFace',
                     code: selectedUser.code,
                     pin: tempPin,
-                    faces: { front: "captured" },
-                    embeddings: { front: selectedUser.descriptor }
+                    faces: { descriptor: selectedUser.descriptor }
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    alert("ลงทะเบียนสำเร็จ! พร้อมสำหรับการใช้งาน");
+                    alert("ลงทะเบียนสำเร็จ!");
                     window.location.reload();
                 } catch (e) { alert("Error saving data"); }
                 setLoading(false);
@@ -299,8 +288,7 @@
 
             return (
                 <div className="flex flex-col min-h-screen items-center p-4">
-                    {/* Header */}
-                    <div className="w-full max-w-md bg-white p-5 rounded-3xl shadow-sm mb-6 flex justify-between items-center border border-slate-100">
+                    <header className="w-full max-w-md bg-white p-5 rounded-3xl shadow-sm mb-6 flex justify-between items-center border border-slate-100">
                         <div className="flex items-center gap-3">
                             <div className="bg-blue-600 p-2 rounded-2xl text-white shadow-lg"><Icon name="shield-check" size={20} /></div>
                             <div>
@@ -309,14 +297,14 @@
                             </div>
                         </div>
                         <div className="bg-slate-50 px-3 py-1 rounded-full text-[10px] font-bold text-slate-400">GPS: {gps || 'Check'}</div>
-                    </div>
+                    </header>
 
                     <main className="w-full max-w-md pb-24">
                         {view === 'home' && (
                             <div className="space-y-6 animate-in fade-in duration-500">
                                 <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white text-center shadow-2xl relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-8 opacity-10"><Icon name="clock" size={100} /></div>
-                                    <p className="text-blue-400 font-bold tracking-widest mb-1 uppercase text-xs">{currentTime.toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'})}</p>
+                                    <p className="text-blue-400 font-bold mb-1 uppercase text-xs">{currentTime.toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'})}</p>
                                     <h2 className="text-6xl font-black tabular-nums">{currentTime.toLocaleTimeString('th-TH', {hour12:false, hour:'2-digit', minute:'2-digit'})}</h2>
                                     <p className="mt-4 text-slate-400 text-xs font-medium uppercase tracking-[0.2em]">Ready for Verification</p>
                                 </div>
@@ -327,7 +315,7 @@
                                     </button>
                                     <button onClick={() => setView('register')} className="bg-white p-6 rounded-[2rem] text-slate-700 flex items-center justify-center gap-4 shadow-sm border border-slate-100 active:scale-95 transition-all">
                                         <Icon name="user-plus" size={24} className="text-blue-600" />
-                                        <span className="text-lg font-bold">ลงทะเบียนสมาชิก</span>
+                                        <span className="text-lg font-bold">ลงทะเบียนสมาชิกใหม่</span>
                                     </button>
                                 </div>
                             </div>
@@ -361,18 +349,24 @@
                                     <div className="space-y-6">
                                         <div className="video-container">
                                             <div className="absolute top-6 left-4 right-4 py-3 px-4 rounded-2xl bg-black/70 backdrop-blur-md text-white text-center font-bold text-lg z-30">{status}</div>
-                                            <div className={`face-guide ${isFaceValid ? 'active' : ''} ${isCaptured ? 'success' : ''}`}></div>
+                                            <div className={`face-guide ${isFaceValid ? 'active' : ''} ${showSuccess ? 'success' : ''}`}></div>
+                                            <div className={`success-overlay ${showSuccess ? 'show' : ''}`}>
+                                                <div className="bg-white/90 px-8 py-4 rounded-3xl shadow-2xl flex flex-col items-center gap-2 transform transition-transform duration-500 scale-110">
+                                                    <Icon name="check-circle" className="text-emerald-500" size={48} />
+                                                    <span className="text-emerald-600 font-bold text-2xl text-center">บันทึกสำเร็จ</span>
+                                                </div>
+                                            </div>
                                             <video ref={videoRef} autoPlay playsInline muted />
                                         </div>
-                                        <p className="text-center text-xs text-slate-400 font-medium italic">* จัดวางใบหน้าในกรอบวงไข่ให้พอดี</p>
+                                        <p className="text-center text-xs text-slate-400 font-medium italic">* จัดวางใบหน้าในกรอบวงไข่ให้พอดีและมองตรง</p>
                                     </div>
                                 )}
 
                                 {(regStep === 3 || regStep === 4) && (
                                     <div className="bg-white p-8 rounded-[2.5rem] shadow-xl text-center space-y-8 animate-in zoom-in-95 border border-slate-100">
                                         <div className="space-y-2">
-                                            <h3 className="text-2xl font-black text-slate-800">{regStep === 3 ? "ตั้งรหัส PIN 6 หลัก" : "ยืนยันรหัส PIN"}</h3>
-                                            <p className="text-sm text-slate-400">มาตรการความปลอดภัยสำรองในการเข้างาน</p>
+                                            <h3 className="text-2xl font-black text-slate-800">{regStep === 3 ? "ตั้งรหัส PIN 6 หลัก" : "ยืนยันรหัส PIN อีกครั้ง"}</h3>
+                                            <p className="text-sm text-slate-400">สำหรับใช้เป็นรหัสสำรองความปลอดภัย</p>
                                         </div>
                                         <div className="flex justify-center gap-4 py-4">
                                             {[...Array(6)].map((_, i) => <div key={i} className={`pin-dot ${(regStep === 3 ? tempPin.length : confirmPin.length) > i ? 'active' : ''}`}></div>)}
@@ -384,7 +378,7 @@
                                             <button onClick={() => (regStep === 3 ? setTempPin(p => p.slice(0,-1)) : setConfirmPin(p => p.slice(0,-1)))} className="numpad-btn text-slate-400 font-bold text-sm">DEL</button>
                                         </div>
                                         {regStep === 4 && confirmPin.length === 6 && (
-                                            <button onClick={submitRegistration} className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-lg shadow-lg animate-bounce">บันทึกข้อมูลถาวร</button>
+                                            <button onClick={submitRegistration} className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-lg shadow-lg">บันทึกข้อมูลถาวร</button>
                                         )}
                                     </div>
                                 )}
@@ -395,7 +389,7 @@
                             <div className="space-y-6">
                                 <div className="video-container">
                                     <div className="absolute top-6 left-4 right-4 py-3 px-4 rounded-2xl bg-black/70 backdrop-blur-md text-white text-center font-bold text-lg z-30">{status}</div>
-                                    <div className={`face-guide ${isFaceValid ? 'active' : ''} ${isCaptured ? 'success' : ''}`}></div>
+                                    <div className={`face-guide ${isFaceValid ? 'active' : ''} ${showSuccess ? 'success' : ''}`}></div>
                                     <video ref={videoRef} autoPlay playsInline muted />
                                 </div>
                                 <button onClick={() => window.location.reload()} className="w-full py-4 bg-white rounded-2xl font-bold text-slate-400">ยกเลิกรายการ</button>
