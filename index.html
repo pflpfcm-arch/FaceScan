@@ -3,30 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFL Attendance - Face ID System</title>
+    <title>PFL Attendance - Face ID & PIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- AI Engines -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
         .video-container {
-            position: relative; width: 100%; max-width: 480px; aspect-ratio: 4/3;
-            background: #000; border-radius: 1.5rem; overflow: hidden; margin: 0 auto;
-            border: 4px solid white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            position: relative; width: 100%; max-width: 440px; aspect-ratio: 3/4;
+            background: #000; border-radius: 2rem; overflow: hidden; margin: 0 auto;
+            border: 4px solid white; box-shadow: 0 15px 30px -10px rgba(0,0,0,0.2);
         }
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
-        .step-bubble { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; transition: all 0.3s ease; }
-        .step-active { background: #2563eb; color: white; transform: scale(1.1); box-shadow: 0 0 15px rgba(37,99,235,0.4); }
-        .step-done { background: #10b981; color: white; }
-        .step-pending { background: #e2e8f0; color: #64748b; }
+        
+        /* Numpad Styling */
+        .numpad-btn {
+            @apply w-16 h-16 flex items-center justify-center text-2xl font-bold rounded-full bg-white shadow-sm active:bg-blue-100 transition-colors border border-slate-100;
+        }
+        .pin-dot {
+            @apply w-4 h-4 rounded-full border-2 border-slate-300 transition-all duration-200;
+        }
+        .pin-dot.filled { @apply bg-blue-600 border-blue-600 scale-125; }
+        
+        .step-pill { @apply px-3 py-1 rounded-full text-xs font-bold transition-all; }
+        .step-active { @apply bg-blue-600 text-white shadow-lg; }
+        .step-inactive { @apply bg-slate-200 text-slate-500; }
     </style>
 </head>
 <body>
@@ -35,62 +45,57 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
 
-        // *** ใส่ URL ของ Web App หลังจาก Deploy ที่นี่ ***
         const API_URL = "https://script.google.com/macros/s/AKfycbzIBHv2yvSEOnjl2rTEMYJwNPt22rh7-C3ZOjUPgby3zJoWlyaI4QcRSn5QWHiO7i2Ctw/exec";
 
-        const POSES = [
-            { id: 'front', label: 'หน้าตรง', instruction: 'มองตรงที่กล้อง' },
-            { id: 'left', label: 'หันซ้าย', instruction: 'หันหน้าไปทางซ้าย' },
-            { id: 'right', label: 'หันขวา', instruction: 'หันหน้าไปทางขวา' },
-            { id: 'up', label: 'เงยหน้า', instruction: 'เงยหน้าขึ้นด้านบน' },
-            { id: 'down', label: 'ก้มหน้า', instruction: 'ก้มหน้าลงด้านล่าง' }
-        ];
-
+        // UI Helpers
         const Icon = ({ name, size = 24, className = "" }) => {
             const iconRef = useRef(null);
             useEffect(() => {
                 if (window.lucide && iconRef.current) {
                     iconRef.current.innerHTML = '';
-                    const icon = document.createElement('i');
-                    icon.setAttribute('data-lucide', name);
-                    if (className) icon.className = className;
-                    icon.style.width = `${size}px`;
-                    icon.style.height = `${size}px`;
-                    iconRef.current.appendChild(icon);
+                    const i = document.createElement('i');
+                    i.setAttribute('data-lucide', name);
+                    i.className = className;
+                    i.style.width = `${size}px`;
+                    i.style.height = `${size}px`;
+                    iconRef.current.appendChild(i);
                     window.lucide.createIcons();
                 }
             }, [name, size, className]);
-            return <span ref={iconRef} style={{ display: 'inline-flex', alignItems: 'center' }}></span>;
+            return <span ref={iconRef} className="inline-flex items-center"></span>;
         };
 
         function App() {
-            const [view, setView] = useState('home');
+            const [view, setView] = useState('home'); // home, register, login, attendance
             const [loading, setLoading] = useState(false);
-            const [status, setStatus] = useState("กำลังเชื่อมต่อฐานข้อมูล...");
+            const [status, setStatus] = useState("เตรียมระบบ...");
+            const [modelsLoaded, setModelsLoaded] = useState(false);
             
+            // Data
             const [users, setUsers] = useState([]);
-            const [dbEmbeddings, setDbEmbeddings] = useState([]);
             const [currentTime, setCurrentTime] = useState(new Date());
-            const [gps, setGps] = useState(null);
 
-            const [step, setStep] = useState(0);
-            const [isLivenessPassed, setIsLivenessPassed] = useState(false);
-            const [capturedFaces, setCapturedFaces] = useState({});
+            // Registration State
+            const [regStep, setRegStep] = useState(1); // 1: Select, 2: Face, 3: PIN, 4: Confirm PIN
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [capturedFaces, setCapturedFaces] = useState({ front: null, left: null, right: null });
             const [capturedEmbeddings, setCapturedEmbeddings] = useState({});
-            const [matchedUser, setMatchedUser] = useState(null);
+            const [tempPin, setTempPin] = useState("");
+            const [confirmPin, setConfirmPin] = useState("");
 
-            const [regSelection, setRegSelection] = useState("");
-            const [regPin, setRegPin] = useState("");
-            const [attForm, setAttForm] = useState({ workPoint: 'PFL Office', compPoint: 'Main Gate', note: '' });
+            // Login/Attendance State
+            const [loginMode, setLoginMode] = useState('face'); // face, pin
+            const [loginPin, setLoginPin] = useState("");
+            const [currentUser, setCurrentUser] = useState(null);
 
             const videoRef = useRef(null);
             const faceMeshRef = useRef(null);
             const streamRef = useRef(null);
             const cameraRef = useRef(null);
 
+            // Initialize
             useEffect(() => {
                 const init = async () => {
-                    setLoading(true);
                     try {
                         const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
                         await Promise.all([
@@ -104,55 +109,47 @@
                                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
                             });
                             faceMeshRef.current.setOptions({
-                                maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
+                                maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7
                             });
                             faceMeshRef.current.onResults(handleFaceMeshResults);
                         }
-                        await refreshUserList();
+                        setModelsLoaded(true);
+                        fetchUsers();
                     } catch (err) {
-                        setStatus("โหลดระบบล้มเหลว");
+                        setStatus("Error loading models");
                     }
-                    setLoading(false);
                 };
                 init();
-                setInterval(() => setCurrentTime(new Date()), 1000);
-                navigator.geolocation.getCurrentPosition(p => setGps(`${p.coords.latitude}, ${p.coords.longitude}`), () => setGps("OFF"));
+                const t = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(t);
             }, []);
 
-            const refreshUserList = async () => {
+            const fetchUsers = async () => {
                 try {
                     const res = await fetch(`${API_URL}?action=getUsers`);
                     const json = await res.json();
                     if (json.status === 'success') setUsers(json.data);
-                    
-                    const resE = await fetch(`${API_URL}?action=getEmbeddings`);
-                    const jsonE = await resE.json();
-                    if (jsonE.status === 'success') setDbEmbeddings(jsonE.data);
-                    
-                    setStatus("พร้อมใช้งาน");
-                } catch (e) { setStatus("เชื่อมต่อฐานข้อมูลล้มเหลว"); }
+                } catch (e) { setStatus("Sync Error"); }
             };
 
             const startCamera = async () => {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = stream;
-                        streamRef.current = stream;
-                        cameraRef.current = new window.Camera(videoRef.current, {
-                            onFrame: async () => {
-                                if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
-                            },
-                            width: 640, height: 480
-                        });
-                        cameraRef.current.start();
-                    }
-                } catch (err) { alert("เปิดกล้องไม่ได้"); }
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                    videoRef.current.srcObject = stream;
+                    streamRef.current = stream;
+                    cameraRef.current = new window.Camera(videoRef.current, {
+                        onFrame: async () => {
+                            if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
+                        },
+                        width: 640, height: 480
+                    });
+                    cameraRef.current.start();
+                } catch (err) { alert("Camera Error: " + err.message); }
             };
 
             const stopCamera = () => {
                 if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current.getTracks().forEach(t => t.stop());
                     streamRef.current = null;
                 }
                 if (cameraRef.current) cameraRef.current.stop();
@@ -160,7 +157,7 @@
 
             const handleFaceMeshResults = async (results) => {
                 if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                    setStatus("ไม่พบใบหน้า");
+                    if (view === 'register' && regStep === 2) setStatus("ไม่พบใบหน้า");
                     return;
                 }
 
@@ -168,173 +165,308 @@
                 const yaw = (landmarks[33].z - landmarks[263].z) * 100;
                 const pitch = (landmarks[10].z - landmarks[152].z) * 100;
 
-                const currentTarget = POSES[step];
-                let isCorrectPose = false;
-
-                if (currentTarget.id === 'front') isCorrectPose = Math.abs(yaw) < 2 && Math.abs(pitch) < 3;
-                else if (currentTarget.id === 'left') isCorrectPose = yaw > 7;
-                else if (currentTarget.id === 'right') isCorrectPose = yaw < -7;
-                else if (currentTarget.id === 'up') isCorrectPose = pitch > 8;
-                else if (currentTarget.id === 'down') isCorrectPose = pitch < -6;
-
-                if (isCorrectPose) {
-                    if (view === 'enroll') {
-                        const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
-                        if (detection) {
-                            setCapturedFaces(prev => ({ ...prev, [currentTarget.id]: "captured" }));
-                            setCapturedEmbeddings(prev => ({ ...prev, [currentTarget.id]: Array.from(detection.descriptor) }));
-                            if (step < 4) setStep(prev => prev + 1);
-                            else { setIsLivenessPassed(true); stopCamera(); }
-                        }
-                    } else if (view === 'attendance') {
-                        if (currentTarget.id === 'front' && !matchedUser) {
-                            const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
-                            if (detection) {
-                                let bestMatch = { label: 'unknown', distance: 1 };
-                                dbEmbeddings.forEach(u => {
-                                    u.embeddings.forEach(e => {
-                                        const dist = window.faceapi.euclideanDistance(detection.descriptor, new Float32Array(e));
-                                        if (dist < bestMatch.distance) bestMatch = { label: u.code, name: u.name, distance: dist };
-                                    });
-                                });
-                                if (bestMatch.distance <= 0.55) { setMatchedUser(bestMatch); setStep(prev => prev + 1); }
-                                else setStatus("ไม่พบข้อมูลพนักงาน");
-                            }
-                        } else if (matchedUser) {
-                            if (step < 4) setStep(prev => prev + 1);
-                            else { setIsLivenessPassed(true); stopCamera(); }
-                        }
-                    }
-                } else {
-                    setStatus(`กรุณา ${currentTarget.instruction}`);
+                if (view === 'register' && regStep === 2) {
+                    processRegisterDetection(yaw, pitch);
+                } else if (view === 'login' && loginMode === 'face') {
+                    processLoginDetection(yaw, pitch);
                 }
             };
 
-            const submitEnroll = async () => {
+            const processRegisterDetection = async (yaw, pitch) => {
+                if (!capturedFaces.front) {
+                    setStatus("กรุณามองหน้าตรง...");
+                    if (Math.abs(yaw) < 2 && Math.abs(pitch) < 3) await capturePose('front');
+                } else if (!capturedFaces.left) {
+                    setStatus("กรุณาหันหน้าไปทางซ้าย...");
+                    if (yaw > 8) await capturePose('left');
+                } else if (!capturedFaces.right) {
+                    setStatus("กรุณาหันหน้าไปทางขวา...");
+                    if (yaw < -8) await capturePose('right');
+                } else {
+                    setStatus("สแกนครบถ้วน! กำลังตรวจสอบ...");
+                    setTimeout(() => {
+                        stopCamera();
+                        setRegStep(3);
+                    }, 1000);
+                }
+            };
+
+            const capturePose = async (pose) => {
+                const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
+                if (detection) {
+                    setCapturedFaces(prev => ({ ...prev, [pose]: "captured" }));
+                    setCapturedEmbeddings(prev => ({ ...prev, [pose]: Array.from(detection.descriptor) }));
+                }
+            };
+
+            const processLoginDetection = async (yaw, pitch) => {
+                setStatus("กรุณามองตรงเพื่อยืนยันตัวตน...");
+                if (Math.abs(yaw) < 2.5) {
+                    const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
+                    if (detection) {
+                        // Logic for matching would happen here (Calling API or comparing local)
+                        setStatus("กำลังประมวลผล...");
+                        // Mocking success for UX flow
+                    }
+                }
+            };
+
+            const handleNumpad = (num) => {
+                if (view === 'register') {
+                    if (regStep === 3) {
+                        if (tempPin.length < 6) {
+                            const newPin = tempPin + num;
+                            setTempPin(newPin);
+                            if (newPin.length === 6) setRegStep(4);
+                        }
+                    } else if (regStep === 4) {
+                        if (confirmPin.length < 6) {
+                            const newPin = confirmPin + num;
+                            setConfirmPin(newPin);
+                            if (newPin.length === 6) {
+                                if (newPin === tempPin) {
+                                    handleFinalRegister(newPin);
+                                } else {
+                                    alert("รหัสไม่ตรงกัน กรุณาเริ่มใหม่");
+                                    setTempPin("");
+                                    setConfirmPin("");
+                                    setRegStep(3);
+                                }
+                            }
+                        }
+                    }
+                } else if (view === 'login') {
+                    if (loginPin.length < 6) {
+                        const newPin = loginPin + num;
+                        setLoginPin(newPin);
+                        if (newPin.length === 6) verifyPinLogin(newPin);
+                    }
+                }
+            };
+
+            const handleFinalRegister = async (finalPin) => {
                 setLoading(true);
                 const payload = {
                     action: 'registerFace',
-                    code: regSelection,
-                    pin: regPin,
-                    faces: { front: "saved", left: "saved", right: "saved", up: "saved", down: "saved" },
+                    code: selectedUser.code,
+                    pin: finalPin,
+                    faces: capturedFaces,
                     embeddings: capturedEmbeddings
                 };
                 try {
                     await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    alert("ลงทะเบียนสำเร็จ");
-                    resetState();
+                    alert("ลงทะเบียนพนักงานสำเร็จ!");
+                    resetAppState();
                 } catch (e) { alert("ล้มเหลว"); }
                 setLoading(false);
             };
 
-            const submitAttendance = async () => {
-                setLoading(true);
-                const payload = {
-                    action: 'saveAttendance',
-                    user_id: matchedUser.label,
-                    name: matchedUser.name,
-                    score: (1 - matchedUser.distance).toFixed(2),
-                    workplace_entry_time: new Date().toLocaleTimeString('th-TH'),
-                    workplace_entry_point: attForm.workPoint,
-                    company_entry_time: new Date().toLocaleTimeString('th-TH'),
-                    company_entry_point: attForm.compPoint,
-                    note: attForm.note,
-                    gps_status: gps
-                };
-                try {
-                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    alert(`บันทึกเวลาสำเร็จ: ${payload.name}`);
-                    resetState();
-                } catch (e) { alert("ล้มเหลว"); }
-                setLoading(false);
+            const verifyPinLogin = (pin) => {
+                // Pin verification logic here
+                alert("เข้าสู่ระบบสำเร็จ (ตัวอย่าง)");
+                resetAppState();
             };
 
-            const resetState = () => {
-                setView('home'); setStep(0); setIsLivenessPassed(false); setMatchedUser(null); stopCamera(); refreshUserList();
+            const resetAppState = () => {
+                setView('home');
+                setRegStep(1);
+                setSelectedUser(null);
+                setCapturedFaces({ front: null, left: null, right: null });
+                setTempPin("");
+                setConfirmPin("");
+                setLoginPin("");
+                stopCamera();
             };
 
             return (
-                <div className="max-w-md mx-auto min-h-screen flex flex-col p-4 bg-slate-50">
+                <div className="flex flex-col min-h-screen items-center p-4 max-w-lg mx-auto">
                     {/* Header */}
-                    <header className="bg-white rounded-3xl p-4 flex justify-between items-center mb-6 shadow-sm">
-                        <div className="flex items-center gap-2">
-                            <div className="bg-blue-600 p-2 rounded-2xl text-white"><Icon name="shield-check" size={24} /></div>
+                    <div className="w-full flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-blue-600 p-2 rounded-2xl text-white"><Icon name="user-check" size={20} /></div>
                             <h1 className="font-bold text-slate-800">PFL Attendance</h1>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold ${gps !== 'OFF' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>GPS: {gps || 'Checking'}</div>
-                    </header>
+                        <div className="text-xs font-bold text-slate-400 tabular-nums">{formatTimeShort(currentTime)}</div>
+                    </div>
 
-                    {/* Content */}
-                    <main className="flex-grow">
-                        {view === 'home' && (
-                            <div className="space-y-6 animate-in fade-in">
-                                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white text-center shadow-xl relative overflow-hidden">
-                                   <div className="absolute top-0 right-0 p-6 opacity-10"><Icon name="clock" size={80} /></div>
-                                   <p className="text-blue-400 font-bold mb-1 uppercase tracking-widest">{currentTime.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                                   <h2 className="text-6xl font-black">{currentTime.toLocaleTimeString('th-TH', { hour12: false })}</h2>
-                                </div>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <button onClick={() => { setView('attendance'); startCamera(); }} className="bg-blue-600 p-8 rounded-3xl text-white flex flex-col items-center gap-3 shadow-lg active:scale-95 transition-all">
-                                        <Icon name="camera" size={32} /><span className="text-xl font-bold">สแกนใบหน้าเข้างาน</span>
-                                    </button>
-                                    <button onClick={() => setView('enroll')} className="bg-white p-6 rounded-3xl text-slate-700 flex items-center justify-center gap-4 shadow-sm border border-slate-200 active:scale-95 transition-all">
-                                        <Icon name="user-plus" size={24} /><span className="text-lg font-bold">ลงทะเบียนพนักงาน</span>
-                                    </button>
-                                </div>
+                    {/* View: HOME */}
+                    {view === 'home' && (
+                        <div className="w-full space-y-6 animate-in fade-in zoom-in-95">
+                            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white text-center shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-8 opacity-10"><Icon name="clock" size={80} /></div>
+                                <p className="text-blue-400 font-bold tracking-widest mb-2 uppercase text-sm">{formatDateLong(currentTime)}</p>
+                                <h2 className="text-6xl font-black tabular-nums">{formatTimeShort(currentTime)}</h2>
+                                <p className="mt-4 text-slate-400 text-xs">ระบุตัวตนเพื่อเริ่มงาน</p>
                             </div>
-                        )}
 
-                        {view === 'enroll' && !streamRef.current && !isLivenessPassed && (
-                            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm space-y-5 animate-in slide-in-from-bottom-4">
-                                <h2 className="text-2xl font-bold text-center">ลงทะเบียนใหม่</h2>
-                                <select className="w-full p-4 rounded-2xl bg-slate-50 border-0 ring-1 ring-slate-200 font-bold focus:ring-2 ring-blue-500" onChange={e => setRegSelection(e.target.value)}>
-                                    <option value="">-- เลือกรายชื่อพนักงาน --</option>
-                                    {users.map(u => <option key={u.code} value={u.code}>{u.nickname} ({u.code}) {u.embedding_front ? "✅" : "❌"}</option>)}
-                                </select>
-                                <input placeholder="ตั้งรหัส PIN 6 หลัก" maxLength={6} type="password" className="w-full p-4 rounded-2xl bg-slate-50 border-0 ring-1 ring-slate-200 text-center text-xl font-bold" onChange={e => setRegPin(e.target.value)} />
-                                <button disabled={!regSelection || regPin.length < 6} onClick={startCamera} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-30">เริ่มการสแกนใบหน้า</button>
+                            <div className="grid grid-cols-1 gap-4">
+                                <button 
+                                    onClick={() => { setView('login'); startCamera(); }}
+                                    className="bg-blue-600 p-8 rounded-[2rem] text-white flex flex-col items-center gap-3 shadow-lg hover:bg-blue-700 transition-all active:scale-95"
+                                >
+                                    <div className="bg-white/20 p-4 rounded-2xl"><Icon name="camera" size={32} /></div>
+                                    <span className="text-xl font-bold">เข้าสู่ระบบ (Face/PIN)</span>
+                                </button>
+                                <button 
+                                    onClick={() => setView('register')}
+                                    className="bg-white p-6 rounded-[2rem] text-slate-700 flex items-center justify-center gap-4 shadow-sm border border-slate-100 active:scale-95 transition-all"
+                                >
+                                    <div className="bg-slate-100 p-3 rounded-xl"><Icon name="user-plus" size={24} /></div>
+                                    <span className="text-lg font-bold">ลงทะเบียนใหม่</span>
+                                </button>
                             </div>
-                        )}
+                        </div>
+                    )}
 
-                        {(streamRef.current && !isLivenessPassed) && (
-                            <div className="space-y-6 text-center">
-                                <div className="flex justify-center gap-2">
-                                    {POSES.map((p, i) => <div key={p.id} className={`step-bubble ${step === i ? 'step-active' : step > i ? 'step-done' : 'step-pending'}`}>{step > i ? "✓" : i + 1}</div>)}
+                    {/* View: REGISTER */}
+                    {view === 'register' && (
+                        <div className="w-full space-y-6">
+                            <div className="flex items-center gap-4">
+                                <button onClick={resetAppState} className="p-2 bg-white rounded-xl shadow-sm border"><Icon name="arrow-left" /></button>
+                                <h2 className="font-bold text-xl">ลงทะเบียน</h2>
+                            </div>
+
+                            {/* Step Indicator */}
+                            <div className="flex justify-center gap-3 bg-white p-4 rounded-2xl shadow-sm">
+                                {["เลือกชื่อ", "สแกนหน้า", "รหัส PIN"].map((l, i) => (
+                                    <div key={i} className={`step-pill ${Math.ceil(regStep/2) >= i+1 ? 'step-active' : 'step-inactive'}`}>{l}</div>
+                                ))}
+                            </div>
+
+                            {/* Step 1: Select User */}
+                            {regStep === 1 && (
+                                <div className="bg-white p-6 rounded-[2rem] shadow-sm space-y-6 animate-in slide-in-from-bottom-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase ml-2">เลือกพนักงาน</label>
+                                        <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                                            {users.map(u => (
+                                                <button 
+                                                    key={u.code}
+                                                    onClick={() => setSelectedUser(u)}
+                                                    className={`w-full p-4 rounded-2xl text-left border-2 transition-all ${selectedUser?.code === u.code ? 'border-blue-600 bg-blue-50' : 'border-slate-50 bg-slate-50'}`}
+                                                >
+                                                    <p className="font-bold text-slate-800">{u.nickname}</p>
+                                                    <p className="text-xs text-slate-400">รหัส: {u.code}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <button 
+                                        disabled={!selectedUser}
+                                        onClick={() => { setRegStep(2); startCamera(); }}
+                                        className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold shadow-lg disabled:opacity-30"
+                                    >ไปที่ขั้นตอนสแกนใบหน้า</button>
                                 </div>
-                                <div className="video-container"><video ref={videoRef} autoPlay playsInline muted /><div className="absolute top-4 left-0 right-0"><span className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold animate-pulse">{status}</span></div></div>
-                            </div>
-                        )}
+                            )}
 
-                        {isLivenessPassed && view === 'enroll' && (
-                            <div className="bg-white p-10 rounded-[2.5rem] text-center space-y-6 animate-in zoom-in">
-                                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto"><Icon name="check-circle" size={48} /></div>
-                                <h3 className="text-2xl font-bold">ข้อมูลพร้อมบันทึก</h3>
-                                <button onClick={submitEnroll} className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-lg">ยืนยันและบันทึก</button>
-                            </div>
-                        )}
-
-                        {isLivenessPassed && view === 'attendance' && (
-                            <div className="bg-white p-8 rounded-[2.5rem] space-y-6 animate-in zoom-in">
-                                <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-3xl">
-                                    <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xl font-bold uppercase">{matchedUser.name?.charAt(0)}</div>
-                                    <div><h3 className="font-black text-xl">คุณ {matchedUser.name}</h3><p className="text-blue-600 text-xs font-bold">MATCHED</p></div>
+                            {/* Step 2: Face Scan */}
+                            {regStep === 2 && (
+                                <div className="space-y-6">
+                                    <div className="video-container">
+                                        <video ref={videoRef} autoPlay playsInline muted />
+                                        <canvas />
+                                        <div className="absolute top-4 left-0 right-0 flex justify-center">
+                                            <span className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">{status}</span>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {['front', 'left', 'right'].map(pos => (
+                                            <div key={pos} className={`p-3 rounded-2xl text-center border-2 ${capturedFaces[pos] ? 'border-green-500 bg-green-50' : 'border-slate-100 bg-white'}`}>
+                                                <Icon name={capturedFaces[pos] ? "check-circle" : "user"} className={capturedFaces[pos] ? "text-green-600" : "text-slate-300"} />
+                                                <p className="text-[10px] font-bold mt-1 uppercase">{pos}</p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <select className="w-full p-4 bg-slate-50 rounded-xl border-0 font-bold" onChange={e => setAttForm({...attForm, workPoint: e.target.value})}><option>PFL Office</option><option>Production Line 1</option></select>
-                                    <textarea placeholder="หมายเหตุ..." className="w-full p-4 bg-slate-50 rounded-xl border-0 h-20 resize-none" onChange={e => setAttForm({...attForm, note: e.target.value})} />
-                                </div>
-                                <button onClick={submitAttendance} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg">บันทึกเวลาเข้างาน</button>
-                            </div>
-                        )}
-                    </main>
+                            )}
 
+                            {/* Step 3 & 4: PIN Setup */}
+                            {(regStep === 3 || regStep === 4) && (
+                                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm text-center space-y-8 animate-in zoom-in-95">
+                                    <div className="space-y-2">
+                                        <h3 className="text-xl font-bold text-slate-800">{regStep === 3 ? "ตั้งรหัส PIN 6 หลัก" : "ยืนยันรหัส PIN"}</h3>
+                                        <p className="text-xs text-slate-400">{regStep === 3 ? "ใช้สำหรับเข้าสู่ระบบเมื่อไม่สะดวกสแกนหน้า" : "กรุณาระบุรหัสเดิมอีกครั้ง"}</p>
+                                    </div>
+
+                                    <div className="flex justify-center gap-3">
+                                        {[...Array(6)].map((_, i) => (
+                                            <div key={i} className={`pin-dot ${(regStep === 3 ? tempPin.length : confirmPin.length) > i ? 'filled' : ''}`}></div>
+                                        ))}
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-4 justify-items-center max-w-[280px] mx-auto">
+                                        {[1,2,3,4,5,6,7,8,9].map(n => (
+                                            <button key={n} onClick={() => handleNumpad(n)} className="numpad-btn">{n}</button>
+                                        ))}
+                                        <button onClick={() => (regStep === 3 ? setTempPin("") : setConfirmPin(""))} className="numpad-btn text-red-500"><Icon name="delete" /></button>
+                                        <button onClick={() => handleNumpad(0)} className="numpad-btn">0</button>
+                                        <button onClick={() => (regStep === 3 ? setTempPin(p => p.slice(0,-1)) : setConfirmPin(p => p.slice(0,-1)))} className="numpad-btn text-slate-400 text-sm">CLR</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* View: LOGIN */}
+                    {view === 'login' && (
+                        <div className="w-full space-y-6">
+                             <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <button onClick={resetAppState} className="p-2 bg-white rounded-xl shadow-sm border"><Icon name="arrow-left" /></button>
+                                    <h2 className="font-bold text-xl">เข้าสู่ระบบ</h2>
+                                </div>
+                                <button 
+                                    onClick={() => { setLoginMode(loginMode === 'face' ? 'pin' : 'face'); stopCamera(); if(loginMode === 'pin') startCamera(); }}
+                                    className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg"
+                                >
+                                    {loginMode === 'face' ? "สลับใช้ PIN" : "สลับใช้ใบหน้า"}
+                                </button>
+                             </div>
+
+                             {loginMode === 'face' ? (
+                                <div className="space-y-6">
+                                    <div className="video-container">
+                                        <video ref={videoRef} autoPlay playsInline muted />
+                                        <div className="absolute top-4 left-0 right-0 flex justify-center"><span className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">{status}</span></div>
+                                    </div>
+                                </div>
+                             ) : (
+                                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm text-center space-y-8 animate-in zoom-in-95">
+                                    <h3 className="text-xl font-bold">ระบุรหัส PIN 6 หลัก</h3>
+                                    <div className="flex justify-center gap-3">
+                                        {[...Array(6)].map((_, i) => (
+                                            <div key={i} className={`pin-dot ${loginPin.length > i ? 'filled' : ''}`}></div>
+                                        ))}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4 justify-items-center max-w-[280px] mx-auto">
+                                        {[1,2,3,4,5,6,7,8,9,0].map(n => (
+                                            <button key={n} onClick={() => handleNumpad(n)} className={`numpad-btn ${n === 0 ? 'col-start-2' : ''}`}>{n}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                             )}
+                        </div>
+                    )}
+
+                    {/* Footer / Loading */}
                     {loading && (
                         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[200] flex items-center justify-center">
-                            <Icon name="refresh-cw" className="animate-spin text-blue-600" size={40} />
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="font-bold text-slate-600">กำลังประมวลผลข้อมูล...</p>
+                            </div>
                         </div>
                     )}
                 </div>
             );
+        }
+
+        // Helpers
+        function formatTimeShort(d) {
+            return d.toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        }
+        function formatDateLong(d) {
+            return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
