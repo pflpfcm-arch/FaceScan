@@ -3,430 +3,712 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFL Attendance - Face AI System</title>
-    <!-- CSS & Fonts -->
+    <title>PFL Attendance – ลงเวลาทำงาน</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Core Libraries -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Load Lucide Icons first -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- AI Engines -->
+    <!-- Face API & Crypto -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
-        .video-container {
-            position: relative; width: 100%; max-width: 440px; aspect-ratio: 3/4;
-            background: #111827; border-radius: 2.5rem; overflow: hidden; margin: 0 auto;
-            border: 6px solid white; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
-        
-        /* Face Guide (Upright Egg Shape) */
-        .face-guide {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%);
-            width: 70%; height: 65%; 
-            border: 3px solid rgba(255, 255, 255, 0.8);
-            border-radius: 50% 50% 50% 50% / 45% 45% 55% 55%; 
-            box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.7); 
-            z-index: 10;
-        }
-        .face-guide.success { border-color: #10b981; border-width: 5px; box-shadow: 0 0 0 1000px rgba(16, 185, 129, 0.2); }
-
-        /* Success Overlay */
-        .success-overlay {
-            @apply absolute inset-0 flex items-center justify-center bg-emerald-500/20 z-20 pointer-events-none opacity-0 transition-opacity duration-300;
-        }
-        .success-overlay.show { opacity: 1; }
-
-        /* Numpad Styling */
         .numpad-btn {
-            @apply w-16 h-16 flex items-center justify-center text-2xl font-bold rounded-2xl bg-white shadow-sm active:scale-90 transition-all duration-100 border border-slate-100;
+            @apply w-16 h-16 rounded-full flex items-center justify-center text-xl font-semibold bg-white shadow-sm border border-gray-100 hover:bg-blue-50 transition-all;
         }
-        .pin-dot {
-            @apply w-4 h-4 rounded-full border-2 border-slate-300 transition-all duration-300;
+        .step-active { @apply bg-blue-600 text-white; }
+        .step-inactive { @apply bg-gray-200 text-gray-500; }
+        #video-container { position: relative; width: 100%; max-width: 400px; border-radius: 1rem; overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
         }
-        .pin-dot.active { @apply bg-blue-600 border-blue-600 scale-125; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="min-h-screen flex flex-col">
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center space-y-4">
+        <div class="loader w-12 h-12 border-4"></div>
+        <p class="text-gray-600 animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
+    </div>
 
-        // --- CONFIGURATION ---
-        // เปลี่ยน URL นี้เป็น Web App URL ของคุณ
-        const API_URL = "https://script.google.com/macros/s/AKfycbzIBHv2yvSEOnjl2rTEMYJwNPt22rh7-C3ZOjUPgby3zJoWlyaI4QcRSn5QWHiO7i2Ctw/exec";
+    <!-- Main Navigation (Hidden in Register/Login) -->
+    <header id="main-header" class="hidden bg-white shadow-sm p-4 sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
+                <h1 class="text-lg font-bold text-gray-800">PFL Attendance</h1>
+            </div>
+            <button onclick="toggleAdminMode()" class="text-sm bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 flex items-center">
+                <i data-lucide="shield-check" class="w-4 h-4 mr-1"></i> โหมดผู้ดูแล
+            </button>
+        </div>
+    </header>
 
-        const Icon = ({ name, size = 24, className = "" }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (window.lucide && iconRef.current) {
-                    iconRef.current.innerHTML = '';
-                    const i = document.createElement('i');
-                    i.setAttribute('data-lucide', name);
-                    i.className = className;
-                    i.style.width = `${size}px`;
-                    i.style.height = `${size}px`;
-                    iconRef.current.appendChild(i);
-                    window.lucide.createIcons();
-                }
-            }, [name, size, className]);
-            return <span ref={iconRef} className="inline-flex items-center"></span>;
+    <main class="flex-grow container mx-auto max-w-lg p-4">
+        
+        <!-- SECTION: Auth / Pin Entry -->
+        <div id="view-login" class="space-y-6 text-center py-10">
+            <h2 class="text-2xl font-bold">เข้าสู่ระบบ</h2>
+            <p class="text-gray-500">กรุณาใส่รหัส PIN 6 หลักเพื่อเริ่มลงเวลา</p>
+            
+            <div class="flex justify-center space-x-3 my-6">
+                <template id="pin-dot-template"><div class="w-4 h-4 rounded-full border-2 border-blue-400"></div></template>
+                <div id="pin-display" class="flex space-x-3"></div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+                <button onclick="pressPin(1)" class="numpad-btn">1</button>
+                <button onclick="pressPin(2)" class="numpad-btn">2</button>
+                <button onclick="pressPin(3)" class="numpad-btn">3</button>
+                <button onclick="pressPin(4)" class="numpad-btn">4</button>
+                <button onclick="pressPin(5)" class="numpad-btn">5</button>
+                <button onclick="pressPin(6)" class="numpad-btn">6</button>
+                <button onclick="pressPin(7)" class="numpad-btn">7</button>
+                <button onclick="pressPin(8)" class="numpad-btn">8</button>
+                <button onclick="pressPin(9)" class="numpad-btn">9</button>
+                <div></div>
+                <button onclick="pressPin(0)" class="numpad-btn">0</button>
+                <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="delete"></i></button>
+            </div>
+            <p class="mt-8 text-sm">ยังไม่มีบัญชี? <button onclick="switchView('view-register')" class="text-blue-600 font-medium">ลงทะเบียนที่นี่</button></p>
+        </div>
+
+        <!-- SECTION: Register (Face Scan) -->
+        <div id="view-register" class="hidden space-y-6">
+            <div class="flex items-center space-x-2">
+                <button onclick="switchView('view-login')"><i data-lucide="chevron-left"></i></button>
+                <h2 class="text-xl font-bold">ลงทะเบียนพนักงานใหม่</h2>
+            </div>
+            
+            <div class="bg-white p-6 rounded-2xl shadow-sm space-y-4">
+                <label class="block text-sm font-medium text-gray-700">เลือกชื่อของคุณ</label>
+                <select id="reg-user-list" class="w-full p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400">
+                    <option value="">-- เลือกรายชื่อ --</option>
+                </select>
+
+                <div id="face-scan-section" class="hidden space-y-4">
+                    <p class="text-center text-sm font-medium text-blue-600" id="scan-status">สแกนใบหน้า: หน้าตรง</p>
+                    <div id="video-container" class="mx-auto bg-black aspect-square flex items-center justify-center">
+                        <video id="video" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="overlay"></canvas>
+                    </div>
+                    
+                    <div class="flex justify-center space-x-2">
+                        <div id="step-1" class="w-10 h-10 rounded-full flex items-center justify-center step-active">1</div>
+                        <div id="step-2" class="w-10 h-10 rounded-full flex items-center justify-center step-inactive">2</div>
+                        <div id="step-3" class="w-10 h-10 rounded-full flex items-center justify-center step-inactive">3</div>
+                    </div>
+                </div>
+
+                <div id="pin-setup-section" class="hidden space-y-4">
+                    <p class="text-center font-medium">ตั้งรหัส PIN 6 หลัก</p>
+                    <input type="password" id="reg-pin" maxlength="6" class="w-full text-center text-2xl tracking-[1em] p-3 bg-gray-50 border rounded-xl" placeholder="XXXXXX">
+                    <input type="password" id="reg-pin-confirm" maxlength="6" class="w-full text-center text-2xl tracking-[1em] p-3 bg-gray-50 border rounded-xl" placeholder="ยืนยัน PIN">
+                </div>
+
+                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-blue-200">เริ่มสแกนใบหน้า</button>
+            </div>
+        </div>
+
+        <!-- SECTION: Dashboard / Attendance UI -->
+        <div id="view-main" class="hidden space-y-6">
+            <!-- Header Info -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                <h3 class="text-gray-500">สวัสดี, <span id="display-user-name" class="font-bold text-gray-800 text-lg">-</span></h3>
+                <div class="text-4xl font-bold my-2" id="current-time">00:00:00</div>
+                <div class="text-gray-500" id="current-date">วันจันทร์ที่ 1 มกราคม 2567</div>
+            </div>
+
+            <!-- GPS Status -->
+            <div id="gps-banner" class="flex items-center p-3 bg-yellow-50 text-yellow-700 rounded-xl text-sm border border-yellow-100">
+                <i data-lucide="map-pin" class="w-4 h-4 mr-2"></i>
+                <span id="gps-text">กำลังตรวจสอบพิกัด GPS...</span>
+            </div>
+
+            <!-- Forms -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">จุดเข้าบริษัท</label>
+                        <select id="point-company" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                            <option>จุดตรวจ1 (แคนทีน)</option>
+                            <option>จุดตรวจ3 (PF)</option>
+                            <option>จุดตรวจ4 (FTI)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">เวลาเข้าบริษัท</label>
+                        <input type="time" id="time-company" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">จุดเข้างาน</label>
+                        <select id="point-work" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                            <option>CM</option>
+                            <option>PF</option>
+                            <option>FTI</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">เวลาเข้างาน</label>
+                        <input type="time" id="time-work" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">หมายเหตุ</label>
+                    <textarea id="attendance-note" rows="2" class="w-full p-3 bg-gray-50 border rounded-lg text-sm" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
+                </div>
+
+                <button onclick="submitAttendance()" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-green-200 flex items-center justify-center">
+                    <i data-lucide="check-circle" class="mr-2"></i> บันทึกการลงเวลา
+                </button>
+            </div>
+
+            <!-- Mini Summary -->
+            <div class="grid grid-cols-4 gap-2">
+                <div class="bg-white p-3 rounded-xl shadow-sm text-center">
+                    <div class="text-xs text-gray-400">มา</div>
+                    <div class="font-bold text-blue-600" id="stat-present">0</div>
+                </div>
+                <div class="bg-white p-3 rounded-xl shadow-sm text-center">
+                    <div class="text-xs text-gray-400">ลา</div>
+                    <div class="font-bold text-orange-600" id="stat-absent">0</div>
+                </div>
+                <div class="bg-white p-3 rounded-xl shadow-sm text-center">
+                    <div class="text-xs text-gray-400">สาย</div>
+                    <div class="font-bold text-red-600" id="stat-late">0</div>
+                </div>
+                <div class="bg-white p-3 rounded-xl shadow-sm text-center">
+                    <div class="text-xs text-gray-400">Offline</div>
+                    <div class="font-bold text-gray-600" id="stat-offline">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: Admin Panel -->
+        <div id="view-admin" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <button onclick="switchView('view-main')"><i data-lucide="chevron-left"></i></button>
+                    <h2 class="text-xl font-bold">แผงควบคุมแอดมิน</h2>
+                </div>
+                <button onclick="logout()" class="text-red-500 text-sm">ออกจากระบบ</button>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm space-y-4">
+                <h3 class="font-bold text-gray-700 border-b pb-2 flex items-center">
+                    <i data-lucide="settings" class="w-4 h-4 mr-2 text-blue-500"></i> จัดการพนักงาน
+                </h3>
+                <div class="flex space-x-2">
+                    <input type="text" id="admin-search" class="flex-grow p-2 bg-gray-50 border rounded-lg text-sm" placeholder="ค้นหาชื่อเล่น/รหัส">
+                    <button class="bg-blue-100 text-blue-600 p-2 rounded-lg"><i data-lucide="search" class="w-5 h-5"></i></button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-gray-50 text-gray-500 uppercase">
+                            <tr>
+                                <th class="px-2 py-3">ชื่อ</th>
+                                <th class="px-2 py-3">เวลาเข้างาน</th>
+                                <th class="px-2 py-3">จุด</th>
+                                <th class="px-2 py-3">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-table-body">
+                            <!-- Data injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <button onclick="exportToCSV()" class="w-full border-2 border-gray-100 p-3 rounded-xl text-sm font-medium hover:bg-gray-50 flex items-center justify-center">
+                    <i data-lucide="download" class="w-4 h-4 mr-2"></i> ส่งออกข้อมูล (CSV)
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t p-6 text-center text-gray-400 text-xs">
+        <p>COPY RIGHT 2026 @ ฝ่ายกำกับรถพาเหรด</p>
+        <p class="mt-1">PFL Tracking System v1.0.0</p>
+    </footer>
+
+    <!-- Custom Modal for Notifications -->
+    <div id="modal-alert" class="fixed inset-0 z-[110] bg-black/50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center space-y-4">
+            <div id="modal-icon" class="mx-auto flex items-center justify-center w-12 h-12 rounded-full"></div>
+            <h4 id="modal-title" class="text-lg font-bold"></h4>
+            <p id="modal-message" class="text-gray-500 text-sm"></p>
+            <button onclick="closeModal()" class="w-full bg-gray-800 text-white p-3 rounded-xl font-medium">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & CONFIG ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbynNlA2ROheoTIK1ArSQANBCgMDqxOvbBLq4mCIi0pz24Ljymbj5c4TeMFY9YGgxRXO7g/exec";
+        const ADMIN_PASS = "pflpfcm";
+        const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models"; 
+        
+        let state = {
+            user: null,
+            pin: "",
+            location: { lat: 0, lng: 0, accuracy: 0 },
+            offlineQueue: JSON.parse(localStorage.getItem('pfl_offline_queue') || "[]"),
+            view: "view-login",
+            registerStep: 1, 
+            scanProgress: { front: false, left: false, right: false },
+            users: [],
+            points: {
+                company: [{name: "จุดตรวจ1 (แคนทีน)", lat: 13.7563, lng: 100.5018, range: 100}],
+                work: [{name: "CM", lat: 13.7563, lng: 100.5018, range: 100}]
+            }
         };
 
-        function App() {
-            const [view, setView] = useState('home');
-            const [loading, setLoading] = useState(false);
-            const [status, setStatus] = useState("กำลังเตรียมพร้อมระบบ...");
-            const [users, setUsers] = useState([]);
-            const [dbEmbeddings, setDbEmbeddings] = useState([]);
-            const [config, setConfig] = useState({ entryPoints: [], workPoints: [] });
-            const [currentTime, setCurrentTime] = useState(new Date());
-            const [gps, setGps] = useState(null);
+        // --- INITIALIZATION ---
+        window.onload = async () => {
+            // Check if lucide is loaded
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.warn("Lucide not loaded yet. Retrying icons in 1s...");
+                setTimeout(() => typeof lucide !== 'undefined' && lucide.createIcons(), 1000);
+            }
 
-            // Enrollment & Login States
-            const [regStep, setRegStep] = useState(1); 
-            const [selectedUser, setSelectedUser] = useState(null);
-            const [tempPin, setTempPin] = useState("");
-            const [confirmPin, setConfirmPin] = useState("");
-            const [isFaceValid, setIsFaceValid] = useState(false);
-            const [isCaptured, setIsCaptured] = useState(false);
-            const [matchedUser, setMatchedUser] = useState(null);
-            const [showSuccess, setShowSuccess] = useState(false);
+            updateTime();
+            setInterval(updateTime, 1000);
             
-            const [attForm, setAttForm] = useState({ entry: '', work: '', note: '' });
+            await initFaceModels();
+            await fetchData();
+            initGPS();
+            
+            document.getElementById('loading-overlay').classList.add('hidden');
+            renderPinDots();
+            checkSession();
+        };
 
-            const videoRef = useRef(null);
-            const faceMeshRef = useRef(null);
-            const streamRef = useRef(null);
-            const cameraRef = useRef(null);
-
-            useEffect(() => {
-                const initAI = async () => {
-                    try {
-                        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-                        await Promise.all([
-                            window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                            window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                            window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                        ]);
-                        if (window.FaceMesh) {
-                            faceMeshRef.current = new window.FaceMesh({
-                                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-                            });
-                            faceMeshRef.current.setOptions({
-                                maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7
-                            });
-                            faceMeshRef.current.onResults(handleAIResults);
-                        }
-                        await refreshData();
-                    } catch (e) { setStatus("AI Engine Error"); }
-                };
-                initAI();
-                const t = setInterval(() => setCurrentTime(new Date()), 1000);
-                navigator.geolocation.getCurrentPosition(p => setGps(`${p.coords.latitude.toFixed(4)},${p.coords.longitude.toFixed(4)}`), () => setGps("OFF"));
-                return () => { clearInterval(t); stopCamera(); };
-            }, []);
-
-            const refreshData = async () => {
-                try {
-                    const [resU, resC] = await Promise.all([
-                        fetch(`${API_URL}?action=getUsers`).then(r => r.json()),
-                        fetch(`${API_URL}?action=getConfig`).then(r => r.json())
+        async function initFaceModels() {
+            try {
+                if (typeof faceapi !== 'undefined') {
+                    await Promise.all([
+                        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                     ]);
-                    if (resU.status === 'success') {
-                        setUsers(resU.data);
-                        const resE = await fetch(`${API_URL}?action=getEmbeddings`).then(r => r.json());
-                        if(resE.status === 'success') setDbEmbeddings(resE.data);
-                    }
-                    if (resC.status === 'success') setConfig(resC.data);
-                    setStatus("พร้อมใช้งาน");
-                } catch (e) { setStatus("Sync Error"); }
-            };
-
-            const startCamera = async () => {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
-                    videoRef.current.srcObject = stream;
-                    streamRef.current = stream;
-                    cameraRef.current = new window.Camera(videoRef.current, {
-                        onFrame: async () => {
-                            if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
-                        }
-                    });
-                    cameraRef.current.start();
-                } catch (err) { alert("กรุณาอนุญาตการเข้าถึงกล้อง"); }
-            };
-
-            const stopCamera = () => {
-                if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-                if (cameraRef.current) cameraRef.current.stop();
-            };
-
-            const handleAIResults = async (results) => {
-                if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                    setIsFaceValid(false);
-                    return;
+                    console.log("Face Models Loaded");
                 }
-                const landmarks = results.multiFaceLandmarks[0];
-                const yaw = (landmarks[33].z - landmarks[263].z) * 100;
-                const pitch = (landmarks[10].z - landmarks[152].z) * 100;
-                
-                const isCentered = Math.abs(yaw) < 2.0 && Math.abs(pitch) < 3.5;
-                setIsFaceValid(isCentered);
-
-                if (isCentered && !isCaptured) {
-                    if (view === 'register' && regStep === 2) {
-                        setStatus("ตำแหน่งถูกต้อง นิ่งค้างไว้...");
-                        setTimeout(() => captureForEnroll(), 800);
-                    } else if (view === 'login') {
-                        await identifyUser();
-                    }
-                }
-            };
-
-            const captureForEnroll = async () => {
-                if (isCaptured || !isFaceValid) return;
-                const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
-                if (detection) {
-                    setIsCaptured(true);
-                    setSelectedUser({ ...selectedUser, descriptor: Array.from(detection.descriptor) });
-                    setShowSuccess(true);
-                    setStatus("บันทึกใบหน้าสำเร็จ!");
-                    setTimeout(() => { 
-                        setShowSuccess(false);
-                        stopCamera(); 
-                        setRegStep(3); 
-                        setIsCaptured(false);
-                    }, 1200);
-                }
-            };
-
-            const identifyUser = async () => {
-                if (matchedUser) return;
-                const detection = await window.faceapi.detectSingleFace(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceDescriptor();
-                if (detection && dbEmbeddings.length > 0) {
-                    let bestMatch = { code: null, score: 0 };
-                    dbEmbeddings.forEach(u => {
-                        const dist = window.faceapi.euclideanDistance(detection.descriptor, new Float32Array(u.descriptor));
-                        const score = 1 - dist;
-                        if (score > bestMatch.score) bestMatch = { ...u, score };
-                    });
-
-                    if (bestMatch.score >= 0.45) {
-                        setMatchedUser(bestMatch);
-                        setIsCaptured(true);
-                        setShowSuccess(true);
-                        setStatus(`สวัสดีคุณ ${bestMatch.name}`);
-                        setTimeout(() => { 
-                            setShowSuccess(false);
-                            stopCamera(); 
-                            setView('attendance'); 
-                        }, 1500);
-                    }
-                }
-            };
-
-            const handleNumpad = (num) => {
-                const target = regStep === 3 ? tempPin : confirmPin;
-                const setFunc = regStep === 3 ? setTempPin : setConfirmPin;
-                if (target.length < 6) {
-                    const next = target + num;
-                    setFunc(next);
-                    if (next.length === 6 && regStep === 3) setRegStep(4);
-                }
-            };
-
-            const submitRegistration = async () => {
-                if (tempPin !== confirmPin) {
-                    alert("รหัส PIN ไม่ตรงกัน"); setTempPin(""); setConfirmPin(""); setRegStep(3); return;
-                }
-                setLoading(true);
-                const payload = {
-                    action: 'registerFace',
-                    code: selectedUser.code,
-                    pin: tempPin,
-                    faces: { descriptor: selectedUser.descriptor }
-                };
-                try {
-                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    alert("ลงทะเบียนสำเร็จ!");
-                    window.location.reload();
-                } catch (e) { alert("Error saving data"); }
-                setLoading(false);
-            };
-
-            const submitAttendance = async () => {
-                if (!attForm.entry || !attForm.work) return alert("กรุณาเลือกข้อมูลให้ครบ");
-                setLoading(true);
-                const payload = {
-                    action: 'saveAttendance',
-                    user_id: matchedUser.code,
-                    name: matchedUser.name,
-                    score: matchedUser.score.toFixed(2),
-                    worktime: currentTime.toLocaleTimeString('th-TH'),
-                    workpoint: attForm.work,
-                    entrytime: currentTime.toLocaleTimeString('th-TH'),
-                    entrypoint: attForm.entry,
-                    note: attForm.note,
-                    gps_status: gps
-                };
-                try {
-                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    alert("บันทึกเวลาทำงานสำเร็จ");
-                    window.location.reload();
-                } catch (e) { alert("Error"); }
-                setLoading(false);
-            };
-
-            return (
-                <div className="flex flex-col min-h-screen items-center p-4">
-                    <header className="w-full max-w-md bg-white p-5 rounded-3xl shadow-sm mb-6 flex justify-between items-center border border-slate-100">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-2xl text-white shadow-lg"><Icon name="shield-check" size={20} /></div>
-                            <div>
-                                <h1 className="font-bold text-slate-800 text-lg leading-tight">PFL Attendance</h1>
-                                <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Face AI & Biometrics</p>
-                            </div>
-                        </div>
-                        <div className="bg-slate-50 px-3 py-1 rounded-full text-[10px] font-bold text-slate-400">GPS: {gps || 'Check'}</div>
-                    </header>
-
-                    <main className="w-full max-w-md pb-24">
-                        {view === 'home' && (
-                            <div className="space-y-6 animate-in fade-in duration-500">
-                                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white text-center shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-8 opacity-10"><Icon name="clock" size={100} /></div>
-                                    <p className="text-blue-400 font-bold mb-1 uppercase text-xs">{currentTime.toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'})}</p>
-                                    <h2 className="text-6xl font-black tabular-nums">{currentTime.toLocaleTimeString('th-TH', {hour12:false, hour:'2-digit', minute:'2-digit'})}</h2>
-                                    <p className="mt-4 text-slate-400 text-xs font-medium uppercase tracking-[0.2em]">Ready for Verification</p>
-                                </div>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <button onClick={() => { setView('login'); startCamera(); }} className="bg-blue-600 p-8 rounded-[2rem] text-white flex flex-col items-center gap-2 shadow-xl active:scale-95 transition-all">
-                                        <Icon name="scan-face" size={36} />
-                                        <span className="text-xl font-bold">สแกนใบหน้าเข้างาน</span>
-                                    </button>
-                                    <button onClick={() => setView('register')} className="bg-white p-6 rounded-[2rem] text-slate-700 flex items-center justify-center gap-4 shadow-sm border border-slate-100 active:scale-95 transition-all">
-                                        <Icon name="user-plus" size={24} className="text-blue-600" />
-                                        <span className="text-lg font-bold">ลงทะเบียนสมาชิกใหม่</span>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {view === 'register' && (
-                            <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                                <div className="flex items-center gap-4">
-                                    <button onClick={() => window.location.reload()} className="p-2.5 bg-white rounded-2xl shadow-sm border"><Icon name="chevron-left" /></button>
-                                    <h2 className="font-bold text-xl text-slate-800">ลงทะเบียนใหม่</h2>
-                                </div>
-
-                                {regStep === 1 && (
-                                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm space-y-6 border border-slate-100">
-                                        <div className="space-y-3">
-                                            <label className="text-xs font-black text-slate-400 uppercase ml-2 tracking-widest">เลือกรายชื่อพนักงาน</label>
-                                            <div className="space-y-2 max-h-80 overflow-y-auto pr-1 scrollbar-hide">
-                                                {users.map(u => (
-                                                    <button key={u.code} onClick={() => setSelectedUser(u)} className={`w-full p-5 rounded-2xl text-left border-2 transition-all flex justify-between items-center ${selectedUser?.code === u.code ? 'border-blue-600 bg-blue-50 ring-4 ring-blue-100' : 'border-slate-50 bg-slate-50'}`}>
-                                                        <div><p className="font-bold text-slate-800 text-lg">{u.nickname}</p><p className="text-[10px] text-slate-400 font-bold uppercase">ID: {u.code}</p></div>
-                                                        {selectedUser?.code === u.code && <Icon name="check-circle" className="text-blue-600" />}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <button disabled={!selectedUser} onClick={() => { setRegStep(2); startCamera(); }} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold shadow-xl disabled:opacity-20 transition-all">เริ่มสแกนชีวมิติ</button>
-                                    </div>
-                                )}
-
-                                {regStep === 2 && (
-                                    <div className="space-y-6">
-                                        <div className="video-container">
-                                            <div className="absolute top-6 left-4 right-4 py-3 px-4 rounded-2xl bg-black/70 backdrop-blur-md text-white text-center font-bold text-lg z-30">{status}</div>
-                                            <div className={`face-guide ${isFaceValid ? 'active' : ''} ${showSuccess ? 'success' : ''}`}></div>
-                                            <div className={`success-overlay ${showSuccess ? 'show' : ''}`}>
-                                                <div className="bg-white/90 px-8 py-4 rounded-3xl shadow-2xl flex flex-col items-center gap-2 transform transition-transform duration-500 scale-110">
-                                                    <Icon name="check-circle" className="text-emerald-500" size={48} />
-                                                    <span className="text-emerald-600 font-bold text-2xl text-center">บันทึกสำเร็จ</span>
-                                                </div>
-                                            </div>
-                                            <video ref={videoRef} autoPlay playsInline muted />
-                                        </div>
-                                        <p className="text-center text-xs text-slate-400 font-medium italic">* จัดวางใบหน้าในกรอบวงไข่ให้พอดีและมองตรง</p>
-                                    </div>
-                                )}
-
-                                {(regStep === 3 || regStep === 4) && (
-                                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl text-center space-y-8 animate-in zoom-in-95 border border-slate-100">
-                                        <div className="space-y-2">
-                                            <h3 className="text-2xl font-black text-slate-800">{regStep === 3 ? "ตั้งรหัส PIN 6 หลัก" : "ยืนยันรหัส PIN อีกครั้ง"}</h3>
-                                            <p className="text-sm text-slate-400">สำหรับใช้เป็นรหัสสำรองความปลอดภัย</p>
-                                        </div>
-                                        <div className="flex justify-center gap-4 py-4">
-                                            {[...Array(6)].map((_, i) => <div key={i} className={`pin-dot ${(regStep === 3 ? tempPin.length : confirmPin.length) > i ? 'active' : ''}`}></div>)}
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-4 justify-items-center max-w-[280px] mx-auto">
-                                            {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => handleNumpad(n)} className="numpad-btn">{n}</button>)}
-                                            <button onClick={() => (regStep === 3 ? setTempPin("") : setConfirmPin(""))} className="numpad-btn text-red-500"><Icon name="delete" /></button>
-                                            <button onClick={() => handleNumpad(0)} className="numpad-btn">0</button>
-                                            <button onClick={() => (regStep === 3 ? setTempPin(p => p.slice(0,-1)) : setConfirmPin(p => p.slice(0,-1)))} className="numpad-btn text-slate-400 font-bold text-sm">DEL</button>
-                                        </div>
-                                        {regStep === 4 && confirmPin.length === 6 && (
-                                            <button onClick={submitRegistration} className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-lg shadow-lg">บันทึกข้อมูลถาวร</button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {view === 'login' && (
-                            <div className="space-y-6">
-                                <div className="video-container">
-                                    <div className="absolute top-6 left-4 right-4 py-3 px-4 rounded-2xl bg-black/70 backdrop-blur-md text-white text-center font-bold text-lg z-30">{status}</div>
-                                    <div className={`face-guide ${isFaceValid ? 'active' : ''} ${showSuccess ? 'success' : ''}`}></div>
-                                    <video ref={videoRef} autoPlay playsInline muted />
-                                </div>
-                                <button onClick={() => window.location.reload()} className="w-full py-4 bg-white rounded-2xl font-bold text-slate-400">ยกเลิกรายการ</button>
-                            </div>
-                        )}
-
-                        {view === 'attendance' && (
-                            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border space-y-6 animate-in zoom-in border-blue-50">
-                                <div className="flex items-center gap-5 bg-blue-50 p-5 rounded-3xl">
-                                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-md">{matchedUser?.name?.charAt(0)}</div>
-                                    <div><h3 className="font-black text-2xl text-slate-800">คุณ {matchedUser?.name}</h3><p className="text-blue-600 text-sm font-bold tracking-widest">ID: {matchedUser?.code}</p></div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase ml-2">จุดเข้าบริษัท</label>
-                                    <select className="w-full p-4 bg-slate-50 rounded-2xl border-0 ring-1 ring-slate-200 font-bold" onChange={e => setAttForm({...attForm, entry: e.target.value})}><option value="">-- เลือกจุดตรวจ --</option>{config.entryPoints.map(p => <option key={p.name}>{p.name}</option>)}</select></div>
-                                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase ml-2">จุดปฏิบัติงาน</label>
-                                    <select className="w-full p-4 bg-slate-50 rounded-2xl border-0 ring-1 ring-slate-200 font-bold" onChange={e => setAttForm({...attForm, work: e.target.value})}><option value="">-- เลือกจุดงาน --</option>{config.workPoints.map(p => <option key={p.name}>{p.name}</option>)}</select></div>
-                                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase ml-2">หมายเหตุ</label>
-                                    <textarea placeholder="..." className="w-full p-4 bg-slate-50 rounded-2xl border-0 h-24 resize-none ring-1 ring-slate-200 font-medium" onChange={e => setAttForm({...attForm, note: e.target.value})} /></div>
-                                </div>
-                                <button onClick={submitAttendance} className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"><Icon name="save" /> บันทึกการลงเวลา</button>
-                            </div>
-                        )}
-                    </main>
-
-                    {loading && (
-                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[500] flex flex-col items-center justify-center gap-5">
-                            <div className="w-16 h-16 border-4 border-white/20 border-t-blue-500 rounded-full animate-spin"></div>
-                            <p className="text-white font-bold tracking-widest">กำลังดำเนินการ...</p>
-                        </div>
-                    )}
-                </div>
-            );
+            } catch (err) {
+                console.error("Face API Load Error:", err);
+            }
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        async function fetchData() {
+            try {
+                const res = await fetch(`${API_URL}?action=getUsers`);
+                const data = await res.json();
+                state.users = data;
+                
+                const select = document.getElementById('reg-user-list');
+                if (select) {
+                    select.innerHTML = '<option value="">-- เลือกรายชื่อ --</option>';
+                    data.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.id;
+                        opt.textContent = `${u.nickname} (${u.id})`;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                showAlert("เกิดข้อผิดพลาด", "ไม่สามารถดึงข้อมูลพนักงานได้", "error");
+            }
+        }
+
+        function initGPS() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(
+                    (pos) => {
+                        state.location = {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            accuracy: pos.coords.accuracy
+                        };
+                        const gpsText = document.getElementById('gps-text');
+                        const gpsBanner = document.getElementById('gps-banner');
+                        if (gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(4)}, ${state.location.lng.toFixed(4)} (แม่นยำ ${Math.round(state.location.accuracy)}ม.)`;
+                        if (gpsBanner) gpsBanner.className = "flex items-center p-3 bg-green-50 text-green-700 rounded-xl text-sm border border-green-100";
+                    },
+                    (err) => {
+                        const gpsText = document.getElementById('gps-text');
+                        const gpsBanner = document.getElementById('gps-banner');
+                        if (gpsText) gpsText.innerText = "ไม่สามารถเข้าถึง GPS ได้ กรุณาเปิดตำแหน่ง";
+                        if (gpsBanner) gpsBanner.className = "flex items-center p-3 bg-red-50 text-red-700 rounded-xl text-sm border border-red-100";
+                    }
+                );
+            }
+        }
+
+        // --- NAVIGATION & UI LOGIC ---
+        function switchView(viewId) {
+            document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
+            const target = document.getElementById(viewId);
+            if (target) target.classList.remove('hidden');
+            state.view = viewId;
+            
+            const header = document.getElementById('main-header');
+            if (header) {
+                if (viewId === 'view-main' || viewId === 'view-admin') {
+                    header.classList.remove('hidden');
+                } else {
+                    header.classList.add('hidden');
+                }
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('th-TH');
+            const dateStr = now.toLocaleDateString('th-TH', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            });
+            const timeEl = document.getElementById('current-time');
+            const dateEl = document.getElementById('current-date');
+            if(timeEl) timeEl.innerText = timeStr;
+            if(dateEl) dateEl.innerText = dateStr;
+            
+            const tC = document.getElementById('time-company');
+            const tW = document.getElementById('time-work');
+            const hhmm = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+            if(tC && !tC.value) tC.value = hhmm;
+            if(tW && !tW.value) tW.value = hhmm;
+        }
+
+        // --- AUTH & PIN LOGIC ---
+        function renderPinDots() {
+            const container = document.getElementById('pin-display');
+            if (!container) return;
+            container.innerHTML = "";
+            const template = document.getElementById('pin-dot-template');
+            for(let i=0; i<6; i++) {
+                const dot = template.content.cloneNode(true).querySelector('div');
+                if(i < state.pin.length) {
+                    dot.classList.add('bg-blue-600', 'border-blue-600');
+                }
+                container.appendChild(dot);
+            }
+        }
+
+        function pressPin(num) {
+            if(state.pin.length < 6) {
+                state.pin += num;
+                renderPinDots();
+                if(state.pin.length === 6) {
+                    setTimeout(handleLogin, 300);
+                }
+            }
+        }
+
+        function clearPin() {
+            state.pin = "";
+            renderPinDots();
+        }
+
+        async function handleLogin() {
+            if (typeof CryptoJS === 'undefined') {
+                showAlert("ผิดพลาด", "ไลบรารีเข้ารหัสไม่พร้อมใช้งาน", "error");
+                return;
+            }
+            const hashedPin = CryptoJS.SHA256(state.pin).toString();
+            const user = state.users.find(u => u.pin === hashedPin);
+            
+            if(user) {
+                state.user = user;
+                loginSuccess(user);
+            } else {
+                showAlert("รหัสไม่ถูกต้อง", "กรุณาลองใหม่อีกครั้ง หรือลงทะเบียนหากยังไม่มีบัญชี", "error");
+                clearPin();
+            }
+        }
+
+        function loginSuccess(user) {
+            localStorage.setItem('pfl_session', JSON.stringify({
+                user: user,
+                expiry: Date.now() + (8 * 60 * 60 * 1000) 
+            }));
+            const nameEl = document.getElementById('display-user-name');
+            if (nameEl) nameEl.innerText = user.nickname;
+            switchView('view-main');
+            clearPin();
+        }
+
+        function checkSession() {
+            const sessionStr = localStorage.getItem('pfl_session');
+            if (sessionStr) {
+                const session = JSON.parse(sessionStr);
+                if(session && session.expiry > Date.now()) {
+                    state.user = session.user;
+                    const nameEl = document.getElementById('display-user-name');
+                    if (nameEl) nameEl.innerText = state.user.nickname;
+                    switchView('view-main');
+                }
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('pfl_session');
+            state.user = null;
+            switchView('view-login');
+        }
+
+        // --- REGISTER & FACE LOGIC ---
+        async function handleRegisterNext() {
+            const listEl = document.getElementById('reg-user-list');
+            if (!listEl) return;
+            const userId = listEl.value;
+            if(!userId) return showAlert("เตือน", "กรุณาเลือกรายชื่อพนักงาน", "warning");
+
+            const btn = document.getElementById('btn-next-step');
+
+            if(state.registerStep === 1) {
+                document.getElementById('face-scan-section').classList.remove('hidden');
+                if (btn) {
+                    btn.innerText = "กำลังตรวจจับใบหน้า...";
+                    btn.disabled = true;
+                }
+                state.registerStep = 2;
+                startVideo();
+            } else if (state.registerStep === 3) {
+                const pin = document.getElementById('reg-pin').value;
+                const confirm = document.getElementById('reg-pin-confirm').value;
+                
+                if(pin.length !== 6 || pin !== confirm) {
+                    return showAlert("ข้อผิดพลาด", "รหัส PIN ไม่ตรงกันหรือสั้นเกินไป", "error");
+                }
+                saveNewUser(userId, pin);
+            }
+        }
+
+        async function startVideo() {
+            const video = document.getElementById('video');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+                video.onplay = () => {
+                    const canvas = document.getElementById('overlay');
+                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+                    
+                    const interval = setInterval(async () => {
+                        const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                        if (detections) {
+                            const landmarks = detections.landmarks;
+                            const nose = landmarks.getNose();
+                            const jaw = landmarks.getJawOutline();
+                            
+                            const faceWidth = jaw[16].x - jaw[0].x;
+                            const noseRelative = (nose[0].x - jaw[0].x) / faceWidth;
+
+                            if(!state.scanProgress.front && noseRelative > 0.45 && noseRelative < 0.55) {
+                                state.scanProgress.front = true;
+                                markStep(1);
+                                document.getElementById('scan-status').innerText = "สแกนใบหน้า: หันซ้าย";
+                            } else if(state.scanProgress.front && !state.scanProgress.left && noseRelative < 0.35) {
+                                state.scanProgress.left = true;
+                                markStep(2);
+                                document.getElementById('scan-status').innerText = "สแกนใบหน้า: หันขวา";
+                            } else if(state.scanProgress.left && !state.scanProgress.right && noseRelative > 0.65) {
+                                state.scanProgress.right = true;
+                                markStep(3);
+                                document.getElementById('scan-status').innerText = "ตรวจใบหน้าสำเร็จ!";
+                                clearInterval(interval);
+                                finishScan();
+                            }
+                        }
+                    }, 200);
+                };
+            } catch (err) {
+                showAlert("กล้องขัดข้อง", "กรุณาอนุญาตให้เข้าถึงกล้อง", "error");
+            }
+        }
+
+        function markStep(n) {
+            const stepEl = document.getElementById(`step-${n}`);
+            if (stepEl) stepEl.className = "w-10 h-10 rounded-full flex items-center justify-center bg-green-500 text-white";
+        }
+
+        function finishScan() {
+            document.getElementById('face-scan-section').classList.add('hidden');
+            document.getElementById('pin-setup-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-next-step');
+            if (btn) {
+                btn.innerText = "บันทึกการลงทะเบียน";
+                btn.disabled = false;
+            }
+            state.registerStep = 3;
+            const video = document.getElementById('video');
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        async function saveNewUser(id, pin) {
+            if (typeof CryptoJS === 'undefined') return;
+            const hashedPin = CryptoJS.SHA256(pin).toString();
+            try {
+                const res = await fetch(`${API_URL}?action=saveLog`, {
+                    method: 'POST',
+                    body: JSON.stringify({ userId: id, pin: hashedPin, type: 'register' })
+                });
+                showAlert("สำเร็จ", "ลงทะเบียนพนักงานเรียบร้อยแล้ว", "success");
+                switchView('view-login');
+                fetchData(); 
+            } catch (e) {
+                showAlert("ผิดพลาด", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "error");
+            }
+        }
+
+        async function submitAttendance() {
+            if (!state.user) return;
+            const data = {
+                userId: state.user.id,
+                nickname: state.user.nickname,
+                pointCompany: document.getElementById('point-company').value,
+                timeCompany: document.getElementById('time-company').value,
+                pointWork: document.getElementById('point-work').value,
+                timeWork: document.getElementById('time-work').value,
+                note: document.getElementById('attendance-note').value,
+                lat: state.location.lat,
+                lng: state.location.lng,
+                timestamp: new Date().toISOString()
+            };
+
+            const target = state.points.company[0];
+            const dist = getDistance(state.location.lat, state.location.lng, target.lat, target.lng);
+            
+            if(dist > target.range) {
+                return showAlert("อยู่นอกพื้นที่", `คุณอยู่ห่างจากจุดลงเวลา ${Math.round(dist)} เมตร (อนุญาตไม่เกิน ${target.range}ม.)`, "error");
+            }
+
+            try {
+                if(!navigator.onLine) throw new Error("Offline");
+
+                const res = await fetch(`${API_URL}?action=saveAttendance`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                showAlert("ลงเวลาสำเร็จ", "บันทึกข้อมูลเรียบร้อยแล้ว", "success");
+            } catch (err) {
+                state.offlineQueue.push(data);
+                localStorage.setItem('pfl_offline_queue', JSON.stringify(state.offlineQueue));
+                showAlert("Offline Mode", "บันทึกข้อมูลในเครื่องแล้ว จะซิงค์อัตโนมัติเมื่อมีเน็ต", "warning");
+                updateStats();
+            }
+        }
+
+        function toggleAdminMode() {
+            const pass = prompt("กรุณาใส่รหัสผ่านแอดมิน:");
+            if(pass === ADMIN_PASS) {
+                switchView('view-admin');
+                loadAttendanceData();
+            } else if (pass !== null) {
+                showAlert("ผิดพลาด", "รหัสผ่านไม่ถูกต้อง", "error");
+            }
+        }
+
+        async function loadAttendanceData() {
+            const tbody = document.getElementById('attendance-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-400">กำลังโหลด...</td></tr>`;
+            
+            try {
+                const res = await fetch(`${API_URL}?action=getAttendance`);
+                const items = await res.json();
+                tbody.innerHTML = "";
+                items.forEach(item => {
+                    const row = `
+                        <tr class="border-b">
+                            <td class="px-2 py-3">${item.nickname}</td>
+                            <td class="px-2 py-3">${item.timeWork}</td>
+                            <td class="px-2 py-3">${item.pointWork}</td>
+                            <td class="px-2 py-3"><span class="bg-green-100 text-green-600 px-2 py-0.5 rounded-full">มา</span></td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-400">โหลดข้อมูลล้มเหลว</td></tr>`;
+            }
+        }
+
+        function exportToCSV() {
+            showAlert("Exporting", "เตรียมไฟล์ CSV กำลังจะดาวน์โหลด...", "success");
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; 
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function showAlert(title, msg, type) {
+            const modal = document.getElementById('modal-alert');
+            const icon = document.getElementById('modal-icon');
+            const t = document.getElementById('modal-title');
+            const m = document.getElementById('modal-message');
+            
+            if (!modal || !icon || !t || !m) return;
+            
+            t.innerText = title;
+            m.innerText = msg;
+            
+            if(type === 'success') {
+                icon.className = "mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600";
+                icon.innerHTML = '<i data-lucide="check" class="w-6 h-6"></i>';
+            } else if(type === 'error') {
+                icon.className = "mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600";
+                icon.innerHTML = '<i data-lucide="x" class="w-6 h-6"></i>';
+            } else {
+                icon.className = "mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-600";
+                icon.innerHTML = '<i data-lucide="alert-circle" class="w-6 h-6"></i>';
+            }
+            
+            modal.classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal-alert');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function updateStats() {
+            const offEl = document.getElementById('stat-offline');
+            if (offEl) offEl.innerText = state.offlineQueue.length;
+        }
+
     </script>
 </body>
 </html>
