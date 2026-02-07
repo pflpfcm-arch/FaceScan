@@ -18,7 +18,7 @@
             @apply w-16 h-16 rounded-full flex items-center justify-center text-xl font-semibold bg-white shadow-sm border border-gray-100 hover:bg-blue-50 transition-all active:scale-95;
         }
         #video-container { position: relative; width: 100%; max-width: 400px; border-radius: 1rem; overflow: hidden; background: #000; }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .loader {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #3498db;
@@ -38,7 +38,7 @@
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center space-y-4">
         <div class="loader w-12 h-12 border-4"></div>
-        <p class="text-gray-600 animate-pulse font-medium">กำลังเริ่มต้นระบบ...</p>
+        <p class="text-gray-600 animate-pulse font-medium">กำลังเริ่มต้นระบบสแกนใบหน้า...</p>
     </div>
 
     <!-- Header -->
@@ -65,12 +65,16 @@
                 <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
             </div>
 
+            <!-- Face Login Section with Overlay -->
             <div id="login-face-section" class="space-y-4">
                 <div id="video-container" class="mx-auto aspect-square ring-4 ring-blue-50 ring-offset-2">
                     <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                     <canvas id="login-overlay"></canvas>
                 </div>
-                <p class="text-sm text-gray-500 animate-pulse" id="face-login-status">กำลังเตรียมการสแกนใบหน้า...</p>
+                <div class="space-y-1">
+                    <p class="text-sm font-medium text-blue-600" id="face-login-status">กำลังสแกนหาใบหน้า...</p>
+                    <p class="text-[10px] text-gray-400 uppercase tracking-tighter">Please look straight at the camera</p>
+                </div>
             </div>
 
             <div id="login-pin-section" class="hidden space-y-6">
@@ -92,7 +96,7 @@
                 </div>
             </div>
 
-            <p class="mt-8 text-sm text-gray-400">ยังไม่มีประวัติใบหน้าในระบบ? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
+            <p class="mt-8 text-sm text-gray-400">ยังไม่มีข้อมูลในระบบ? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
             
             <div id="demo-mode-banner" class="hidden mt-6 p-3 bg-orange-50 border border-orange-200 rounded-xl text-orange-700 text-xs text-left">
                 <div class="font-bold flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> โหมดสาธิต (Offline)</div>
@@ -127,11 +131,9 @@
             </div>
         </div>
 
-        <!-- SECTION: Main Integrated Dashboard -->
+        <!-- SECTION: Main Dashboard -->
         <div id="view-main" class="hidden space-y-8 pb-10">
-            <!-- User Welcome & Form Card -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Profile & Time Info -->
                 <div class="lg:col-span-1 bg-white p-6 rounded-2xl card-shadow text-center border border-gray-50 space-y-4">
                     <h3 class="text-gray-400 text-sm">ยินดีต้อนรับคุณ</h3>
                     <div id="display-user-name" class="font-bold text-gray-800 text-2xl">-</div>
@@ -145,7 +147,6 @@
                     </div>
                 </div>
 
-                <!-- Attendance Form -->
                 <div class="lg:col-span-2 bg-white p-6 rounded-2xl card-shadow border border-gray-50 space-y-4">
                     <h4 class="font-bold text-gray-700 flex items-center gap-2"><i data-lucide="clock" class="w-5 h-5 text-blue-500"></i> ลงเวลาทำงานวันนี้</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -182,26 +183,22 @@
                 </div>
             </div>
 
-            <!-- Global Dashboard & Report Section -->
+            <!-- Global Dashboard Section -->
             <div class="space-y-6 pt-4 border-t border-gray-200">
                 <div class="flex items-center justify-between flex-wrap gap-4">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-600"></i> แดชบอร์ดรายงานประจำวัน</h3>
-                    
-                    <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl card-shadow border border-gray-100">
-                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent text-sm font-medium outline-none">
-                        <div class="h-6 w-[1px] bg-gray-100 mx-1"></div>
-                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent text-sm font-medium outline-none">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-600"></i> รายงานประจำวัน</h3>
+                    <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl card-shadow border border-gray-100 text-sm">
+                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none">
+                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none">
                             <option value="ทั้งหมด">สถานะ: ทั้งหมด</option>
                             <option value="มา">มา</option>
                             <option value="ลา">ลา</option>
                             <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
                             <option value="ไม่ลงบันทึก">ไม่ลงบันทึก</option>
                         </select>
-                        <button onclick="exportCSV()" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Export CSV"><i data-lucide="download" class="w-5 h-5"></i></button>
                     </div>
                 </div>
 
-                <!-- Summary Cards -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-white p-4 rounded-2xl border-l-4 border-green-500 card-shadow">
                         <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">มาทำงาน</p>
@@ -216,12 +213,11 @@
                         <p id="sum-half" class="text-3xl font-bold text-orange-500">0</p>
                     </div>
                     <div class="bg-white p-4 rounded-2xl border-l-4 border-gray-300 card-shadow">
-                        <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">ไม่ลงบันทึก</p>
+                        <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">ยังไม่ลงบันทึก</p>
                         <p id="sum-missing" class="text-3xl font-bold text-gray-500">0</p>
                     </div>
                 </div>
 
-                <!-- Report Table -->
                 <div class="bg-white rounded-2xl card-shadow border border-gray-100 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
@@ -230,15 +226,12 @@
                                     <th class="px-6 py-4">รายชื่อพนักงาน</th>
                                     <th class="px-4 py-4 text-center">สถานะ</th>
                                     <th class="px-4 py-4 text-center">เข้างาน</th>
-                                    <th class="px-4 py-4">จุดงาน</th>
-                                    <th class="px-4 py-4 text-center">เข้าบริษัท</th>
-                                    <th class="px-4 py-4">จุดบริษัท</th>
+                                    <th class="px-4 py-4 text-center text-xs">เข้าบริษัท</th>
+                                    <th class="px-4 py-4">จุด</th>
                                     <th class="px-6 py-4">หมายเหตุ</th>
                                 </tr>
                             </thead>
-                            <tbody id="report-table-body" class="divide-y divide-gray-50 font-medium text-gray-700">
-                                <!-- Data rows -->
-                            </tbody>
+                            <tbody id="report-table-body" class="divide-y divide-gray-50 font-medium text-gray-700"></tbody>
                         </table>
                     </div>
                 </div>
@@ -253,7 +246,7 @@
 
     <!-- Notification Modal -->
     <div id="modal-alert" class="fixed inset-0 z-[110] bg-black/60 hidden flex items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-4 shadow-2xl scale-in transition-transform">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-4 shadow-2xl">
             <div id="modal-icon" class="mx-auto flex items-center justify-center w-16 h-16 rounded-full"></div>
             <h4 id="modal-title" class="text-xl font-bold text-gray-800"></h4>
             <p id="modal-message" class="text-gray-500 text-sm leading-relaxed text-left"></p>
@@ -264,8 +257,6 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
         const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models"; 
-
-        const MOCK_USERS = [{ id: "DEMO001", nickname: "ทดสอบระบบ", pin: CryptoJS.SHA256("123456").toString(), faceDescriptor: "" }];
 
         let state = {
             user: null, pin: "", location: { lat: 0, lng: 0 },
@@ -331,11 +322,9 @@
                     state.faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
                 }
                 populateUserSelect();
-                if (state.user) renderGlobalReport(); // Update report if already logged in
+                if (state.user) renderGlobalReport(); 
             } catch (e) { 
-                state.users = MOCK_USERS;
-                document.getElementById('demo-mode-banner')?.classList.remove('hidden');
-                populateUserSelect();
+                console.error("Fetch Error");
             }
         }
 
@@ -356,7 +345,7 @@
                 navigator.geolocation.watchPosition((pos) => {
                     state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     const gpsText = document.getElementById('gps-text');
-                    if(gpsText) gpsText.innerText = `พิกัด: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
+                    if(gpsText) gpsText.innerText = `พิกัดคงที่: ${state.location.lat.toFixed(5)}`;
                     document.getElementById('gps-banner')?.classList.replace('bg-yellow-50', 'bg-green-50');
                 }, () => {}, { enableHighAccuracy: true });
             }
@@ -367,13 +356,8 @@
             document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
             document.getElementById(viewId)?.classList.remove('hidden');
             document.getElementById('main-header')?.classList.toggle('hidden', viewId === 'view-login' || viewId === 'view-register');
-            
-            if (viewId === 'view-login' && state.loginMode === 'face') {
-                startFaceLogin();
-            }
-            if (viewId === 'view-main') {
-                renderGlobalReport();
-            }
+            if (viewId === 'view-login' && state.loginMode === 'face') startFaceLogin();
+            if (viewId === 'view-main') renderGlobalReport();
             initLucide();
         }
 
@@ -392,35 +376,80 @@
             if (state.currentStream) { state.currentStream.getTracks().forEach(track => track.stop()); state.currentStream = null; }
         }
 
+        // --- UPDATED FACE LOGIN WITH TRACKING BOX & AUTO LOGIN ---
         async function startFaceLogin() {
             const video = document.getElementById('login-video');
             const statusEl = document.getElementById('face-login-status');
+            const canvas = document.getElementById('login-overlay');
+            
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 state.currentStream = stream;
                 video.srcObject = stream;
-                statusEl.innerText = "กำลังสแกนใบหน้า...";
+                
                 video.onplay = () => {
-                    const canvas = document.getElementById('login-overlay');
-                    faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
+                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+                    
                     const interval = setInterval(async () => {
-                        if (state.view !== 'view-login' || state.loginMode !== 'face') { clearInterval(interval); return; }
-                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                        if (det && state.faceMatcher) {
-                            const bestMatch = state.faceMatcher.findBestMatch(det.descriptor);
-                            if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
-                                clearInterval(interval);
-                                const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
-                                if (foundUser) {
-                                    statusEl.innerText = "พบใบหน้าคุณ: " + foundUser.nickname;
-                                    statusEl.className = "text-sm font-bold text-green-600";
-                                    setTimeout(() => loginSuccess(foundUser), 500);
+                        if (state.view !== 'view-login' || state.loginMode !== 'face') { 
+                            clearInterval(interval); 
+                            return; 
+                        }
+                        
+                        // Detect face with landmarks and descriptor
+                        const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+                        
+                        // Clear previous canvas drawing
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        if (detection) {
+                            // Resize detection to match display
+                            const resizedDetection = faceapi.resizeResults(detection, displaySize);
+                            
+                            // Draw tracking box (Bounding Box)
+                            const drawOptions = {
+                                label: 'กำลังสแกน...',
+                                lineWidth: 2,
+                                boxColor: '#3b82f6'
+                            };
+                            const drawBox = new faceapi.draw.DrawBox(resizedDetection.detection.box, drawOptions);
+                            drawBox.draw(canvas);
+                            
+                            // Matching Logic
+                            if (state.faceMatcher) {
+                                const bestMatch = state.faceMatcher.findBestMatch(detection.descriptor);
+                                if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
+                                    // Match Found!
+                                    const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
+                                    if (foundUser) {
+                                        // Highlight match on canvas
+                                        const matchOptions = { label: foundUser.nickname, boxColor: '#10b981' };
+                                        new faceapi.draw.DrawBox(resizedDetection.detection.box, matchOptions).draw(canvas);
+                                        
+                                        statusEl.innerText = "ยืนยันตัวตนสำเร็จ: " + foundUser.nickname;
+                                        statusEl.className = "text-sm font-bold text-green-600";
+                                        
+                                        clearInterval(interval);
+                                        setTimeout(() => loginSuccess(foundUser), 800);
+                                    }
+                                } else {
+                                    statusEl.innerText = "ไม่พบข้อมูลใบหน้านี้ในระบบ";
+                                    statusEl.className = "text-sm font-medium text-red-500";
                                 }
                             }
+                        } else {
+                            statusEl.innerText = "กรุณาขยับหน้าให้อยู่ในกรอบ";
+                            statusEl.className = "text-sm font-medium text-blue-600";
                         }
-                    }, 500);
+                    }, 300);
                 };
-            } catch (err) { statusEl.innerText = "กรุณาเปิดกล้องหรือใช้รหัส PIN"; }
+            } catch (err) { 
+                statusEl.innerText = "ไม่สามารถเข้าถึงกล้องได้"; 
+            }
         }
 
         function renderPinDots() {
@@ -443,7 +472,7 @@
             const hashedPin = CryptoJS.SHA256(state.pin).toString();
             const user = state.users.find(u => u.pin === hashedPin);
             if(user) loginSuccess(user);
-            else { showAlert("รหัสผิด", "PIN 6 หลักไม่ถูกต้อง", "error"); clearPin(); }
+            else { showAlert("รหัส PIN ผิด", "ไม่สามารถเข้าสู่ระบบได้", "error"); clearPin(); }
         }
 
         function loginSuccess(user) {
@@ -459,7 +488,7 @@
             if (s) { try { const sess = JSON.parse(s); if(sess.expiry > Date.now()) { state.user = sess.user; document.getElementById('display-user-name').innerText = state.user.nickname; switchView('view-main'); } } catch(e) {} }
         }
 
-        function logout() { localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); clearPin(); }
+        function logout() { stopAllVideo(); localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); clearPin(); }
 
         async function submitAttendance(status) {
             const data = {
@@ -475,14 +504,9 @@
             };
             try {
                 await fetch(API_URL + "?action=saveAttendance", { method: 'POST', body: JSON.stringify(data) });
-                showAlert("สำเร็จ", "ข้อมูลเวลาการทำงานถูกบันทึกเรียบร้อย", "success");
-                await fetchData();
-            } catch (e) { showAlert("ผิดพลาด", "ไม่สามารถส่งข้อมูลได้ในขณะนี้", "error"); }
-        }
-
-        function formatTimeHHMM(timeStr) {
-            if (!timeStr) return '-';
-            return timeStr.toString().substring(0, 5);
+                showAlert("บันทึกสำเร็จ", "ข้อมูลถูกส่งเข้าระบบเรียบร้อย", "success");
+                fetchData();
+            } catch (e) { showAlert("Error", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์", "error"); }
         }
 
         function renderGlobalReport() {
@@ -510,11 +534,10 @@
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 font-bold text-gray-800">${u.nickname}</td>
                         <td class="px-4 py-4 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-bold ${getStatusClass(status)}">${status}</span></td>
-                        <td class="px-4 py-4 text-center font-mono">${att ? formatTimeHHMM(att.timeWork) : '-'}</td>
-                        <td class="px-4 py-4">${att ? att.pointWork : '-'}</td>
-                        <td class="px-4 py-4 text-center font-mono">${att ? formatTimeHHMM(att.timeCompany) : '-'}</td>
-                        <td class="px-4 py-4">${att ? att.pointCompany : '-'}</td>
-                        <td class="px-6 py-4 text-xs text-gray-400">${att ? att.note : '-'}</td>
+                        <td class="px-4 py-4 text-center font-mono">${att ? (att.timeWork || '-').substring(0,5) : '-'}</td>
+                        <td class="px-4 py-4 text-center font-mono">${att ? (att.timeCompany || '-').substring(0,5) : '-'}</td>
+                        <td class="px-4 py-4 text-xs">${att ? att.pointWork : '-'}</td>
+                        <td class="px-6 py-4 text-[10px] text-gray-400">${att ? att.note : '-'}</td>
                     </tr>`;
             });
             document.getElementById('sum-present').innerText = sums.present;
@@ -538,13 +561,13 @@
             if(state.registerStep === 1) {
                 document.getElementById('face-scan-section').classList.remove('hidden');
                 document.getElementById('reg-form-content').classList.add('hidden');
-                btn.disabled = true; btn.innerText = "กำลังสแกนใบหน้า...";
+                btn.disabled = true; btn.innerText = "กำลังสแกน...";
                 state.registerStep = 2;
                 startRegisterScan();
             } else if (state.registerStep === 3) {
                 const pin = document.getElementById('reg-pin').value;
                 if(pin.length === 6 && pin === document.getElementById('reg-pin-confirm').value) saveNewUser(userId, pin);
-                else showAlert("PIN ผิด", "รหัส PIN ทั้งสองช่องไม่ตรงกัน", "error");
+                else showAlert("PIN ไม่ตรงกัน", "กรุณาตรวจสอบอีกครั้ง", "error");
             }
         }
 
@@ -565,7 +588,7 @@
                             const noseRel = (nose[0].x - jaw[0].x) / (jaw[16].x - jaw[0].x);
                             if(noseRel > 0.45 && noseRel < 0.55) {
                                 state.tempDescriptor = det.descriptor;
-                                document.getElementById('scan-status').innerText = "บันทึกใบหน้าสำเร็จ!";
+                                document.getElementById('scan-status').innerText = "บันทึกสำเร็จ!";
                                 document.getElementById('scan-status').className = "text-sm font-semibold text-green-600";
                                 clearInterval(interval);
                                 setTimeout(finishScan, 500);
@@ -573,7 +596,7 @@
                         }
                     }, 300);
                 };
-            } catch (err) { showAlert("Error", "เปิดกล้องสแกนไม่ได้", "error"); }
+            } catch (err) { showAlert("Error", "เปิดกล้องไม่ได้", "error"); }
         }
 
         function finishScan() {
@@ -590,10 +613,10 @@
             const faceData = state.tempDescriptor ? JSON.stringify(Array.from(state.tempDescriptor)) : "";
             try {
                 await fetch(API_URL + "?action=saveLog", { method: 'POST', body: JSON.stringify({ userId: id, pin: hashedPin, faceDescriptor: faceData, type: 'register' }) });
-                showAlert("สำเร็จ", "ลงทะเบียนพนักงานเรียบร้อยแล้ว", "success");
+                showAlert("สำเร็จ", "ลงทะเบียนพนักงานเรียบร้อย", "success");
                 switchView('view-login');
                 await fetchData();
-            } catch (e) { showAlert("Error", "บันทึกข้อมูลไม่สำเร็จ", "error"); }
+            } catch (e) { showAlert("Error", "ไม่สามารถบันทึกข้อมูล", "error"); }
         }
 
         function updateTime() {
@@ -614,21 +637,6 @@
 
         function closeModal() { document.getElementById('modal-alert').classList.add('hidden'); }
         function retryFetchData() { fetchData(); }
-
-        function exportCSV() {
-            let csv = "\uFEFFรายชื่อ,สถานะ,เวลาเข้างาน,จุดเข้างาน,เวลาเข้าบริษัท,จุดเข้าบริษัท,หมายเหตุ\n";
-            const rows = document.querySelectorAll("#report-table-body tr");
-            rows.forEach(tr => {
-                const cols = tr.querySelectorAll("td");
-                const rowData = Array.from(cols).map(c => `"${c.innerText}"`).join(",");
-                csv += rowData + "\n";
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Report_PFL_${document.getElementById('filter-date').value}.csv`;
-            link.click();
-        }
     </script>
 </body>
 </html>
