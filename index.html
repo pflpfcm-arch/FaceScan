@@ -29,6 +29,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #loading-overlay { transition: opacity 0.5s ease-out; }
+        .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -57,23 +58,48 @@
         <!-- SECTION: Login -->
         <div id="view-login" class="max-w-lg mx-auto space-y-6 text-center py-10">
             <h2 class="text-2xl font-bold text-gray-800">เข้าสู่ระบบ</h2>
-            <p class="text-gray-500">ใส่รหัส PIN 6 หลัก</p>
-            <div id="pin-display" class="flex justify-center space-x-3 my-6"></div>
-            <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
-                <button onclick="pressPin(1)" class="numpad-btn">1</button>
-                <button onclick="pressPin(2)" class="numpad-btn">2</button>
-                <button onclick="pressPin(3)" class="numpad-btn">3</button>
-                <button onclick="pressPin(4)" class="numpad-btn">4</button>
-                <button onclick="pressPin(5)" class="numpad-btn">5</button>
-                <button onclick="pressPin(6)" class="numpad-btn">6</button>
-                <button onclick="pressPin(7)" class="numpad-btn">7</button>
-                <button onclick="pressPin(8)" class="numpad-btn">8</button>
-                <button onclick="pressPin(9)" class="numpad-btn">9</button>
-                <button onclick="retryFetchData()" class="numpad-btn text-blue-500"><i data-lucide="refresh-cw" class="w-6 h-6"></i></button>
-                <button onclick="pressPin(0)" class="numpad-btn">0</button>
-                <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="delete"></i></button>
+            
+            <!-- Login Tabs -->
+            <div class="flex justify-center space-x-8 mb-6 border-b border-gray-100 text-gray-400 text-sm">
+                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
+                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
             </div>
+
+            <!-- Face Login Section -->
+            <div id="login-face-section" class="space-y-4">
+                <div id="video-container" class="mx-auto aspect-square ring-4 ring-blue-50 ring-offset-2">
+                    <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                    <canvas id="login-overlay"></canvas>
+                </div>
+                <p class="text-sm text-gray-500 animate-pulse" id="face-login-status">กำลังเตรียมการสแกนใบหน้า...</p>
+            </div>
+
+            <!-- PIN Login Section -->
+            <div id="login-pin-section" class="hidden space-y-6">
+                <p class="text-gray-500">ใส่รหัส PIN 6 หลัก</p>
+                <div id="pin-display" class="flex justify-center space-x-3 my-6"></div>
+                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+                    <button onclick="pressPin(1)" class="numpad-btn">1</button>
+                    <button onclick="pressPin(2)" class="numpad-btn">2</button>
+                    <button onclick="pressPin(3)" class="numpad-btn">3</button>
+                    <button onclick="pressPin(4)" class="numpad-btn">4</button>
+                    <button onclick="pressPin(5)" class="numpad-btn">5</button>
+                    <button onclick="pressPin(6)" class="numpad-btn">6</button>
+                    <button onclick="pressPin(7)" class="numpad-btn">7</button>
+                    <button onclick="pressPin(8)" class="numpad-btn">8</button>
+                    <button onclick="pressPin(9)" class="numpad-btn">9</button>
+                    <button onclick="retryFetchData()" class="numpad-btn text-blue-500"><i data-lucide="refresh-cw" class="w-6 h-6"></i></button>
+                    <button onclick="pressPin(0)" class="numpad-btn">0</button>
+                    <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="delete"></i></button>
+                </div>
+            </div>
+
             <p class="mt-8 text-sm text-gray-400">ยังไม่ได้ลงทะเบียน? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
+            
+            <div id="demo-mode-banner" class="hidden mt-6 p-3 bg-orange-50 border border-orange-200 rounded-xl text-orange-700 text-xs text-left">
+                <div class="font-bold flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> โหมดสาธิต (Offline)</div>
+                <p class="mt-1">ระบบใช้ข้อมูลจำลองเนื่องจากเชื่อมต่อ API ไม่ได้</p>
+            </div>
         </div>
 
         <!-- SECTION: Register -->
@@ -88,10 +114,13 @@
                     <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400"></select>
                 </div>
                 <div id="face-scan-section" class="hidden space-y-4">
-                    <p class="text-center text-sm font-semibold text-blue-600" id="scan-status">กรุณามองหน้าตรง</p>
-                    <div id="video-container" class="mx-auto aspect-square ring-4 ring-blue-50">
-                        <video id="video" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                        <canvas id="overlay"></canvas>
+                    <div class="text-center">
+                        <p class="text-sm font-semibold text-blue-600" id="scan-status">กรุณามองหน้าตรงเพื่อบันทึกใบหน้า</p>
+                        <p class="text-[10px] text-gray-400">ระบบจะทำการบันทึกข้อมูลอัตโนมัติเมื่อตรวจพบใบหน้าที่ชัดเจน</p>
+                    </div>
+                    <div id="reg-video-container" class="mx-auto aspect-square rounded-2xl overflow-hidden bg-black ring-4 ring-blue-50">
+                        <video id="reg-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="reg-overlay"></canvas>
                     </div>
                 </div>
                 <div id="pin-setup-section" class="hidden space-y-4">
@@ -99,7 +128,7 @@
                     <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
                     <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
                 </div>
-                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700">เริ่มการลงทะเบียน</button>
+                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700">เริ่มขั้นตอนการสแกน</button>
             </div>
         </div>
 
@@ -115,7 +144,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-xs font-semibold text-gray-500">จุดเข้าบริษัท</label>
-                        <select id="point-company" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                        <select id="point-company" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
                             <option>จุดตรวจ1 (แคนทีน)</option>
                             <option>จุดตรวจ3 (PF)</option>
                             <option>จุดตรวจ4 (FTI)</option>
@@ -123,13 +152,13 @@
                     </div>
                     <div class="space-y-1">
                         <label class="text-xs font-semibold text-gray-500">เวลาเข้าบริษัท</label>
-                        <input type="time" id="time-company" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                        <input type="time" id="time-company" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-xs font-semibold text-gray-500">จุดเข้างาน</label>
-                        <select id="point-work" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                        <select id="point-work" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
                             <option>CM</option>
                             <option>PF</option>
                             <option>FTI</option>
@@ -137,12 +166,13 @@
                     </div>
                     <div class="space-y-1">
                         <label class="text-xs font-semibold text-gray-500">เวลาเข้างาน</label>
-                        <input type="time" id="time-work" class="w-full p-3 bg-gray-50 border rounded-lg text-sm">
+                        <input type="time" id="time-work" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
                     </div>
                 </div>
-                <textarea id="attendance-note" rows="2" class="w-full p-3 bg-gray-50 border rounded-lg text-sm" placeholder="หมายเหตุ..."></textarea>
+                <textarea id="attendance-note" rows="2" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm" placeholder="หมายเหตุ..."></textarea>
                 <button onclick="submitAttendance('มา')" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-green-700">บันทึกเวลาทำงาน</button>
             </div>
+            <button onclick="logout()" class="w-full text-gray-400 text-sm underline">ออกจากระบบ</button>
         </div>
 
         <!-- SECTION: Admin Report Dashboard -->
@@ -150,9 +180,9 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
-                    <h2 class="text-xl font-bold text-gray-800">แดชบอร์ดรายงานการเข้างาน</h2>
+                    <h2 class="text-xl font-bold text-gray-800">รายงานการเข้างาน</h2>
                 </div>
-                <button onclick="logout()" class="text-red-500 text-sm font-medium">ออกจากระบบ</button>
+                <button onclick="logout()" class="text-red-500 text-sm font-medium">ออก</button>
             </div>
 
             <!-- Summary Cards -->
@@ -178,7 +208,7 @@
             <!-- Filters -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
                 <div class="space-y-1">
-                    <label class="text-xs font-semibold text-gray-500">เลือกวันที่</label>
+                    <label class="text-xs font-semibold text-gray-500">วันที่</label>
                     <input type="date" id="filter-date" onchange="renderAdminReport()" class="p-2 bg-gray-50 border rounded-lg text-sm">
                 </div>
                 <div class="space-y-1">
@@ -191,8 +221,7 @@
                         <option value="ไม่ลงบันทึก">ไม่ลงบันทึก</option>
                     </select>
                 </div>
-                <div class="flex-grow"></div>
-                <button onclick="exportCSV()" class="p-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-sm flex items-center">
+                <button onclick="exportCSV()" class="p-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-sm flex items-center ml-auto">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i> ส่งออก CSV
                 </button>
             </div>
@@ -203,12 +232,12 @@
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-50 text-gray-500 font-medium">
                             <tr>
-                                <th class="px-4 py-4">ชื่อเล่น</th>
+                                <th class="px-4 py-4">ชื่อ</th>
                                 <th class="px-4 py-4 text-center">สถานะ</th>
-                                <th class="px-4 py-4 text-center">เวลาเข้างาน</th>
-                                <th class="px-4 py-4">จุดเข้างาน</th>
-                                <th class="px-4 py-4 text-center">เวลาเข้าบริษัท</th>
-                                <th class="px-4 py-4">จุดเข้าบริษัท</th>
+                                <th class="px-4 py-4 text-center">เข้างาน</th>
+                                <th class="px-4 py-4">จุดงาน</th>
+                                <th class="px-4 py-4 text-center">เข้าบริษัท</th>
+                                <th class="px-4 py-4">จุดบริษัท</th>
                                 <th class="px-4 py-4">หมายเหตุ</th>
                             </tr>
                         </thead>
@@ -224,13 +253,13 @@
         <p>COPY RIGHT 2026 @ ฝ่ายกำกับรถพาเหรด</p>
     </footer>
 
-    <!-- Modal Alert -->
+    <!-- Notification Modal -->
     <div id="modal-alert" class="fixed inset-0 z-[110] bg-black/60 hidden flex items-center justify-center p-6 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-4 shadow-2xl">
             <div id="modal-icon" class="mx-auto flex items-center justify-center w-16 h-16 rounded-full"></div>
             <h4 id="modal-title" class="text-xl font-bold text-gray-800"></h4>
             <p id="modal-message" class="text-gray-500 text-sm leading-relaxed text-left"></p>
-            <button onclick="closeModal()" class="w-full bg-gray-900 text-white p-4 rounded-2xl font-semibold active:scale-95">ตกลง</button>
+            <button onclick="closeModal()" class="w-full bg-gray-900 text-white p-4 rounded-2xl font-semibold active:scale-95 transition-transform">ตกลง</button>
         </div>
     </div>
 
@@ -239,10 +268,18 @@
         const ADMIN_PASS = "pflpfcm";
         const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models"; 
 
+        const MOCK_USERS = [
+            { id: "DEMO001", nickname: "พนักงานทดสอบ", pin: CryptoJS.SHA256("123456").toString(), faceDescriptor: "" }
+        ];
+
         let state = {
             user: null, pin: "", location: { lat: 0, lng: 0 },
-            users: [], attendance: [], 
-            view: "view-login", registerStep: 1
+            users: [], attendance: [],
+            view: "view-login", registerStep: 1,
+            loginMode: "face", // 'face' or 'pin'
+            currentStream: null,
+            faceMatcher: null,
+            tempDescriptor: null // For registration
         };
 
         window.onload = async () => {
@@ -252,9 +289,11 @@
             document.getElementById('filter-date').valueAsDate = new Date();
             
             try {
-                initFaceModels();
+                await initFaceModels();
                 await fetchData();
-            } catch (err) {} 
+                // Start Face Login by default
+                startFaceLogin();
+            } catch (err) { console.error(err); } 
             finally { 
                 document.getElementById('loading-overlay').style.display = 'none'; 
             }
@@ -266,6 +305,16 @@
 
         function initLucide() { if (typeof lucide !== 'undefined') lucide.createIcons(); else setTimeout(initLucide, 500); }
 
+        async function initFaceModels() {
+            if (typeof faceapi !== 'undefined' && faceapi.nets) {
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+            }
+        }
+
         async function fetchData() {
             try {
                 const [uRes, aRes] = await Promise.all([
@@ -274,8 +323,28 @@
                 ]);
                 state.users = await uRes.json();
                 state.attendance = await aRes.json();
+                
+                // Prepare Face Matcher
+                const labeledDescriptors = [];
+                state.users.forEach(u => {
+                    if (u.faceDescriptor) {
+                        try {
+                            const desc = new Float32Array(Object.values(JSON.parse(u.faceDescriptor)));
+                            labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(u.id.toString(), [desc]));
+                        } catch (e) { console.warn("Failed to parse face data for", u.nickname); }
+                    }
+                });
+                if (labeledDescriptors.length > 0) {
+                    state.faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+                }
+                
                 populateUserSelect();
-            } catch (e) { console.error("Data fetch failed", e); }
+            } catch (e) { 
+                console.error("Data fetch failed", e);
+                state.users = MOCK_USERS;
+                document.getElementById('demo-mode-banner')?.classList.remove('hidden');
+                populateUserSelect();
+            }
         }
 
         function populateUserSelect() {
@@ -290,39 +359,89 @@
             });
         }
 
-        async function initFaceModels() {
-            if (typeof faceapi !== 'undefined' && faceapi.nets) {
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                ]);
-            }
-        }
-
         function initGPS() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition((pos) => {
                     state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    document.getElementById('gps-text').innerText = `พิกัด: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
                     document.getElementById('gps-banner')?.classList.replace('bg-yellow-50', 'bg-green-50');
-                });
+                }, () => {}, { enableHighAccuracy: true });
             }
         }
 
         function switchView(viewId) {
+            stopAllVideo();
             document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
             document.getElementById(viewId)?.classList.remove('hidden');
             document.getElementById('main-header')?.classList.toggle('hidden', viewId === 'view-login' || viewId === 'view-register');
+            
+            if (viewId === 'view-login' && state.loginMode === 'face') {
+                startFaceLogin();
+            }
             initLucide();
         }
 
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').innerText = now.toLocaleTimeString('th-TH');
-            document.getElementById('current-date').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        function switchLoginMode(mode) {
+            state.loginMode = mode;
+            stopAllVideo();
+            document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
+            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
+            
+            document.getElementById('login-face-section').classList.toggle('hidden', mode !== 'face');
+            document.getElementById('login-pin-section').classList.toggle('hidden', mode !== 'pin');
+            
+            if (mode === 'face') startFaceLogin();
+            initLucide();
         }
 
+        function stopAllVideo() {
+            if (state.currentStream) {
+                state.currentStream.getTracks().forEach(track => track.stop());
+                state.currentStream = null;
+            }
+        }
+
+        // --- FACE LOGIN LOGIC ---
+        async function startFaceLogin() {
+            const video = document.getElementById('login-video');
+            const statusEl = document.getElementById('face-login-status');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                state.currentStream = stream;
+                video.srcObject = stream;
+                statusEl.innerText = "กำลังสแกนใบหน้า...";
+                
+                video.onplay = () => {
+                    const canvas = document.getElementById('login-overlay');
+                    faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
+                    
+                    const interval = setInterval(async () => {
+                        if (state.view !== 'view-login' || state.loginMode !== 'face') {
+                            clearInterval(interval);
+                            return;
+                        }
+                        
+                        const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+                            
+                        if (detections && state.faceMatcher) {
+                            const bestMatch = state.faceMatcher.findBestMatch(detections.descriptor);
+                            if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
+                                clearInterval(interval);
+                                const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
+                                if (foundUser) {
+                                    statusEl.innerText = "ตรวจพบ: " + foundUser.nickname;
+                                    statusEl.className = "text-sm font-bold text-green-600";
+                                    setTimeout(() => loginSuccess(foundUser), 500);
+                                }
+                            }
+                        }
+                    }, 500);
+                };
+            } catch (err) { statusEl.innerText = "กรุณาเปิดกล้องหรือเปลี่ยนไปใช้ PIN"; }
+        }
+
+        // --- PIN LOGIN LOGIC ---
         function renderPinDots() {
             const container = document.getElementById('pin-display');
             if (!container) return;
@@ -334,18 +453,32 @@
             }
         }
 
-        function pressPin(num) { if(state.pin.length < 6) { state.pin += num; renderPinDots(); if(state.pin.length === 6) setTimeout(handleLogin, 300); } }
+        function pressPin(num) { 
+            if(state.pin.length < 6) { 
+                state.pin += num; 
+                renderPinDots(); 
+                if(state.pin.length === 6) setTimeout(handlePinLogin, 300); 
+            } 
+        }
         function clearPin() { state.pin = ""; renderPinDots(); }
 
-        async function handleLogin() {
+        async function handlePinLogin() {
             const hashedPin = CryptoJS.SHA256(state.pin).toString();
             const user = state.users.find(u => u.pin === hashedPin);
             if(user) {
-                state.user = user;
-                localStorage.setItem('pfl_session', JSON.stringify({ user, expiry: Date.now() + 28800000 }));
-                document.getElementById('display-user-name').innerText = user.nickname;
-                switchView('view-main');
-            } else { showAlert("รหัสผิด", "PIN ไม่ถูกต้อง", "error"); clearPin(); }
+                loginSuccess(user);
+            } else { 
+                showAlert("เข้าสู่ระบบล้มเหลว", "รหัส PIN ไม่ถูกต้อง", "error"); 
+                clearPin(); 
+            }
+        }
+
+        function loginSuccess(user) {
+            state.user = user;
+            localStorage.setItem('pfl_session', JSON.stringify({ user, expiry: Date.now() + 28800000 }));
+            document.getElementById('display-user-name').innerText = user.nickname;
+            switchView('view-main');
+            clearPin();
         }
 
         function checkSession() {
@@ -355,6 +488,7 @@
 
         function logout() { localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); clearPin(); }
 
+        // --- ATTENDANCE ---
         async function submitAttendance(status) {
             const data = {
                 userId: state.user.id, nickname: state.user.nickname,
@@ -364,59 +498,49 @@
                 timeCompany: document.getElementById('time-company').value,
                 pointCompany: document.getElementById('point-company').value,
                 note: document.getElementById('attendance-note').value,
-                lat: state.location.lat, lng: state.location.lng
+                lat: state.location.lat, lng: state.location.lng,
+                timestamp: new Date().toISOString()
             };
             try {
                 await fetch(API_URL + "?action=saveAttendance", { method: 'POST', body: JSON.stringify(data) });
-                showAlert("สำเร็จ", "บันทึกเวลาทำงานเรียบร้อย", "success");
-                await fetchData();
-            } catch (e) { showAlert("ล้มเหลว", "ไม่สามารถส่งข้อมูลได้", "error"); }
+                showAlert("บันทึกสำเร็จ", "ข้อมูลเวลาการทำงานถูกบันทึกเรียบร้อย", "success");
+                fetchData();
+            } catch (e) { showAlert("ผิดพลาด", "บันทึกข้อมูลไม่ได้ในขณะนี้", "error"); }
         }
 
-        // --- REPORT LOGIC ---
-
+        // --- ADMIN REPORT ---
         function renderAdminReport() {
-            const selectedDate = document.getElementById('filter-date').value;
-            const filterStatus = document.getElementById('filter-status').value;
+            const selDate = document.getElementById('filter-date').value;
+            const selStatus = document.getElementById('filter-status').value;
             const tbody = document.getElementById('report-table-body');
             tbody.innerHTML = "";
-
             let sums = { present: 0, leave: 0, half: 0, missing: 0 };
 
             state.users.forEach(u => {
-                // หาการลงเวลาของพนักงานในวันที่เลือก
                 const att = state.attendance.find(a => {
-                    const aDate = new Date(a.timestamp).toISOString().split('T')[0];
-                    return a.userId == u.id && aDate === selectedDate;
+                    const aDate = new Date(a.timestamp).toLocaleDateString('en-CA');
+                    return a.userId == u.id && aDate === selDate;
                 });
 
                 const status = att ? att.status : "ไม่ลงบันทึก";
-                
-                // นับจำนวนสรุป
                 if (status === "มา") sums.present++;
                 else if (status === "ลา") sums.leave++;
                 else if (status === "ลาครึ่งวัน") sums.half++;
                 else sums.missing++;
 
-                // ตัวกรองสถานะ
-                if (filterStatus !== "ทั้งหมด" && filterStatus !== status) return;
+                if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
-                const row = `
+                tbody.innerHTML += `
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium">${u.nickname}</td>
-                        <td class="px-4 py-3 text-center">
-                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${getStatusClass(status)}">${status}</span>
-                        </td>
+                        <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-bold ${getStatusClass(status)}">${status}</span></td>
                         <td class="px-4 py-3 text-center">${att ? att.timeWork : '-'}</td>
                         <td class="px-4 py-3">${att ? att.pointWork : '-'}</td>
                         <td class="px-4 py-3 text-center">${att ? att.timeCompany : '-'}</td>
                         <td class="px-4 py-3">${att ? att.pointCompany : '-'}</td>
-                        <td class="px-4 py-3 text-xs text-gray-500">${att ? att.note : '-'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-400">${att ? att.note : '-'}</td>
                     </tr>`;
-                tbody.innerHTML += row;
             });
-
-            // อัปเดต Summary Cards
             document.getElementById('sum-present').innerText = sums.present;
             document.getElementById('sum-leave').innerText = sums.leave;
             document.getElementById('sum-half').innerText = sums.half;
@@ -430,21 +554,6 @@
             return "bg-gray-100 text-gray-500";
         }
 
-        function exportCSV() {
-            let csv = "\uFEFFชื่อ,สถานะ,เวลาเข้างาน,จุดเข้างาน,เวลาเข้าบริษัท,จุดเข้าบริษัท,หมายเหตุ\n";
-            const rows = document.querySelectorAll("#report-table-body tr");
-            rows.forEach(tr => {
-                const cols = tr.querySelectorAll("td");
-                const rowData = Array.from(cols).map(c => `"${c.innerText}"`).join(",");
-                csv += rowData + "\n";
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Report_PFL_${document.getElementById('filter-date').value}.csv`;
-            link.click();
-        }
-
         function toggleAdminMode() {
             const p = prompt("รหัสผ่านแอดมิน:");
             if(p === ADMIN_PASS) { switchView('view-admin'); renderAdminReport(); }
@@ -455,12 +564,14 @@
         async function handleRegisterNext() {
             const userId = document.getElementById('reg-user-list').value;
             if(!userId) return showAlert("เตือน", "กรุณาเลือกรายชื่อ", "warning");
+            const btn = document.getElementById('btn-next-step');
+
             if(state.registerStep === 1) {
                 document.getElementById('face-scan-section').classList.remove('hidden');
                 document.getElementById('reg-form-content').classList.add('hidden');
-                document.getElementById('btn-next-step').disabled = true;
+                btn.disabled = true; btn.innerText = "กำลังสแกนใบหน้า...";
                 state.registerStep = 2;
-                startVideo();
+                startRegisterScan();
             } else if (state.registerStep === 3) {
                 const pin = document.getElementById('reg-pin').value;
                 if(pin.length === 6 && pin === document.getElementById('reg-pin-confirm').value) saveNewUser(userId, pin);
@@ -468,48 +579,64 @@
             }
         }
 
-        async function startVideo() {
-            const video = document.getElementById('video');
+        async function startRegisterScan() {
+            const video = document.getElementById('reg-video');
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                state.currentStream = stream;
                 video.srcObject = stream;
                 video.onplay = () => {
-                    const canvas = document.getElementById('overlay');
+                    const canvas = document.getElementById('reg-overlay');
                     faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
                     const interval = setInterval(async () => {
-                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
                         if (det) {
                             const nose = det.landmarks.getNose();
                             const jaw = det.landmarks.getJawOutline();
                             const noseRel = (nose[0].x - jaw[0].x) / (jaw[16].x - jaw[0].x);
                             if(noseRel > 0.45 && noseRel < 0.55) {
-                                document.getElementById('scan-status').innerText = "สแกนสำเร็จ!";
+                                state.tempDescriptor = det.descriptor;
+                                document.getElementById('scan-status').innerText = "บันทึกใบหน้าสำเร็จ!";
+                                document.getElementById('scan-status').className = "text-sm font-semibold text-green-600";
                                 clearInterval(interval);
                                 setTimeout(finishScan, 500);
                             }
                         }
                     }, 300);
                 };
-            } catch (err) { showAlert("Error", "ไม่สามารถเปิดกล้องได้", "error"); }
+            } catch (err) { showAlert("ผิดพลาด", "ไม่สามารถใช้กล้องได้", "error"); }
         }
 
         function finishScan() {
             document.getElementById('face-scan-section').classList.add('hidden');
             document.getElementById('pin-setup-section').classList.remove('hidden');
-            document.getElementById('btn-next-step').innerText = "บันทึกรหัส PIN";
-            document.getElementById('btn-next-step').disabled = false;
+            const btn = document.getElementById('btn-next-step');
+            btn.innerText = "บันทึกข้อมูลและ PIN"; btn.disabled = false;
             state.registerStep = 3;
-            if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+            stopAllVideo();
         }
 
         async function saveNewUser(id, pin) {
             const hashedPin = CryptoJS.SHA256(pin).toString();
+            // Stringify descriptor for storage
+            const faceData = state.tempDescriptor ? JSON.stringify(Array.from(state.tempDescriptor)) : "";
             try {
-                await fetch(API_URL + "?action=saveLog", { method: 'POST', body: JSON.stringify({ userId: id, pin: hashedPin, type: 'register' }) });
-                showAlert("สำเร็จ", "ลงทะเบียนเรียบร้อยแล้ว", "success");
+                await fetch(API_URL + "?action=saveLog", { 
+                    method: 'POST', 
+                    body: JSON.stringify({ userId: id, pin: hashedPin, faceDescriptor: faceData, type: 'register' }) 
+                });
+                showAlert("สำเร็จ", "ลงทะเบียนพนักงานเรียบร้อยแล้ว", "success");
                 switchView('view-login');
-                await fetchData();
+                fetchData();
             } catch (e) { showAlert("Error", "บันทึกไม่ได้", "error"); }
+        }
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').innerText = now.toLocaleTimeString('th-TH');
+            document.getElementById('current-date').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
         function showAlert(title, msg, type) {
@@ -523,6 +650,7 @@
         }
 
         function closeModal() { document.getElementById('modal-alert').classList.add('hidden'); }
+        function retryFetchData() { fetchData(); }
     </script>
 </body>
 </html>
