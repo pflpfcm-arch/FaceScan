@@ -30,6 +30,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #loading-overlay { transition: opacity 0.5s ease-out; }
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -40,32 +41,30 @@
         <p class="text-gray-600 animate-pulse font-medium">กำลังเริ่มต้นระบบ...</p>
     </div>
 
-    <!-- Main Navigation -->
+    <!-- Header -->
     <header id="main-header" class="hidden bg-white shadow-sm p-4 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
                 <h1 class="text-lg font-bold text-gray-800">PFL Attendance</h1>
             </div>
-            <button onclick="toggleAdminMode()" class="text-sm bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 flex items-center transition-colors">
-                <i data-lucide="shield-check" class="w-4 h-4 mr-1"></i> แอดมิน
+            <button onclick="logout()" class="text-sm text-red-500 font-medium flex items-center hover:bg-red-50 px-3 py-1 rounded-lg transition-colors">
+                <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> ออกจากระบบ
             </button>
         </div>
     </header>
 
-    <main class="flex-grow container mx-auto max-w-6xl p-4">
+    <main class="flex-grow container mx-auto max-w-6xl p-4 space-y-6">
         
         <!-- SECTION: Login -->
         <div id="view-login" class="max-w-lg mx-auto space-y-6 text-center py-10">
             <h2 class="text-2xl font-bold text-gray-800">เข้าสู่ระบบ</h2>
             
-            <!-- Login Tabs -->
             <div class="flex justify-center space-x-8 mb-6 border-b border-gray-100 text-gray-400 text-sm">
-                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
-                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
+                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
+                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
             </div>
 
-            <!-- Face Login Section -->
             <div id="login-face-section" class="space-y-4">
                 <div id="video-container" class="mx-auto aspect-square ring-4 ring-blue-50 ring-offset-2">
                     <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
@@ -74,9 +73,8 @@
                 <p class="text-sm text-gray-500 animate-pulse" id="face-login-status">กำลังเตรียมการสแกนใบหน้า...</p>
             </div>
 
-            <!-- PIN Login Section -->
             <div id="login-pin-section" class="hidden space-y-6">
-                <p class="text-gray-500">ใส่รหัส PIN 6 หลัก</p>
+                <p class="text-gray-500 text-sm">ระบุรหัส PIN 6 หลักของคุณ</p>
                 <div id="pin-display" class="flex justify-center space-x-3 my-6"></div>
                 <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
                     <button onclick="pressPin(1)" class="numpad-btn">1</button>
@@ -94,7 +92,7 @@
                 </div>
             </div>
 
-            <p class="mt-8 text-sm text-gray-400">ยังไม่ได้ลงทะเบียน? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
+            <p class="mt-8 text-sm text-gray-400">ยังไม่มีประวัติใบหน้าในระบบ? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
             
             <div id="demo-mode-banner" class="hidden mt-6 p-3 bg-orange-50 border border-orange-200 rounded-xl text-orange-700 text-xs text-left">
                 <div class="font-bold flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> โหมดสาธิต (Offline)</div>
@@ -105,172 +103,169 @@
         <!-- SECTION: Register -->
         <div id="view-register" class="max-w-lg mx-auto hidden space-y-6">
             <div class="flex items-center space-x-2">
-                <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
                 <h2 class="text-xl font-bold">ลงทะเบียนพนักงาน</h2>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-md space-y-4 border border-gray-100">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div id="reg-form-content">
                     <label class="block text-sm font-medium text-gray-700 mb-2">เลือกชื่อของคุณ</label>
-                    <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400"></select>
+                    <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all"></select>
                 </div>
-                <div id="face-scan-section" class="hidden space-y-4">
-                    <div class="text-center">
-                        <p class="text-sm font-semibold text-blue-600" id="scan-status">กรุณามองหน้าตรงเพื่อบันทึกใบหน้า</p>
-                        <p class="text-[10px] text-gray-400">ระบบจะทำการบันทึกข้อมูลอัตโนมัติเมื่อตรวจพบใบหน้าที่ชัดเจน</p>
-                    </div>
+                <div id="face-scan-section" class="hidden space-y-4 text-center">
+                    <p class="text-sm font-semibold text-blue-600" id="scan-status">กรุณามองหน้าตรงเพื่อบันทึกใบหน้า</p>
                     <div id="reg-video-container" class="mx-auto aspect-square rounded-2xl overflow-hidden bg-black ring-4 ring-blue-50">
                         <video id="reg-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                         <canvas id="reg-overlay"></canvas>
                     </div>
                 </div>
                 <div id="pin-setup-section" class="hidden space-y-4">
-                    <p class="text-center font-medium">ตั้งรหัส PIN 6 หลัก</p>
-                    <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
-                    <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
+                    <p class="text-center font-medium text-sm">ตั้งรหัส PIN 6 หลัก</p>
+                    <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none" placeholder="******">
+                    <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none mt-2" placeholder="******">
                 </div>
-                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700">เริ่มขั้นตอนการสแกน</button>
+                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all">เริ่มสแกนใบหน้า</button>
             </div>
         </div>
 
-        <!-- SECTION: Main Dashboard (User) -->
-        <div id="view-main" class="max-w-lg mx-auto hidden space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm text-center border border-gray-50">
-                <h3 class="text-gray-400 text-sm">ยินดีต้อนรับ</h3>
-                <div id="display-user-name" class="font-bold text-gray-800 text-xl">-</div>
-                <div class="text-4xl font-bold text-blue-600 my-2" id="current-time">00:00:00</div>
-                <div class="text-gray-500 text-sm" id="current-date">-</div>
+        <!-- SECTION: Main Integrated Dashboard -->
+        <div id="view-main" class="hidden space-y-8 pb-10">
+            <!-- User Welcome & Form Card -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Profile & Time Info -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl card-shadow text-center border border-gray-50 space-y-4">
+                    <h3 class="text-gray-400 text-sm">ยินดีต้อนรับคุณ</h3>
+                    <div id="display-user-name" class="font-bold text-gray-800 text-2xl">-</div>
+                    <div class="py-4 border-y border-gray-50">
+                        <div class="text-4xl font-bold text-blue-600" id="current-time">00:00:00</div>
+                        <div class="text-gray-500 text-sm mt-1" id="current-date">-</div>
+                    </div>
+                    <div id="gps-banner" class="flex items-center justify-center p-3 bg-yellow-50 text-yellow-700 rounded-xl text-xs border border-yellow-100">
+                        <i data-lucide="map-pin" class="w-4 h-4 mr-2"></i>
+                        <span id="gps-text">กำลังเช็ค GPS...</span>
+                    </div>
+                </div>
+
+                <!-- Attendance Form -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl card-shadow border border-gray-50 space-y-4">
+                    <h4 class="font-bold text-gray-700 flex items-center gap-2"><i data-lucide="clock" class="w-5 h-5 text-blue-500"></i> ลงเวลาทำงานวันนี้</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-gray-500">จุดเข้าบริษัท</label>
+                            <select id="point-company" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-1 focus:ring-blue-400 outline-none">
+                                <option>จุดตรวจ1 (แคนทีน)</option>
+                                <option>จุดตรวจ3 (PF)</option>
+                                <option>จุดตรวจ4 (FTI)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-gray-500">เวลาเข้าบริษัท</label>
+                            <input type="time" id="time-company" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-1 focus:ring-blue-400 outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-gray-500">จุดเข้างาน</label>
+                            <select id="point-work" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-1 focus:ring-blue-400 outline-none">
+                                <option>CM</option>
+                                <option>PF</option>
+                                <option>FTI</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-gray-500">เวลาเข้างาน</label>
+                            <input type="time" id="time-work" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-1 focus:ring-blue-400 outline-none">
+                        </div>
+                    </div>
+                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-1 focus:ring-blue-400 outline-none" placeholder="ระบุหมายเหตุ (ถ้ามี)"></textarea>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="submitAttendance('มา')" class="bg-green-600 text-white p-3 rounded-xl font-bold shadow-sm hover:bg-green-700 transition-all flex items-center justify-center gap-2"><i data-lucide="check-circle" class="w-5 h-5"></i> บันทึกมาทำงาน</button>
+                        <button onclick="submitAttendance('ลา')" class="bg-red-50 text-red-600 p-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-all">ลาหยุด</button>
+                    </div>
+                </div>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm space-y-4 border border-gray-50">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-gray-500">จุดเข้าบริษัท</label>
-                        <select id="point-company" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
-                            <option>จุดตรวจ1 (แคนทีน)</option>
-                            <option>จุดตรวจ3 (PF)</option>
-                            <option>จุดตรวจ4 (FTI)</option>
+
+            <!-- Global Dashboard & Report Section -->
+            <div class="space-y-6 pt-4 border-t border-gray-200">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-600"></i> แดชบอร์ดรายงานประจำวัน</h3>
+                    
+                    <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl card-shadow border border-gray-100">
+                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent text-sm font-medium outline-none">
+                        <div class="h-6 w-[1px] bg-gray-100 mx-1"></div>
+                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent text-sm font-medium outline-none">
+                            <option value="ทั้งหมด">สถานะ: ทั้งหมด</option>
+                            <option value="มา">มา</option>
+                            <option value="ลา">ลา</option>
+                            <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
+                            <option value="ไม่ลงบันทึก">ไม่ลงบันทึก</option>
                         </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-gray-500">เวลาเข้าบริษัท</label>
-                        <input type="time" id="time-company" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
+                        <button onclick="exportCSV()" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Export CSV"><i data-lucide="download" class="w-5 h-5"></i></button>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-gray-500">จุดเข้างาน</label>
-                        <select id="point-work" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
-                            <option>CM</option>
-                            <option>PF</option>
-                            <option>FTI</option>
-                        </select>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-2xl border-l-4 border-green-500 card-shadow">
+                        <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">มาทำงาน</p>
+                        <p id="sum-present" class="text-3xl font-bold text-green-600">0</p>
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-gray-500">เวลาเข้างาน</label>
-                        <input type="time" id="time-work" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
+                    <div class="bg-white p-4 rounded-2xl border-l-4 border-red-500 card-shadow">
+                        <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">ลาหยุด</p>
+                        <p id="sum-leave" class="text-3xl font-bold text-red-600">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border-l-4 border-orange-400 card-shadow">
+                        <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">ลาครึ่งวัน</p>
+                        <p id="sum-half" class="text-3xl font-bold text-orange-500">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border-l-4 border-gray-300 card-shadow">
+                        <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">ไม่ลงบันทึก</p>
+                        <p id="sum-missing" class="text-3xl font-bold text-gray-500">0</p>
                     </div>
                 </div>
-                <textarea id="attendance-note" rows="2" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm" placeholder="หมายเหตุ..."></textarea>
-                <button onclick="submitAttendance('มา')" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-green-700">บันทึกเวลาทำงาน</button>
-            </div>
-            <button onclick="logout()" class="w-full text-gray-400 text-sm underline">ออกจากระบบ</button>
-        </div>
 
-        <!-- SECTION: Admin Report Dashboard -->
-        <div id="view-admin" class="hidden space-y-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
-                    <h2 class="text-xl font-bold text-gray-800">รายงานการเข้างาน</h2>
-                </div>
-                <button onclick="logout()" class="text-red-500 text-sm font-medium">ออก</button>
-            </div>
-
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-2xl border-l-4 border-green-500 shadow-sm">
-                    <p class="text-gray-400 text-xs">มา</p>
-                    <p id="sum-present" class="text-2xl font-bold text-green-600">0</p>
-                </div>
-                <div class="bg-white p-4 rounded-2xl border-l-4 border-red-500 shadow-sm">
-                    <p class="text-gray-400 text-xs">ลา</p>
-                    <p id="sum-leave" class="text-2xl font-bold text-red-600">0</p>
-                </div>
-                <div class="bg-white p-4 rounded-2xl border-l-4 border-orange-400 shadow-sm">
-                    <p class="text-gray-400 text-xs">ลาครึ่งวัน</p>
-                    <p id="sum-half" class="text-2xl font-bold text-orange-500">0</p>
-                </div>
-                <div class="bg-white p-4 rounded-2xl border-l-4 border-gray-300 shadow-sm">
-                    <p class="text-gray-400 text-xs">ไม่ลงบันทึก</p>
-                    <p id="sum-missing" class="text-2xl font-bold text-gray-500">0</p>
-                </div>
-            </div>
-
-            <!-- Filters -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
-                <div class="space-y-1">
-                    <label class="text-xs font-semibold text-gray-500">วันที่</label>
-                    <input type="date" id="filter-date" onchange="renderAdminReport()" class="p-2 bg-gray-50 border rounded-lg text-sm">
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xs font-semibold text-gray-500">สถานะ</label>
-                    <select id="filter-status" onchange="renderAdminReport()" class="p-2 bg-gray-50 border rounded-lg text-sm">
-                        <option value="ทั้งหมด">ทั้งหมด</option>
-                        <option value="มา">มา</option>
-                        <option value="ลา">ลา</option>
-                        <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
-                        <option value="ไม่ลงบันทึก">ไม่ลงบันทึก</option>
-                    </select>
-                </div>
-                <button onclick="exportCSV()" class="p-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-sm flex items-center ml-auto">
-                    <i data-lucide="download" class="w-4 h-4 mr-2"></i> ส่งออก CSV
-                </button>
-            </div>
-
-            <!-- Report Table -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-500 font-medium">
-                            <tr>
-                                <th class="px-4 py-4">ชื่อ</th>
-                                <th class="px-4 py-4 text-center">สถานะ</th>
-                                <th class="px-4 py-4 text-center">เข้างาน</th>
-                                <th class="px-4 py-4">จุดงาน</th>
-                                <th class="px-4 py-4 text-center">เข้าบริษัท</th>
-                                <th class="px-4 py-4">จุดบริษัท</th>
-                                <th class="px-4 py-4">หมายเหตุ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="report-table-body" class="divide-y divide-gray-100"></tbody>
-                    </table>
+                <!-- Report Table -->
+                <div class="bg-white rounded-2xl card-shadow border border-gray-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4">รายชื่อพนักงาน</th>
+                                    <th class="px-4 py-4 text-center">สถานะ</th>
+                                    <th class="px-4 py-4 text-center">เข้างาน</th>
+                                    <th class="px-4 py-4">จุดงาน</th>
+                                    <th class="px-4 py-4 text-center">เข้าบริษัท</th>
+                                    <th class="px-4 py-4">จุดบริษัท</th>
+                                    <th class="px-6 py-4">หมายเหตุ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body" class="divide-y divide-gray-50 font-medium text-gray-700">
+                                <!-- Data rows -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <footer class="bg-white border-t p-6 text-center text-gray-400 text-[10px] uppercase">
+    <footer class="bg-white border-t p-6 text-center text-gray-400 text-[10px] uppercase tracking-widest">
         <p>COPY RIGHT 2026 @ ฝ่ายกำกับรถพาเหรด</p>
     </footer>
 
     <!-- Notification Modal -->
     <div id="modal-alert" class="fixed inset-0 z-[110] bg-black/60 hidden flex items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-4 shadow-2xl">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-4 shadow-2xl scale-in transition-transform">
             <div id="modal-icon" class="mx-auto flex items-center justify-center w-16 h-16 rounded-full"></div>
             <h4 id="modal-title" class="text-xl font-bold text-gray-800"></h4>
             <p id="modal-message" class="text-gray-500 text-sm leading-relaxed text-left"></p>
-            <button onclick="closeModal()" class="w-full bg-gray-900 text-white p-4 rounded-2xl font-semibold active:scale-95 transition-transform">ตกลง</button>
+            <button onclick="closeModal()" class="w-full bg-gray-900 text-white p-4 rounded-2xl font-semibold active:scale-95 transition-all">ตกลง</button>
         </div>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
-        const ADMIN_PASS = "pflpfcm";
         const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models"; 
 
-        const MOCK_USERS = [
-            { id: "DEMO001", nickname: "พนักงานทดสอบ", pin: CryptoJS.SHA256("123456").toString(), faceDescriptor: "" }
-        ];
+        const MOCK_USERS = [{ id: "DEMO001", nickname: "ทดสอบระบบ", pin: CryptoJS.SHA256("123456").toString(), faceDescriptor: "" }];
 
         let state = {
             user: null, pin: "", location: { lat: 0, lng: 0 },
@@ -329,16 +324,15 @@
                         try {
                             const desc = new Float32Array(Object.values(JSON.parse(u.faceDescriptor)));
                             labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(u.id.toString(), [desc]));
-                        } catch (e) { console.warn("Failed to parse face data for", u.nickname); }
+                        } catch (e) {}
                     }
                 });
                 if (labeledDescriptors.length > 0) {
                     state.faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
                 }
-                
                 populateUserSelect();
+                if (state.user) renderGlobalReport(); // Update report if already logged in
             } catch (e) { 
-                console.error("Data fetch failed", e);
                 state.users = MOCK_USERS;
                 document.getElementById('demo-mode-banner')?.classList.remove('hidden');
                 populateUserSelect();
@@ -361,6 +355,8 @@
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition((pos) => {
                     state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    const gpsText = document.getElementById('gps-text');
+                    if(gpsText) gpsText.innerText = `พิกัด: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
                     document.getElementById('gps-banner')?.classList.replace('bg-yellow-50', 'bg-green-50');
                 }, () => {}, { enableHighAccuracy: true });
             }
@@ -375,6 +371,9 @@
             if (viewId === 'view-login' && state.loginMode === 'face') {
                 startFaceLogin();
             }
+            if (viewId === 'view-main') {
+                renderGlobalReport();
+            }
             initLucide();
         }
 
@@ -383,22 +382,16 @@
             stopAllVideo();
             document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
             document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
-            
             document.getElementById('login-face-section').classList.toggle('hidden', mode !== 'face');
             document.getElementById('login-pin-section').classList.toggle('hidden', mode !== 'pin');
-            
             if (mode === 'face') startFaceLogin();
             initLucide();
         }
 
         function stopAllVideo() {
-            if (state.currentStream) {
-                state.currentStream.getTracks().forEach(track => track.stop());
-                state.currentStream = null;
-            }
+            if (state.currentStream) { state.currentStream.getTracks().forEach(track => track.stop()); state.currentStream = null; }
         }
 
-        // --- FACE LOGIN LOGIC ---
         async function startFaceLogin() {
             const video = document.getElementById('login-video');
             const statusEl = document.getElementById('face-login-status');
@@ -407,28 +400,19 @@
                 state.currentStream = stream;
                 video.srcObject = stream;
                 statusEl.innerText = "กำลังสแกนใบหน้า...";
-                
                 video.onplay = () => {
                     const canvas = document.getElementById('login-overlay');
                     faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
-                    
                     const interval = setInterval(async () => {
-                        if (state.view !== 'view-login' || state.loginMode !== 'face') {
-                            clearInterval(interval);
-                            return;
-                        }
-                        
-                        const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                            .withFaceLandmarks()
-                            .withFaceDescriptor();
-                            
-                        if (detections && state.faceMatcher) {
-                            const bestMatch = state.faceMatcher.findBestMatch(detections.descriptor);
+                        if (state.view !== 'view-login' || state.loginMode !== 'face') { clearInterval(interval); return; }
+                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                        if (det && state.faceMatcher) {
+                            const bestMatch = state.faceMatcher.findBestMatch(det.descriptor);
                             if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
                                 clearInterval(interval);
                                 const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
                                 if (foundUser) {
-                                    statusEl.innerText = "ตรวจพบ: " + foundUser.nickname;
+                                    statusEl.innerText = "พบใบหน้าคุณ: " + foundUser.nickname;
                                     statusEl.className = "text-sm font-bold text-green-600";
                                     setTimeout(() => loginSuccess(foundUser), 500);
                                 }
@@ -436,10 +420,9 @@
                         }
                     }, 500);
                 };
-            } catch (err) { statusEl.innerText = "กรุณาเปิดกล้องหรือเปลี่ยนไปใช้ PIN"; }
+            } catch (err) { statusEl.innerText = "กรุณาเปิดกล้องหรือใช้รหัส PIN"; }
         }
 
-        // --- PIN LOGIN LOGIC ---
         function renderPinDots() {
             const container = document.getElementById('pin-display');
             if (!container) return;
@@ -452,23 +435,15 @@
         }
 
         function pressPin(num) { 
-            if(state.pin.length < 6) { 
-                state.pin += num; 
-                renderPinDots(); 
-                if(state.pin.length === 6) setTimeout(handlePinLogin, 300); 
-            } 
+            if(state.pin.length < 6) { state.pin += num; renderPinDots(); if(state.pin.length === 6) setTimeout(handlePinLogin, 300); } 
         }
         function clearPin() { state.pin = ""; renderPinDots(); }
 
         async function handlePinLogin() {
             const hashedPin = CryptoJS.SHA256(state.pin).toString();
             const user = state.users.find(u => u.pin === hashedPin);
-            if(user) {
-                loginSuccess(user);
-            } else { 
-                showAlert("เข้าสู่ระบบล้มเหลว", "รหัส PIN ไม่ถูกต้อง", "error"); 
-                clearPin(); 
-            }
+            if(user) loginSuccess(user);
+            else { showAlert("รหัสผิด", "PIN 6 หลักไม่ถูกต้อง", "error"); clearPin(); }
         }
 
         function loginSuccess(user) {
@@ -486,7 +461,6 @@
 
         function logout() { localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); clearPin(); }
 
-        // --- ATTENDANCE ---
         async function submitAttendance(status) {
             const data = {
                 userId: state.user.id, nickname: state.user.nickname,
@@ -501,21 +475,17 @@
             };
             try {
                 await fetch(API_URL + "?action=saveAttendance", { method: 'POST', body: JSON.stringify(data) });
-                showAlert("บันทึกสำเร็จ", "ข้อมูลเวลาการทำงานถูกบันทึกเรียบร้อย", "success");
-                fetchData();
-            } catch (e) { showAlert("ผิดพลาด", "บันทึกข้อมูลไม่ได้ในขณะนี้", "error"); }
+                showAlert("สำเร็จ", "ข้อมูลเวลาการทำงานถูกบันทึกเรียบร้อย", "success");
+                await fetchData();
+            } catch (e) { showAlert("ผิดพลาด", "ไม่สามารถส่งข้อมูลได้ในขณะนี้", "error"); }
         }
 
-        // --- ADMIN REPORT ---
-        
-        // Helper function สำหรับจัดรูปแบบเวลา HH:MM
         function formatTimeHHMM(timeStr) {
             if (!timeStr) return '-';
-            // หากข้อมูลเป็นรูปแบบ HH:mm:ss หรือยาวกว่า ให้ตัดเหลือ 5 ตัวแรก
             return timeStr.toString().substring(0, 5);
         }
 
-        function renderAdminReport() {
+        function renderGlobalReport() {
             const selDate = document.getElementById('filter-date').value;
             const selStatus = document.getElementById('filter-status').value;
             const tbody = document.getElementById('report-table-body');
@@ -537,41 +507,34 @@
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 font-medium">${u.nickname}</td>
-                        <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-bold ${getStatusClass(status)}">${status}</span></td>
-                        <td class="px-4 py-3 text-center">${att ? formatTimeHHMM(att.timeWork) : '-'}</td>
-                        <td class="px-4 py-3">${att ? att.pointWork : '-'}</td>
-                        <td class="px-4 py-3 text-center">${att ? formatTimeHHMM(att.timeCompany) : '-'}</td>
-                        <td class="px-4 py-3">${att ? att.pointCompany : '-'}</td>
-                        <td class="px-4 py-3 text-xs text-gray-400">${att ? att.note : '-'}</td>
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-bold text-gray-800">${u.nickname}</td>
+                        <td class="px-4 py-4 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-bold ${getStatusClass(status)}">${status}</span></td>
+                        <td class="px-4 py-4 text-center font-mono">${att ? formatTimeHHMM(att.timeWork) : '-'}</td>
+                        <td class="px-4 py-4">${att ? att.pointWork : '-'}</td>
+                        <td class="px-4 py-4 text-center font-mono">${att ? formatTimeHHMM(att.timeCompany) : '-'}</td>
+                        <td class="px-4 py-4">${att ? att.pointCompany : '-'}</td>
+                        <td class="px-6 py-4 text-xs text-gray-400">${att ? att.note : '-'}</td>
                     </tr>`;
             });
             document.getElementById('sum-present').innerText = sums.present;
             document.getElementById('sum-leave').innerText = sums.leave;
             document.getElementById('sum-half').innerText = sums.half;
             document.getElementById('sum-missing').innerText = sums.missing;
+            initLucide();
         }
 
         function getStatusClass(s) {
             if (s === "มา") return "bg-green-100 text-green-700";
             if (s === "ลา") return "bg-red-100 text-red-700";
             if (s === "ลาครึ่งวัน") return "bg-orange-100 text-orange-700";
-            return "bg-gray-100 text-gray-500";
+            return "bg-gray-100 text-gray-400";
         }
 
-        function toggleAdminMode() {
-            const p = prompt("รหัสผ่านแอดมิน:");
-            if(p === ADMIN_PASS) { switchView('view-admin'); renderAdminReport(); }
-            else if (p !== null) showAlert("ผิดพลาด", "รหัสผ่านไม่ถูกต้อง", "error");
-        }
-
-        // --- FACE SCAN & REGISTER ---
         async function handleRegisterNext() {
             const userId = document.getElementById('reg-user-list').value;
             if(!userId) return showAlert("เตือน", "กรุณาเลือกรายชื่อ", "warning");
             const btn = document.getElementById('btn-next-step');
-
             if(state.registerStep === 1) {
                 document.getElementById('face-scan-section').classList.remove('hidden');
                 document.getElementById('reg-form-content').classList.add('hidden');
@@ -581,7 +544,7 @@
             } else if (state.registerStep === 3) {
                 const pin = document.getElementById('reg-pin').value;
                 if(pin.length === 6 && pin === document.getElementById('reg-pin-confirm').value) saveNewUser(userId, pin);
-                else showAlert("ผิดพลาด", "PIN ไม่ตรงกัน", "error");
+                else showAlert("PIN ผิด", "รหัส PIN ทั้งสองช่องไม่ตรงกัน", "error");
             }
         }
 
@@ -595,9 +558,7 @@
                     const canvas = document.getElementById('reg-overlay');
                     faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
                     const interval = setInterval(async () => {
-                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                            .withFaceLandmarks()
-                            .withFaceDescriptor();
+                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                         if (det) {
                             const nose = det.landmarks.getNose();
                             const jaw = det.landmarks.getJawOutline();
@@ -612,14 +573,14 @@
                         }
                     }, 300);
                 };
-            } catch (err) { showAlert("ผิดพลาด", "ไม่สามารถใช้กล้องได้", "error"); }
+            } catch (err) { showAlert("Error", "เปิดกล้องสแกนไม่ได้", "error"); }
         }
 
         function finishScan() {
             document.getElementById('face-scan-section').classList.add('hidden');
             document.getElementById('pin-setup-section').classList.remove('hidden');
-            const btn = document.getElementById('btn-next-step');
-            btn.innerText = "บันทึกข้อมูลและ PIN"; btn.disabled = false;
+            document.getElementById('btn-next-step').innerText = "บันทึกข้อมูล และ PIN";
+            document.getElementById('btn-next-step').disabled = false;
             state.registerStep = 3;
             stopAllVideo();
         }
@@ -628,20 +589,17 @@
             const hashedPin = CryptoJS.SHA256(pin).toString();
             const faceData = state.tempDescriptor ? JSON.stringify(Array.from(state.tempDescriptor)) : "";
             try {
-                await fetch(API_URL + "?action=saveLog", { 
-                    method: 'POST', 
-                    body: JSON.stringify({ userId: id, pin: hashedPin, faceDescriptor: faceData, type: 'register' }) 
-                });
+                await fetch(API_URL + "?action=saveLog", { method: 'POST', body: JSON.stringify({ userId: id, pin: hashedPin, faceDescriptor: faceData, type: 'register' }) });
                 showAlert("สำเร็จ", "ลงทะเบียนพนักงานเรียบร้อยแล้ว", "success");
                 switchView('view-login');
-                fetchData();
-            } catch (e) { showAlert("Error", "บันทึกไม่ได้", "error"); }
+                await fetchData();
+            } catch (e) { showAlert("Error", "บันทึกข้อมูลไม่สำเร็จ", "error"); }
         }
 
         function updateTime() {
             const now = new Date();
-            document.getElementById('current-time').innerText = now.toLocaleTimeString('th-TH');
-            document.getElementById('current-date').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            if(document.getElementById('current-time')) document.getElementById('current-time').innerText = now.toLocaleTimeString('th-TH');
+            if(document.getElementById('current-date')) document.getElementById('current-date').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
         function showAlert(title, msg, type) {
@@ -658,7 +616,7 @@
         function retryFetchData() { fetchData(); }
 
         function exportCSV() {
-            let csv = "\uFEFFชื่อ,สถานะ,เวลาเข้างาน,จุดเข้างาน,เวลาเข้าบริษัท,จุดเข้าบริษัท,หมายเหตุ\n";
+            let csv = "\uFEFFรายชื่อ,สถานะ,เวลาเข้างาน,จุดเข้างาน,เวลาเข้าบริษัท,จุดเข้าบริษัท,หมายเหตุ\n";
             const rows = document.querySelectorAll("#report-table-body tr");
             rows.forEach(tr => {
                 const cols = tr.querySelectorAll("td");
