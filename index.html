@@ -276,10 +276,10 @@
             user: null, pin: "", location: { lat: 0, lng: 0 },
             users: [], attendance: [],
             view: "view-login", registerStep: 1,
-            loginMode: "face", // 'face' or 'pin'
+            loginMode: "face", 
             currentStream: null,
             faceMatcher: null,
-            tempDescriptor: null // For registration
+            tempDescriptor: null 
         };
 
         window.onload = async () => {
@@ -291,7 +291,6 @@
             try {
                 await initFaceModels();
                 await fetchData();
-                // Start Face Login by default
                 startFaceLogin();
             } catch (err) { console.error(err); } 
             finally { 
@@ -324,7 +323,6 @@
                 state.users = await uRes.json();
                 state.attendance = await aRes.json();
                 
-                // Prepare Face Matcher
                 const labeledDescriptors = [];
                 state.users.forEach(u => {
                     if (u.faceDescriptor) {
@@ -509,6 +507,14 @@
         }
 
         // --- ADMIN REPORT ---
+        
+        // Helper function สำหรับจัดรูปแบบเวลา HH:MM
+        function formatTimeHHMM(timeStr) {
+            if (!timeStr) return '-';
+            // หากข้อมูลเป็นรูปแบบ HH:mm:ss หรือยาวกว่า ให้ตัดเหลือ 5 ตัวแรก
+            return timeStr.toString().substring(0, 5);
+        }
+
         function renderAdminReport() {
             const selDate = document.getElementById('filter-date').value;
             const selStatus = document.getElementById('filter-status').value;
@@ -534,9 +540,9 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium">${u.nickname}</td>
                         <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-bold ${getStatusClass(status)}">${status}</span></td>
-                        <td class="px-4 py-3 text-center">${att ? att.timeWork : '-'}</td>
+                        <td class="px-4 py-3 text-center">${att ? formatTimeHHMM(att.timeWork) : '-'}</td>
                         <td class="px-4 py-3">${att ? att.pointWork : '-'}</td>
-                        <td class="px-4 py-3 text-center">${att ? att.timeCompany : '-'}</td>
+                        <td class="px-4 py-3 text-center">${att ? formatTimeHHMM(att.timeCompany) : '-'}</td>
                         <td class="px-4 py-3">${att ? att.pointCompany : '-'}</td>
                         <td class="px-4 py-3 text-xs text-gray-400">${att ? att.note : '-'}</td>
                     </tr>`;
@@ -620,7 +626,6 @@
 
         async function saveNewUser(id, pin) {
             const hashedPin = CryptoJS.SHA256(pin).toString();
-            // Stringify descriptor for storage
             const faceData = state.tempDescriptor ? JSON.stringify(Array.from(state.tempDescriptor)) : "";
             try {
                 await fetch(API_URL + "?action=saveLog", { 
@@ -651,6 +656,21 @@
 
         function closeModal() { document.getElementById('modal-alert').classList.add('hidden'); }
         function retryFetchData() { fetchData(); }
+
+        function exportCSV() {
+            let csv = "\uFEFFชื่อ,สถานะ,เวลาเข้างาน,จุดเข้างาน,เวลาเข้าบริษัท,จุดเข้าบริษัท,หมายเหตุ\n";
+            const rows = document.querySelectorAll("#report-table-body tr");
+            rows.forEach(tr => {
+                const cols = tr.querySelectorAll("td");
+                const rowData = Array.from(cols).map(c => `"${c.innerText}"`).join(",");
+                csv += rowData + "\n";
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Report_PFL_${document.getElementById('filter-date').value}.csv`;
+            link.click();
+        }
     </script>
 </body>
 </html>
