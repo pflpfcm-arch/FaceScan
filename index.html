@@ -426,7 +426,7 @@
                 navigator.geolocation.watchPosition((pos) => {
                     state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     const gpsText = document.getElementById('gps-text');
-                    if(gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
+                    if(gpsText) gpsText.innerText = `พิกัด: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
                     document.getElementById('gps-banner')?.classList.replace('bg-yellow-50', 'bg-green-50');
                 }, () => {}, { enableHighAccuracy: true });
             }
@@ -499,7 +499,13 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        function formatTimeHHMM(t) { if(!t) return ''; return t.substring(0, 5); }
+        // Helper: Clean and format Time to HH:MM
+        function formatTimeHHMM(t) { 
+            if(!t) return ''; 
+            // Extract HH:mm from strings like "14:00:00" or "14:00 น."
+            let match = t.toString().match(/(\d{1,2}:\d{2})/);
+            return match ? match[1] : ''; 
+        }
 
         // --- VALIDATE AND SUBMIT ---
         async function validateAndSubmit(status) {
@@ -536,7 +542,6 @@
             Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                // Sequential save for multiple users (if Admin)
                 for (const tid of targetIds) {
                     const targetUser = state.users.find(u => u.id == tid);
                     const data = {
@@ -550,7 +555,6 @@
                 }
                 Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
                 document.getElementById('attendance-note').value = "";
-                // Clear checkboxes
                 document.querySelectorAll('input[name="admin-user-target"]').forEach(cb => cb.checked = false);
                 await fetchData();
             } catch (e) { Swal.fire('Error', 'เกิดข้อผิดพลาดในการบันทึก', 'error'); }
@@ -586,7 +590,6 @@
                 const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-500 hover:scale-110"><i data-lucide="map"></i></button>` : '';
 
                 // NEW Logic: Hide points for Half-leave or Leave only for ADMIN view
-                // User View still sees half-leave points as per request
                 const hidePoints = (status === "ลา") || (status === "ลาครึ่งวัน" && state.isAdmin);
 
                 const workCell = hidePoints ? '-' : `
@@ -703,7 +706,7 @@
                     document.getElementById('admin-badge').classList.remove('hidden'); 
                     document.getElementById('admin-user-selector').classList.remove('hidden'); 
                     switchView('view-admin-crud'); 
-                    populateSelectors(); // Refresh admin checklist
+                    populateSelectors();
                 }
                 else if(res.value) Swal.fire('รหัสผิด', '', 'error');
             });
