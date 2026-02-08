@@ -426,7 +426,7 @@
                 navigator.geolocation.watchPosition((pos) => {
                     state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     const gpsText = document.getElementById('gps-text');
-                    if(gpsText) gpsText.innerText = `พิกัด: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
+                    if(gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
                     document.getElementById('gps-banner')?.classList.replace('bg-yellow-50', 'bg-green-50');
                 }, () => {}, { enableHighAccuracy: true });
             }
@@ -499,12 +499,24 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // Helper: Clean and format Time to HH:MM
+        // --- FIXED: Time Formatting Logic ---
         function formatTimeHHMM(t) { 
             if(!t) return ''; 
-            // Extract HH:mm from strings like "14:00:00" or "14:00 น."
-            let match = t.toString().match(/(\d{1,2}:\d{2})/);
-            return match ? match[1] : ''; 
+            let tStr = t.toString().trim();
+            
+            // ตรวจสอบว่าเป็น ISO string (เช่น 1899-12-30T02:58:00.000Z) หรือไม่
+            if (tStr.includes('T') && tStr.includes('Z')) {
+                const d = new Date(tStr);
+                if (!isNaN(d.getTime())) {
+                    // แปลงเป็นเวลาท้องถิ่น (Local Time)
+                    return d.getHours().toString().padStart(2, '0') + ":" + 
+                           d.getMinutes().toString().padStart(2, '0');
+                }
+            }
+            
+            // ค้นหาตัวเลขรูปแบบ HH:mm ในข้อความทั่วไป
+            let match = tStr.match(/(\d{1,2}:\d{2})/);
+            return match ? match[1] : tStr; 
         }
 
         // --- VALIDATE AND SUBMIT ---
