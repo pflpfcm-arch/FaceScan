@@ -1,775 +1,137 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFL Attendance – ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</title>
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Face API & Crypto -->
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
-        .numpad-btn {
-            @apply w-16 h-16 rounded-full flex items-center justify-center text-xl font-semibold bg-white shadow-sm border border-gray-100 hover:bg-blue-50 transition-all active:scale-95;
-        }
-        #video-container { position: relative; width: 100%; max-width: 400px; border-radius: 1rem; overflow: hidden; background: #000; }
-        #login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        .loader {
-            border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%;
-            width: 24px; height: 24px; animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #loading-overlay { transition: opacity 0.5s ease-out; }
-        .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
-        .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
-        
-        /* Table scale fix for mobile */
-        .report-table th, .report-table td { @apply px-2 py-3 text-[10px] md:text-xs; }
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; }
-            #pdf-header { display: block !important; }
-        }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col">
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center space-y-4">
-        <div class="loader w-12 h-12 border-4"></div>
-        <p class="text-gray-600 animate-pulse font-medium text-sm">PFL Attendance กำลังเตรียมระบบ...</p>
-    </div>
-
-    <!-- Header -->
-    <header id="main-header" class="hidden bg-white shadow-sm p-4 sticky top-0 z-50 no-print">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
-                <div>
-                    <h1 class="text-lg font-bold text-gray-800 leading-none">PFL Attendance</h1>
-                    <p class="text-[10px] text-gray-400 font-medium">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <button id="btn-admin-config" onclick="enterAdminSettings()" class="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                </button>
-                <button onclick="logout()" class="text-sm text-red-500 font-medium flex items-center hover:bg-red-50 px-3 py-1 rounded-lg transition-colors">
-                    <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> ออกจากระบบ
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="flex-grow container mx-auto max-w-6xl p-4 space-y-6">
-        
-        <!-- SECTION: Login -->
-        <div id="view-login" class="max-w-lg mx-auto space-y-6 text-center py-10 no-print">
-            <div class="flex justify-between items-center px-4">
-                <h2 class="text-2xl font-bold text-gray-800">เข้าสู่ระบบ</h2>
-                <button onclick="enterAdminSettings()" class="text-[10px] text-gray-300 hover:text-gray-500 flex items-center gap-1">
-                    <i data-lucide="lock" class="w-3 h-3"></i> ADMIN
-                </button>
-            </div>
-            
-            <div class="flex justify-center space-x-8 mb-6 border-b border-gray-100 text-gray-400 text-sm">
-                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all font-medium"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
-                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all font-medium"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
-            </div>
-
-            <div id="login-face-section" class="space-y-4">
-                <div id="video-container" class="mx-auto aspect-square ring-4 ring-blue-50 ring-offset-2">
-                    <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                    <canvas id="login-overlay"></canvas>
-                </div>
-                <p class="text-sm font-medium text-blue-600 animate-pulse" id="face-login-status">กำลังสแกนหาใบหน้า...</p>
-            </div>
-
-            <div id="login-pin-section" class="hidden space-y-6">
-                <div id="pin-display" class="flex justify-center space-x-3 my-6"></div>
-                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
-                    <button onclick="pressPin(1)" class="numpad-btn">1</button>
-                    <button onclick="pressPin(2)" class="numpad-btn">2</button>
-                    <button onclick="pressPin(3)" class="numpad-btn">3</button>
-                    <button onclick="pressPin(4)" class="numpad-btn">4</button>
-                    <button onclick="pressPin(5)" class="numpad-btn">5</button>
-                    <button onclick="pressPin(6)" class="numpad-btn">6</button>
-                    <button onclick="pressPin(7)" class="numpad-btn">7</button>
-                    <button onclick="pressPin(8)" class="numpad-btn">8</button>
-                    <button onclick="pressPin(9)" class="numpad-btn">9</button>
-                    <button onclick="retryFetchData()" class="numpad-btn text-blue-500"><i data-lucide="refresh-cw" class="w-6 h-6"></i></button>
-                    <button onclick="pressPin(0)" class="numpad-btn">0</button>
-                    <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="delete"></i></button>
-                </div>
-            </div>
-            <p class="mt-8 text-sm text-gray-400">ยังไม่มีข้อมูลในระบบ? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
-        </div>
-
-        <!-- SECTION: Register -->
-        <div id="view-register" class="max-w-lg mx-auto hidden space-y-6 no-print">
-            <div class="flex items-center space-x-2">
-                <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-xl font-bold">ลงทะเบียนพนักงาน</h2>
-            </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                <div id="reg-form-content">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">เลือกชื่อพนักงาน</label>
-                    <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all"></select>
-                </div>
-                <div id="face-scan-section" class="hidden space-y-4 text-center">
-                    <p class="text-sm font-semibold text-blue-600" id="scan-status">กรุณามองหน้าตรง</p>
-                    <div id="reg-video-container" class="mx-auto aspect-square rounded-2xl overflow-hidden bg-black ring-4 ring-blue-50">
-                        <video id="reg-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                        <canvas id="reg-overlay"></canvas>
-                    </div>
-                </div>
-                <div id="pin-setup-section" class="hidden space-y-4">
-                    <p class="text-center font-medium text-sm">ตั้งรหัส PIN 6 หลัก</p>
-                    <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
-                    <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl mt-2" placeholder="******">
-                </div>
-                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg">เริ่มสแกนใบหน้า</button>
-            </div>
-        </div>
-
-        <!-- SECTION: Main Dashboard -->
-        <div id="view-main" class="hidden space-y-8 pb-10">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
-                <!-- Profile Card -->
-                <div class="lg:col-span-1 bg-white p-6 rounded-2xl card-shadow text-center border border-gray-50 space-y-4 relative overflow-hidden">
-                    <div id="admin-badge" class="hidden absolute top-3 right-3 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">ADMIN MODE</div>
-                    <h3 class="text-gray-400 text-sm font-medium">ผู้ใช้งานปัจจุบัน</h3>
-                    <div id="display-user-name" class="font-bold text-gray-800 text-xl truncate">-</div>
-                    <div class="py-4 border-y border-gray-50">
-                        <div class="text-4xl font-bold text-blue-600 font-mono" id="current-time">00:00:00</div>
-                        <div class="text-gray-500 text-[11px] mt-1 font-medium" id="current-date">-</div>
-                    </div>
-                    <div id="gps-banner" class="flex items-center justify-center p-3 bg-yellow-50 text-yellow-700 rounded-xl text-[10px] border border-yellow-100">
-                        <i data-lucide="map-pin" class="w-3 h-3 mr-1"></i>
-                        <span id="gps-text">กำลังเช็ค GPS...</span>
-                    </div>
-                </div>
-
-                <!-- Attendance Form -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-2xl card-shadow border border-gray-50 space-y-4">
-                    <!-- Checkbox List for Admin -->
-                    <div id="admin-user-selector" class="hidden pb-4 border-b border-gray-100">
-                        <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-2 tracking-tight">ลงบันทึกแทนพนักงาน (เลือกได้หลายรายชื่อ):</label>
-                        <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/40 rounded-lg border border-red-50">
-                            <!-- Dynamic Content -->
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-gray-500">จุดเข้าบริษัท & เวลา</label>
-                            <div class="flex gap-1">
-                                <select id="point-company" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400"></select>
-                                <input type="time" id="time-company" class="w-26 p-3 bg-white border border-blue-200 rounded-lg text-xs font-bold text-blue-600 outline-none">
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-gray-500">จุดเข้างาน & เวลา</label>
-                            <div class="flex gap-1">
-                                <select id="point-work" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400"></select>
-                                <input type="time" id="time-work" class="w-26 p-3 bg-white border border-orange-200 rounded-lg text-xs font-bold text-orange-600 outline-none">
-                            </div>
-                        </div>
-                    </div>
-                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="หมายเหตุ..."></textarea>
-                    
-                    <div class="grid grid-cols-3 gap-2 pt-2">
-                        <button onclick="validateAndSubmit('มา')" class="bg-green-600 text-white p-3 rounded-xl font-bold hover:bg-green-700 transition-all flex flex-col items-center justify-center gap-1 shadow-md">
-                            <i data-lucide="check-circle" class="w-5 h-5"></i>
-                            <span class="text-[10px]">มาทำงาน</span>
-                        </button>
-                        <button onclick="validateAndSubmit('ลา')" class="bg-red-50 text-red-600 p-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-all flex flex-col items-center justify-center gap-1 shadow-sm">
-                            <i data-lucide="x-circle" class="w-5 h-5"></i>
-                            <span class="text-[10px]">ลาหยุด</span>
-                        </button>
-                        <button onclick="validateAndSubmit('ลาครึ่งวัน')" class="bg-orange-50 text-orange-600 p-3 rounded-xl font-bold border border-orange-100 hover:bg-orange-100 transition-all flex flex-col items-center justify-center gap-1 shadow-sm">
-                            <i data-lucide="clock-3" class="w-5 h-5"></i>
-                            <span class="text-[10px]">ลาครึ่งวัน</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Report Section -->
-            <div class="space-y-4 pt-4 border-t border-gray-100">
-                <div class="flex items-center justify-between flex-wrap gap-4 no-print">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานประจำวัน</h3>
-                    <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-100 text-sm">
-                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-medium text-xs">
-                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-medium text-xs border-l border-gray-100">
-                            <option value="ทั้งหมด">ทั้งหมด</option>
-                            <option value="มา">มา</option>
-                            <option value="ลา">ลา</option>
-                            <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
-                            <option value="ยังไม่ลงบันทึก">ยังไม่ลงบันทึก</option>
-                        </select>
-                        <button onclick="generatePDF()" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border-l border-gray-100" title="พิมพ์รายงาน PDF"><i data-lucide="file-text" class="w-4 h-4"></i></button>
-                    </div>
-                </div>
-
-                <!-- PDF Header -->
-                <div id="pdf-header" class="hidden text-center space-y-2 mb-6">
-                    <h1 class="text-xl font-bold">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</h1>
-                    <p class="text-sm font-bold" id="pdf-date-text"></p>
-                </div>
-
-                <!-- Stats Summary -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
-                    <div class="bg-white p-4 rounded-xl border-l-4 border-green-500 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">มาทำงาน</p>
-                        <p id="sum-present" class="text-2xl font-bold text-green-600 font-mono">0</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl border-l-4 border-red-500 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ลาหยุด</p>
-                        <p id="sum-leave" class="text-2xl font-bold text-red-600 font-mono">0</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl border-l-4 border-orange-400 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ลาครึ่งวัน</p>
-                        <p id="sum-half" class="text-2xl font-bold text-orange-500 font-mono">0</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl border-l-4 border-gray-300 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ยังไม่บันทึก</p>
-                        <p id="sum-missing" class="text-2xl font-bold text-gray-500 font-mono">0</p>
-                    </div>
-                </div>
-
-                <!-- Report Table -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table id="attendance-table" class="w-full text-xs text-left report-table table-fixed md:table-auto">
-                            <thead class="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100 uppercase tracking-tighter">
-                                <tr>
-                                    <th class="w-8 text-center">#</th>
-                                    <th class="w-40 md:w-auto">ชื่อพนักงาน</th>
-                                    <th class="w-16 text-center">สถานะ</th>
-                                    <th class="w-28 md:w-auto text-center">เข้างาน (จุด/เวลา)</th>
-                                    <th class="w-28 md:w-auto text-center">เข้าบริษัท (จุด/เวลา)</th>
-                                    <th class="w-20 md:w-auto">หมายเหตุ</th>
-                                    <th id="th-map" class="w-10 text-center">Map</th>
-                                </tr>
-                            </thead>
-                            <tbody id="report-table-body" class="divide-y divide-gray-50 font-kanit"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SECTION: Admin CRUD Panel -->
-        <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print">
-            <div class="flex items-center justify-between">
-                <button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-xl font-bold">จัดการระบบ</h2>
-                <div></div>
-            </div>
-
-            <!-- Employee List CRUD -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                <div class="flex justify-between items-center">
-                    <h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4>
-                    <button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm hover:bg-blue-700">+ เพิ่มพนักงาน</button>
-                </div>
-                <div class="overflow-x-auto border border-gray-50 rounded-xl">
-                    <table class="w-full text-xs text-left">
-                        <thead class="bg-gray-50 font-bold text-gray-500">
-                            <tr><th class="px-4 py-3">ID</th><th class="px-4 py-3">ชื่อเล่น</th><th class="px-4 py-3 text-center">สิทธิ์</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
-                        </thead>
-                        <tbody id="list-users-crud" class="divide-y text-gray-700"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- GPS Points CRUD -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
-                    <h4 class="font-bold flex items-center justify-between font-kanit">
-                        <span>จุดเข้าบริษัท (Geofencing)</span>
-                        <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg shadow-sm">+ เพิ่มจุด</button>
-                    </h4>
-                    <div id="list-entry-points" class="space-y-2 text-black"></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700">
-                    <h4 class="font-bold flex items-center justify-between font-kanit">
-                        <span>จุดเข้างาน (Geofencing)</span>
-                        <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm">+ เพิ่มจุด</button>
-                    </h4>
-                    <div id="list-work-points" class="space-y-2 text-black"></div>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <footer class="bg-white border-t p-6 text-center text-gray-400 text-[10px] uppercase tracking-widest no-print">
-        <p>COPY RIGHT 2026 @ ฝ่ายกำกับรถพาเหรด</p>
-    </footer>
-
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
-        const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models"; 
-
-        let state = {
-            user: null, pin: "", location: { lat: 0, lng: 0 },
-            users: [], attendance: [],
-            entryPoints: [], workPoints: [],
-            view: "view-login", registerStep: 1,
-            loginMode: "face", isAdmin: false,
-            currentStream: null, faceMatcher: null
-        };
-
-        window.onload = async () => {
-            initLucide();
-            updateTime();
-            setInterval(updateTime, 1000);
-            document.getElementById('filter-date').valueAsDate = new Date();
-            
-            try {
-                await initFaceModels();
-                await fetchData();
-                startFaceLogin();
-            } catch (err) { console.error(err); } 
-            finally { document.getElementById('loading-overlay').style.display = 'none'; }
-
-            initGPS();
-            renderPinDots();
-            checkSession();
-        };
-
-        function initLucide() { if (typeof lucide !== 'undefined') lucide.createIcons(); else setTimeout(initLucide, 500); }
-
-        async function initFaceModels() {
-            if (typeof faceapi !== 'undefined' && faceapi.nets) {
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                ]);
-            }
-        }
-
-        async function fetchData() {
-            try {
-                const [uRes, aRes, epRes, wpRes] = await Promise.all([
-                    fetch(`${API_URL}?action=getUsers`),
-                    fetch(`${API_URL}?action=getAttendance`),
-                    fetch(`${API_URL}?action=getEntryPoints`),
-                    fetch(`${API_URL}?action=getWorkPoints`)
-                ]);
-                state.users = await uRes.json();
-                state.attendance = await aRes.json();
-                state.entryPoints = await epRes.json();
-                state.workPoints = await wpRes.json();
-                
-                const labeledDescriptors = [];
-                state.users.forEach(u => {
-                    if (u.faceDescriptor) {
-                        try {
-                            const desc = new Float32Array(Object.values(JSON.parse(u.faceDescriptor)));
-                            labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(u.id.toString(), [desc]));
-                        } catch (e) {}
-                    }
-                });
-                if (labeledDescriptors.length > 0) state.faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-                
-                populateSelectors();
-                renderGlobalReport();
-                renderCRUDLists();
-            } catch (e) { console.error("Fetch Error", e); }
-        }
-
-        function populateSelectors() {
-            const regList = document.getElementById('reg-user-list');
-            const adminCheckList = document.getElementById('admin-user-checkbox-list');
-            const epSelect = document.getElementById('point-company');
-            const wpSelect = document.getElementById('point-work');
-
-            if(regList) {
-                regList.innerHTML = '<option value="">-- เลือกรายชื่อ --</option>';
-                state.users.forEach(u => regList.innerHTML += `<option value="${u.id}">${u.nickname} (${u.id})</option>`);
-            }
-            if(adminCheckList) {
-                adminCheckList.innerHTML = '';
-                state.users.forEach(u => {
-                    adminCheckList.innerHTML += `
-                        <label class="flex items-center gap-2 p-1.5 hover:bg-red-100 rounded text-[10px] font-semibold cursor-pointer border border-transparent hover:border-red-200 truncate">
-                            <input type="checkbox" name="admin-user-target" value="${u.id}" class="w-3 h-3 rounded text-red-600 focus:ring-red-500">
-                            <span class="truncate">${u.nickname} (${u.id})</span>
-                        </label>
-                    `;
-                });
-            }
-            if(epSelect) {
-                epSelect.innerHTML = '';
-                state.entryPoints.forEach(p => epSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`);
-            }
-            if(wpSelect) {
-                wpSelect.innerHTML = '';
-                state.workPoints.forEach(p => wpSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`);
-            }
-        }
-
-        function initGPS() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.watchPosition((pos) => {
-                    state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    const gpsText = document.getElementById('gps-text');
-                    if(gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
-                    document.getElementById('gps-banner')?.classList.replace('bg-yellow-50', 'bg-green-50');
-                    document.getElementById('gps-banner')?.classList.replace('text-yellow-700', 'text-green-700');
-                }, () => {}, { enableHighAccuracy: true });
-            }
-        }
-
-        function switchView(viewId) {
-            stopAllVideo();
-            document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
-            document.getElementById(viewId)?.classList.remove('hidden');
-            document.getElementById('main-header')?.classList.toggle('hidden', viewId === 'view-login' || viewId === 'view-register');
-            if (viewId === 'view-login' && state.loginMode === 'face') startFaceLogin();
-            if (viewId === 'view-main') renderGlobalReport();
-            initLucide();
-        }
-
-        function switchLoginMode(mode) {
-            state.loginMode = mode; stopAllVideo();
-            document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
-            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
-            document.getElementById('login-face-section').classList.toggle('hidden', mode !== 'face');
-            document.getElementById('login-pin-section').classList.toggle('hidden', mode !== 'pin');
-            if (mode === 'face') startFaceLogin();
-            initLucide();
-        }
-
-        function stopAllVideo() { if (state.currentStream) { state.currentStream.getTracks().forEach(track => track.stop()); state.currentStream = null; } }
-
-        // --- FACE LOGIN (UNCHANGED LOGIC) ---
-        async function startFaceLogin() {
-            const video = document.getElementById('login-video');
-            const statusEl = document.getElementById('face-login-status');
-            const canvas = document.getElementById('login-overlay');
-            if(!video || !canvas) return;
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                state.currentStream = stream; video.srcObject = stream;
-                video.onplay = () => {
-                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
-                    faceapi.matchDimensions(canvas, displaySize);
-                    const interval = setInterval(async () => {
-                        if (state.view !== 'view-login' || state.loginMode !== 'face') { clearInterval(interval); return; }
-                        const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                        const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        if (detection) {
-                            const resizedDetection = faceapi.resizeResults(detection, displaySize);
-                            new faceapi.draw.DrawBox(resizedDetection.detection.box, { label: 'Scanning...', boxColor: '#3b82f6' }).draw(canvas);
-                            if (state.faceMatcher) {
-                                const bestMatch = state.faceMatcher.findBestMatch(detection.descriptor);
-                                if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
-                                    const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
-                                    if (foundUser) {
-                                        new faceapi.draw.DrawBox(resizedDetection.detection.box, { label: foundUser.nickname, boxColor: '#10b981' }).draw(canvas);
-                                        statusEl.innerText = "พบใบหน้า: " + foundUser.nickname;
-                                        statusEl.className = "text-sm font-bold text-green-600";
-                                        clearInterval(interval); setTimeout(() => loginSuccess(foundUser), 800);
-                                    }
-                                }
-                            }
-                        }
-                    }, 300);
-                };
-            } catch (err) { statusEl.innerText = "กรุณาเปิดกล้อง"; }
-        }
-
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        // Fixed Local HH:MM formatting
-        function formatTimeHHMM(t) { 
-            if(!t) return ''; 
-            let tStr = t.toString().trim();
-            if (tStr.includes('T') && tStr.includes('Z')) {
-                const d = new Date(tStr);
-                if (!isNaN(d.getTime())) return d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0');
-            }
-            let match = tStr.match(/(\d{1,2}:\d{2})/);
-            return match ? match[1] : tStr; 
-        }
-
-        // --- VALIDATE AND SUBMIT ---
-        async function validateAndSubmit(status) {
-            let targetIds = [];
-            if (state.isAdmin) {
-                const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
-                checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('เตือน', 'กรุณาเลือกรายชื่อพนักงานอย่างน้อย 1 คน', 'warning');
-            } else {
-                targetIds = [state.user.id];
-            }
-
-            const pCompany = document.getElementById('point-company').value;
-            const pWork = document.getElementById('point-work').value;
-            const tCompany = document.getElementById('time-company').value;
-            const tWork = document.getElementById('time-work').value;
-
-            if(!tCompany || !tWork) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุเวลาทั้งสองจุดก่อนบันทึก', 'warning');
-
-            // GPS Logic
-            if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
-                const ep = state.entryPoints.find(p => p.name === pCompany);
-                const wp = state.workPoints.find(p => p.name === pWork);
-                if (ep) {
-                    const d = getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng);
-                    if (d > ep.range) return Swal.fire('พิกัดบริษัทผิดพลาด', `คุณอยู่นอกพื้นที่ (${Math.round(d)} ม.)`, 'error');
-                }
-                if (wp) {
-                    const d = getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng);
-                    if (d > wp.range) return Swal.fire('พิกัดหน้างานผิดพลาด', `คุณอยู่นอกพื้นที่ (${Math.round(d)} ม.)`, 'error');
-                }
-            }
-
-            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-            try {
-                for (const tid of targetIds) {
-                    const targetUser = state.users.find(u => u.id == tid);
-                    const data = {
-                        userId: tid, nickname: targetUser.nickname, status: status,
-                        timeWork: tWork, pointWork: pWork,
-                        timeCompany: tCompany, pointCompany: pCompany,
-                        note: document.getElementById('attendance-note').value,
-                        lat: state.location.lat, lng: state.location.lng, 
-                        timestamp: new Date().toISOString(),
-                        recordedByAdmin: state.isAdmin
-                    };
-                    await fetch(API_URL + "?action=saveAttendance", { method: 'POST', body: JSON.stringify(data) });
-                }
-                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
-                document.getElementById('attendance-note').value = "";
-                document.querySelectorAll('input[name="admin-user-target"]').forEach(cb => cb.checked = false);
-                await fetchData();
-            } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกข้อมูลได้ในขณะนี้', 'error'); }
-        }
-
-        // --- GLOBAL REPORT & PDF ---
-
-        function renderGlobalReport() {
-            const selDate = document.getElementById('filter-date').value;
-            const selStatus = document.getElementById('filter-status').value;
-            const tbody = document.getElementById('report-table-body');
-            const thMap = document.getElementById('th-map');
-            
-            tbody.innerHTML = "";
-            let sums = { present: 0, leave: 0, half: 0, missing: 0 };
-
-            if (state.isAdmin) thMap.style.display = ""; else thMap.style.display = "none";
-
-            state.users.forEach((u, index) => {
-                const att = state.attendance.find(a => {
-                    const aDate = new Date(a.timestamp).toLocaleDateString('en-CA');
-                    return a.userId == u.id && aDate === selDate;
-                });
-
-                const status = att ? att.status : "ยังไม่ลงบันทึก";
-                if (status === "มา") sums.present++;
-                else if (status === "ลา") sums.leave++;
-                else if (status === "ลาครึ่งวัน") sums.half++;
-                else sums.missing++;
-
-                if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
-
-                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-500 hover:scale-110"><i data-lucide="map"></i></button>` : '';
-
-                // NEW Logic: Hide points for Half-leave or Leave only for ADMIN view
-                const recordedByAdmin = att ? att.recordedByAdmin : false;
-                const hideDetails = (status === "ลา") || (status === "ลาครึ่งวัน" && recordedByAdmin);
-
-                const workCell = hideDetails ? '-' : `
-                    <div class="font-bold text-[10px] text-gray-700 leading-tight">${att ? att.pointWork : '-'}</div>
-                    <div class="text-[11px] text-blue-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeWork) : ''}</div>
-                `;
-                const companyCell = hideDetails ? '-' : `
-                    <div class="font-bold text-[10px] text-gray-700 leading-tight">${att ? att.pointCompany : '-'}</div>
-                    <div class="text-[11px] text-green-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeCompany) : ''}</div>
-                `;
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 border-b">
-                        <td class="text-center font-mono text-[9px] text-gray-400">${index + 1}</td>
-                        <td class="py-2">
-                            <div class="font-bold text-gray-800 leading-tight text-[11px]">${u.nickname}</div>
-                            <div class="text-[8px] text-gray-400 font-mono">(${u.id})</div>
-                        </td>
-                        <td class="text-center"><span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${getStatusClass(status)}">${status}</span></td>
-                        <td class="text-center">${workCell}</td>
-                        <td class="text-center">${companyCell}</td>
-                        <td class="text-[9px] text-gray-400 italic break-all leading-tight px-2">${att ? att.note : '-'}</td>
-                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
-                    </tr>`;
-            });
-            document.getElementById('sum-present').innerText = sums.present;
-            document.getElementById('sum-leave').innerText = sums.leave;
-            document.getElementById('sum-half').innerText = sums.half;
-            document.getElementById('sum-missing').innerText = sums.missing;
-            initLucide();
-        }
-
-        function getStatusClass(s) {
-            if (s === "มา") return "bg-green-100 text-green-700";
-            if (s === "ลา") return "bg-red-100 text-red-700";
-            if (s === "ลาครึ่งวัน") return "bg-orange-100 text-orange-700";
-            return "bg-gray-100 text-gray-400";
-        }
-
-        function generatePDF() {
-            document.getElementById('pdf-date-text').innerText = "ประจำวันที่: " + document.getElementById('filter-date').value;
-            window.print();
-        }
-
-        function viewMap(lat, lng, name) { window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank'); }
-
-        // --- PIN & SESSION ---
-        function renderPinDots() {
-            const container = document.getElementById('pin-display'); if (!container) return; container.innerHTML = "";
-            for(let i=0; i<6; i++) {
-                const dot = document.createElement('div');
-                dot.className = i < state.pin.length ? "w-4 h-4 rounded-full bg-blue-600 border-blue-600 scale-125 transition-all" : "w-4 h-4 rounded-full border-2 border-blue-200";
-                container.appendChild(dot);
-            }
-        }
-        function pressPin(num) { if(state.pin.length < 6) { state.pin += num; renderPinDots(); if(state.pin.length === 6) setTimeout(handlePinLogin, 300); } }
-        function clearPin() { state.pin = ""; renderPinDots(); }
-        async function handlePinLogin() {
-            const hashedPin = CryptoJS.SHA256(state.pin).toString();
-            const user = state.users.find(u => u.pin === hashedPin);
-            if(user) loginSuccess(user); else { Swal.fire('รหัสผิด', 'PIN ไม่ถูกต้อง', 'error'); clearPin(); }
-        }
-        function loginSuccess(u) { state.user = u; localStorage.setItem('pfl_session', JSON.stringify({ user: u, expiry: Date.now() + 28800000 })); document.getElementById('display-user-name').innerText = `${u.nickname} (${u.id})`; switchView('view-main'); clearPin(); }
-        function checkSession() { const s = localStorage.getItem('pfl_session'); if (s) { try { const sess = JSON.parse(s); if(sess.expiry > Date.now()) { state.user = sess.user; document.getElementById('display-user-name').innerText = `${state.user.nickname} (${state.user.id})`; switchView('view-main'); } } catch(e) {} } }
-        function logout() { stopAllVideo(); state.isAdmin = false; localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); }
-
-        // --- REGISTRATION & ADMIN CRUD ---
-        async function handleRegisterNext() {
-            const uid = document.getElementById('reg-user-list').value; if(!uid) return Swal.fire('เตือน', 'เลือกรายชื่อก่อน', 'warning');
-            if(state.registerStep === 1) {
-                document.getElementById('face-scan-section').classList.remove('hidden'); document.getElementById('reg-form-content').classList.add('hidden');
-                document.getElementById('btn-next-step').disabled = true; state.registerStep = 2; startRegisterScan();
-            } else if (state.registerStep === 3) {
-                const pin = document.getElementById('reg-pin').value; if(pin.length === 6 && pin === document.getElementById('reg-pin-confirm').value) saveNewUser(uid, pin); else Swal.fire('PIN ไม่ตรงกัน', 'กรุณาตรวจสอบรหัสผ่าน', 'error');
-            }
-        }
-        async function startRegisterScan() {
-            const video = document.getElementById('reg-video');
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); state.currentStream = stream; video.srcObject = stream;
-                video.onplay = () => {
-                    const canvas = document.getElementById('reg-overlay'); faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
-                    const interval = setInterval(async () => {
-                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                        if (det) {
-                            const nose = det.landmarks.getNose(); const jaw = det.landmarks.getJawOutline();
-                            if ((nose[0].x - jaw[0].x) / (jaw[16].x - jaw[0].x) > 0.45) {
-                                state.tempDescriptor = det.descriptor; document.getElementById('scan-status').innerText = "บันทึกใบหน้าสำเร็จ!"; clearInterval(interval); setTimeout(finishScan, 500);
-                            }
-                        }
-                    }, 300);
-                };
-            } catch (err) { Swal.fire('Error', 'เปิดกล้องไม่สำเร็จ', 'error'); }
-        }
-        function finishScan() {
-            document.getElementById('face-scan-section').classList.add('hidden'); document.getElementById('pin-setup-section').classList.remove('hidden');
-            document.getElementById('btn-next-step').innerText = "บันทึกข้อมูล"; document.getElementById('btn-next-step').disabled = false;
-            state.registerStep = 3; stopAllVideo();
-        }
-        async function saveNewUser(id, pin) {
-            const faceData = state.tempDescriptor ? JSON.stringify(Array.from(state.tempDescriptor)) : "";
-            try {
-                await fetch(API_URL + "?action=saveLog", { method: 'POST', body: JSON.stringify({ userId: id, pin: CryptoJS.SHA256(pin).toString(), faceDescriptor: faceData, type: 'register' }) });
-                Swal.fire({ icon: 'success', title: 'ลงทะเบียนสำเร็จ' }); switchView('view-login'); fetchData();
-            } catch (e) { Swal.fire('Error', 'บันทึกข้อมูลไม่สำเร็จ', 'error'); }
-        }
-
-        function enterAdminSettings() {
-            Swal.fire({ title: 'รหัสแอดมิน', input: 'password', showCancelButton: true, confirmButtonText: 'ยืนยัน' }).then((res) => {
-                if (res.value === 'pflpfcm') { 
-                    state.isAdmin = true; 
-                    document.getElementById('admin-badge').classList.remove('hidden'); 
-                    document.getElementById('admin-user-selector').classList.remove('hidden'); 
-                    switchView('view-admin-crud'); 
-                    populateSelectors();
-                }
-                else if(res.value) Swal.fire('รหัสไม่ถูกต้อง', '', 'error');
-            });
-        }
-
-        function renderCRUDLists() {
-            const el = document.getElementById('list-entry-points'); const wl = document.getElementById('list-work-points'); const ul = document.getElementById('list-users-crud');
-            if(!el || !wl || !ul) return;
-            el.innerHTML = ''; wl.innerHTML = ''; ul.innerHTML = '';
-            state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
-            state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
-            state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b"><td class="px-4 py-3 font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 p-1 hover:bg-blue-50 rounded"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1 hover:bg-red-50 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
-            });
-            initLucide();
-        }
-
-        function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border text-[10px] mb-1">
-                <div><div class="font-bold text-gray-700">${p.name}</div><div class="text-gray-400 font-mono">Lat:${p.lat}, Lng:${p.lng} (${p.range}m)</div></div>
-                <div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
-        }
-
-        async function showPointModal(type, p = null) {
-            const isEdit = !!p;
-            const { value: v } = await Swal.fire({
-                title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
-                html: `<input id="s-name" class="swal2-input text-sm" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm" placeholder="รัศมีอนุญาต (เมตร)" value="${p?p.range:'100'}">`,
-                preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
-            });
-            if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
-        }
-
-        async function deletePoint(type, name) { if(!(await Swal.fire({ title: 'ยืนยันการลบ?', text: `ต้องการลบจุด ${name}`, icon: 'warning', showCancelButton: true })).isConfirmed) return; const action = type === 'EntryPoints' ? 'deleteEntryPoint' : 'deleteWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify({ name }) }); fetchData(); }
-
-        async function showUserModal(u = null) {
-            const isEdit = !!u;
-            const { value: v } = await Swal.fire({
-                title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงานใหม่',
-                html: `<input id="s-uid" class="swal2-input text-sm" placeholder="ID (เช่น PFL001)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm" placeholder="ชื่อเล่น" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
-                preConfirm: () => ({ id: document.getElementById('s-uid').value, nickname: document.getElementById('s-unick').value, role: document.getElementById('s-urole').value })
-            });
-            if(v && v.id) { await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
-        }
-
-        async function deleteUser(id) { if(!(await Swal.fire({ title: 'ลบพนักงาน?', text: `รหัส ${id}`, icon: 'warning', showCancelButton: true })).isConfirmed) return; await fetch(`${API_URL}?action=deleteUser`, { method: 'POST', body: JSON.stringify({ id }) }); fetchData(); }
-
-        function updateTime() {
-            const now = new Date();
-            if(document.getElementById('current-time')) document.getElementById('current-time').innerText = now.toLocaleTimeString('th-TH', { hour12: false });
-            if(document.getElementById('current-date')) document.getElementById('current-date').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            
-            const hhmm = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
-            const tc = document.getElementById('time-company'); if(tc && !tc.value) tc.value = hhmm;
-            const tw = document.getElementById('time-work'); if(tw && !tw.value) tw.value = hhmm;
-        }
-
-        function retryFetchData() { fetchData(); }
-    </script>
-</body>
-</html>
+/**
+ * PFL Attendance - Backend API
+ * อัปเดตเพื่อรองรับการระบุตัวตนผู้บันทึก (recordedByAdmin)
+ */
+
+const SPREADSHEET_ID = "1qxS1TEInY7eeOSuEs11FELHcR17KpeeIHGaqg9ShTjA";
+const SS = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+const SHEETS = {
+  USERS: "Users",
+  ATTENDANCE: "Attendance",
+  ENTRY_POINTS: "EntryPoints",
+  WORK_POINTS: "WorkPoints",
+  LOGS: "Logs"
+};
+
+function doGet(e) {
+  const action = e.parameter.action;
+  try {
+    switch (action) {
+      case "getUsers": return contentResponse(getDataFromSheet(SHEETS.USERS));
+      case "getAttendance": return contentResponse(getDataFromSheet(SHEETS.ATTENDANCE).reverse());
+      case "getEntryPoints": return contentResponse(getDataFromSheet(SHEETS.ENTRY_POINTS));
+      case "getWorkPoints": return contentResponse(getDataFromSheet(SHEETS.WORK_POINTS));
+      default: return contentResponse({ error: "Invalid action" });
+    }
+  } catch (err) { return contentResponse({ error: err.toString() }); }
+}
+
+function doPost(e) {
+  const action = e.parameter.action;
+  const payload = JSON.parse(e.postData.contents);
+  try {
+    switch (action) {
+      case "saveAttendance":
+        // บันทึกลง Sheet Attendance (เพิ่มคอลัมน์สุดท้าย recordedByAdmin)
+        return contentResponse(saveToSheet(SHEETS.ATTENDANCE, [
+          payload.userId, payload.nickname, payload.status, 
+          payload.timeWork, payload.pointWork, payload.timeCompany, 
+          payload.pointCompany, payload.note, payload.lat, payload.lng, 
+          payload.timestamp, payload.recordedByAdmin
+        ]));
+
+      case "saveUser": return contentResponse(upsertUser(payload));
+      case "deleteUser": return contentResponse(deleteById(SHEETS.USERS, payload.id, "id"));
+      case "saveEntryPoint": return contentResponse(upsertPoint(SHEETS.ENTRY_POINTS, payload));
+      case "deleteEntryPoint": return contentResponse(deleteById(SHEETS.ENTRY_POINTS, payload.name, "name"));
+      case "saveWorkPoint": return contentResponse(upsertPoint(SHEETS.WORK_POINTS, payload));
+      case "deleteWorkPoint": return contentResponse(deleteById(SHEETS.WORK_POINTS, payload.name, "name"));
+      
+      case "saveLog":
+        if (payload.type === 'register') updateUserRegistration(payload.userId, payload.pin, payload.faceDescriptor);
+        return contentResponse(saveToSheet(SHEETS.LOGS, [payload.userId, payload.type, new Date().toISOString(), JSON.stringify(payload)]));
+
+      default: return contentResponse({ error: "Invalid POST action" });
+    }
+  } catch (err) { return contentResponse({ error: err.toString() }); }
+}
+
+// --- HELPER FUNCTIONS (คงเดิมและปรับปรุง) ---
+function getDataFromSheet(sheetName) {
+  const sheet = SS.getSheetByName(sheetName);
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  const headers = data.shift();
+  return data.map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h.toString().trim()] = row[i]);
+    return obj;
+  });
+}
+
+function saveToSheet(sheetName, rowData) {
+  const sheet = SS.getSheetByName(sheetName);
+  sheet.appendRow(rowData);
+  return { status: "success" };
+}
+
+function upsertUser(payload) {
+  const sheet = SS.getSheetByName(SHEETS.USERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idCol = headers.indexOf("id");
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) { if (data[i][idCol] == payload.id) { rowIndex = i + 1; break; } }
+  if (rowIndex > -1) {
+    sheet.getRange(rowIndex, headers.indexOf("nickname") + 1).setValue(payload.nickname);
+    sheet.getRange(rowIndex, headers.indexOf("role") + 1).setValue(payload.role);
+  } else {
+    const newRow = new Array(headers.length).fill("");
+    newRow[idCol] = payload.id;
+    newRow[headers.indexOf("nickname")] = payload.nickname;
+    newRow[headers.indexOf("role")] = payload.role;
+    sheet.appendRow(newRow);
+  }
+  return { status: "success" };
+}
+
+function upsertPoint(sheetName, payload) {
+  const sheet = SS.getSheetByName(sheetName);
+  const data = sheet.getDataRange().getValues();
+  const nameCol = data[0].indexOf("name");
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) { if (data[i][nameCol] == payload.name) { rowIndex = i + 1; break; } }
+  const rowData = [payload.name, payload.lat, payload.lng, payload.range];
+  if (rowIndex > -1) sheet.getRange(rowIndex, 1, 1, 4).setValues([rowData]);
+  else sheet.appendRow(rowData);
+  return { status: "success" };
+}
+
+function deleteById(sheetName, idValue, idColumnName) {
+  const sheet = SS.getSheetByName(sheetName);
+  const data = sheet.getDataRange().getValues();
+  const idCol = data[0].indexOf(idColumnName);
+  for (let i = 1; i < data.length; i++) { if (data[i][idCol] == idValue) { sheet.deleteRow(i + 1); return { status: "success" }; } }
+  return { status: "not_found" };
+}
+
+function updateUserRegistration(userId, hashedPin, faceDescriptor) {
+  const sheet = SS.getSheetByName(SHEETS.USERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idCol = headers.indexOf("id");
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][idCol] == userId) {
+      sheet.getRange(i + 1, headers.indexOf("pin") + 1).setValue(hashedPin);
+      sheet.getRange(i + 1, headers.indexOf("faceDescriptor") + 1).setValue(faceDescriptor);
+      return true;
+    }
+  }
+  return false;
+}
+
+function contentResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
