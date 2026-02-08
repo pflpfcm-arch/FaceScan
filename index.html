@@ -33,8 +33,7 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        /* Table responsive fixes */
-        .report-table th, .report-table td { @apply px-2 py-3 text-xs md:text-sm; }
+        .report-table th, .report-table td { @apply px-2 py-3 text-[10px] md:text-xs; }
         @media print {
             .no-print { display: none !important; }
             body { background: white; }
@@ -164,18 +163,20 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Company Point & Time -->
                         <div class="space-y-1">
-                            <label class="text-xs font-semibold text-gray-500">จุดเข้าบริษัท & เวลา</label>
+                            <label class="text-xs font-semibold text-gray-500">จุดเข้าบริษัท & เวลาบันทึก</label>
                             <div class="flex gap-1">
-                                <select id="point-company" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"></select>
-                                <input type="time" id="time-company" class="w-24 p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none">
+                                <select id="point-company" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400"></select>
+                                <input type="time" id="time-company" class="w-28 p-3 bg-white border border-blue-200 rounded-lg text-sm outline-none font-bold text-blue-600 focus:ring-2 focus:ring-blue-500">
                             </div>
                         </div>
+                        <!-- Work Point & Time -->
                         <div class="space-y-1">
-                            <label class="text-xs font-semibold text-gray-500">จุดเข้างาน & เวลา</label>
+                            <label class="text-xs font-semibold text-gray-500">จุดเข้างาน & เวลาบันทึก</label>
                             <div class="flex gap-1">
-                                <select id="point-work" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"></select>
-                                <input type="time" id="time-work" class="w-24 p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none">
+                                <select id="point-work" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400"></select>
+                                <input type="time" id="time-work" class="w-28 p-3 bg-white border border-orange-200 rounded-lg text-sm outline-none font-bold text-orange-600 focus:ring-2 focus:ring-orange-500">
                             </div>
                         </div>
                     </div>
@@ -203,8 +204,8 @@
                 <div class="flex items-center justify-between flex-wrap gap-4 no-print">
                     <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานประจำวัน</h3>
                     <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-100 text-sm">
-                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none">
-                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none">
+                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-medium">
+                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-medium">
                             <option value="ทั้งหมด">สถานะ: ทั้งหมด</option>
                             <option value="มา">มา</option>
                             <option value="ลา">ลา</option>
@@ -215,10 +216,10 @@
                     </div>
                 </div>
 
-                <!-- PDF Header (Hidden in app, shown in PDF/Print) -->
+                <!-- PDF Header -->
                 <div id="pdf-header" class="hidden text-center space-y-2 mb-4">
                     <h1 class="text-xl font-bold">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</h1>
-                    <p class="text-sm" id="pdf-date-text"></p>
+                    <p class="text-sm font-bold" id="pdf-date-text"></p>
                 </div>
 
                 <!-- Stats -->
@@ -236,7 +237,7 @@
                         <p id="sum-half" class="text-xl font-bold text-orange-500">0</p>
                     </div>
                     <div class="bg-white p-3 rounded-xl border-l-4 border-gray-300 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold">ยังไม่บันทึก</p>
+                        <p class="text-gray-400 text-[10px] font-bold">ยังไม่ลงบันทึก</p>
                         <p id="sum-missing" class="text-xl font-bold text-gray-500">0</p>
                     </div>
                 </div>
@@ -253,7 +254,7 @@
                                     <th class="text-center">เข้างาน (จุด/เวลา)</th>
                                     <th class="text-center">เข้าบริษัท (จุด/เวลา)</th>
                                     <th>หมายเหตุ</th>
-                                    <th class="no-print text-center">แผนที่</th>
+                                    <th id="th-map" class="text-center">แผนที่</th>
                                 </tr>
                             </thead>
                             <tbody id="report-table-body" class="divide-y divide-gray-50"></tbody>
@@ -264,14 +265,14 @@
         </div>
 
         <!-- SECTION: Admin CRUD Panel -->
-        <div id="view-admin-crud" class="hidden space-y-6 pb-10">
+        <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print">
             <div class="flex items-center justify-between">
                 <button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-xl font-bold">ตั้งค่าระบบ (Admin)</h2>
+                <h2 class="text-xl font-bold">จัดการระบบ</h2>
                 <div></div>
             </div>
 
-            <!-- Employee List CRUD -->
+            <!-- Employee CRUD -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div class="flex justify-between items-center">
                     <h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4>
@@ -289,19 +290,19 @@
 
             <!-- Points CRUD -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                    <h4 class="font-bold flex items-center justify-between text-green-700">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
+                    <h4 class="font-bold flex items-center justify-between">
                         <span>จุดเข้าบริษัท</span>
                         <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded">+ เพิ่ม</button>
                     </h4>
-                    <div id="list-entry-points" class="space-y-2"></div>
+                    <div id="list-entry-points" class="space-y-2 text-black"></div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                    <h4 class="font-bold flex items-center justify-between text-orange-700">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700">
+                    <h4 class="font-bold flex items-center justify-between">
                         <span>จุดเข้างาน</span>
                         <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded">+ เพิ่ม</button>
                     </h4>
-                    <div id="list-work-points" class="space-y-2"></div>
+                    <div id="list-work-points" class="space-y-2 text-black"></div>
                 </div>
             </div>
         </div>
@@ -442,7 +443,7 @@
 
         function stopAllVideo() { if (state.currentStream) { state.currentStream.getTracks().forEach(track => track.stop()); state.currentStream = null; } }
 
-        // --- FACE LOGIN (UNCHANGED LOGIC) ---
+        // --- FACE LOGIN ---
         async function startFaceLogin() {
             const video = document.getElementById('login-video');
             const statusEl = document.getElementById('face-login-status');
@@ -479,9 +480,6 @@
             } catch (err) { statusEl.innerText = "กรุณาเปิดกล้อง"; }
         }
 
-        // --- ATTENDANCE WITH GEOFENCING ---
-
-        // Helper: Calculate distance between 2 points in meters
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
@@ -490,35 +488,35 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
+        function formatTimeHHMM(t) { if(!t) return ''; return t.substring(0, 5); }
+
         async function validateAndSubmit(status) {
             const targetId = state.isAdmin ? document.getElementById('admin-target-user').value : state.user.id;
             const targetUser = state.users.find(u => u.id == targetId);
             const pCompany = document.getElementById('point-company').value;
             const pWork = document.getElementById('point-work').value;
-            
-            // Check Geofencing only for 'มา' or 'ลาครึ่งวัน'
-            if (status !== 'ลา') {
+            const tCompany = document.getElementById('time-company').value;
+            const tWork = document.getElementById('time-work').value;
+
+            if(!tCompany || !tWork) return Swal.fire('กรุณาระบุเวลา', 'ต้องระบุเวลาทั้งจุดเข้าบริษัทและเข้างาน', 'warning');
+
+            if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
                 const ep = state.entryPoints.find(p => p.name === pCompany);
                 const wp = state.workPoints.find(p => p.name === pWork);
-
                 if (ep) {
-                    const dist = getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng);
-                    if (dist > ep.range) {
-                        return Swal.fire('อยู่นอกพื้นที่บริษัท', `ระยะห่างของคุณคือ ${Math.round(dist)} ม. (จำกัด ${ep.range} ม.)`, 'error');
-                    }
+                    const d = getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng);
+                    if (d > ep.range) return Swal.fire('อยู่นอกพิกัดบริษัท', `ระยะห่างปัจจุบัน ${Math.round(d)} ม. (จำกัด ${ep.range} ม.)`, 'error');
                 }
                 if (wp) {
-                    const dist = getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng);
-                    if (dist > wp.range) {
-                        return Swal.fire('อยู่นอกพื้นที่หน้างาน', `ระยะห่างของคุณคือ ${Math.round(dist)} ม. (จำกัด ${wp.range} ม.)`, 'error');
-                    }
+                    const d = getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng);
+                    if (d > wp.range) return Swal.fire('อยู่นอกพิกัดหน้างาน', `ระยะห่างปัจจุบัน ${Math.round(d)} ม. (จำกัด ${wp.range} ม.)`, 'error');
                 }
             }
 
             const data = {
                 userId: targetId, nickname: targetUser.nickname, status: status,
-                timeWork: document.getElementById('time-work').value, pointWork: pWork,
-                timeCompany: document.getElementById('time-company').value, pointCompany: pCompany,
+                timeWork: tWork, pointWork: pWork,
+                timeCompany: tCompany, pointCompany: pCompany,
                 note: document.getElementById('attendance-note').value,
                 lat: state.location.lat, lng: state.location.lng, timestamp: new Date().toISOString()
             };
@@ -532,17 +530,21 @@
                     document.getElementById('attendance-note').value = "";
                     await fetchData();
                 } else throw new Error();
-            } catch (e) { Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'เชื่อมต่อฐานข้อมูลล้มเหลว' }); }
+            } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'บันทึกข้อมูลล้มเหลว' }); }
         }
 
-        // --- REPORT & PDF ---
+        // --- GLOBAL REPORT & PDF ---
 
         function renderGlobalReport() {
             const selDate = document.getElementById('filter-date').value;
             const selStatus = document.getElementById('filter-status').value;
             const tbody = document.getElementById('report-table-body');
+            const thMap = document.getElementById('th-map');
+            
             tbody.innerHTML = "";
             let sums = { present: 0, leave: 0, half: 0, missing: 0 };
+
+            if (state.isAdmin) thMap.style.display = ""; else thMap.style.display = "none";
 
             state.users.forEach((u, index) => {
                 const att = state.attendance.find(a => {
@@ -551,30 +553,35 @@
                 });
 
                 const status = att ? att.status : "ยังไม่ลงบันทึก";
-                if (status.includes("มา")) sums.present++;
-                else if (status.includes("ลาหยุด")) sums.leave++;
-                else if (status.includes("ลาครึ่งวัน")) sums.half++;
+                if (status === "มา") sums.present++;
+                else if (status === "ลา") sums.leave++;
+                else if (status === "ลาครึ่งวัน") sums.half++;
                 else sums.missing++;
 
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
-                const mapBtn = att ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-500 hover:scale-110"><i data-lucide="map"></i></button>` : '-';
+                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-500 hover:scale-110"><i data-lucide="map"></i></button>` : '';
+
+                // Display check: Hide points and times if status is Leave or Half-leave
+                const isLeave = (status === "ลา" || status === "ลาครึ่งวัน");
+                const workCell = isLeave ? '-' : `
+                    <div class="font-bold text-[10px] text-gray-700">${att ? att.pointWork : '-'}</div>
+                    <div class="text-[11px] text-blue-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeWork) : ''}</div>
+                `;
+                const companyCell = isLeave ? '-' : `
+                    <div class="font-bold text-[10px] text-gray-700">${att ? att.pointCompany : '-'}</div>
+                    <div class="text-[11px] text-green-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeCompany) : ''}</div>
+                `;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 border-b">
-                        <td class="text-center font-mono">${index + 1}</td>
+                        <td class="text-center font-mono text-[10px]">${index + 1}</td>
                         <td class="font-bold text-gray-800">${u.nickname}</td>
                         <td class="text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusClass(status)}">${status}</span></td>
-                        <td class="text-center">
-                           <div class="font-bold">${att ? att.pointWork : '-'}</div>
-                           <div class="text-[10px] text-blue-500 font-mono">${att && att.timeWork ? att.timeWork.substring(0,5) : ''}</div>
-                        </td>
-                        <td class="text-center">
-                           <div class="font-bold">${att ? att.pointCompany : '-'}</div>
-                           <div class="text-[10px] text-green-600 font-mono">${att && att.timeCompany ? att.timeCompany.substring(0,5) : ''}</div>
-                        </td>
-                        <td class="text-[10px] text-gray-400 italic">${att ? att.note : '-'}</td>
-                        <td class="no-print text-center">${mapBtn}</td>
+                        <td class="text-center">${workCell}</td>
+                        <td class="text-center">${companyCell}</td>
+                        <td class="text-[10px] text-gray-400 italic break-all">${att ? att.note : '-'}</td>
+                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
             document.getElementById('sum-present').innerText = sums.present;
@@ -585,97 +592,22 @@
         }
 
         function getStatusClass(s) {
-            if (s.includes("มา")) return "bg-green-100 text-green-700";
-            if (s.includes("ลาหยุด")) return "bg-red-100 text-red-700";
-            if (s.includes("ลาครึ่งวัน")) return "bg-orange-100 text-orange-700";
+            if (s === "มา") return "bg-green-100 text-green-700";
+            if (s === "ลา") return "bg-red-100 text-red-700";
+            if (s === "ลาครึ่งวัน") return "bg-orange-100 text-orange-700";
             return "bg-gray-100 text-gray-400";
         }
 
         function generatePDF() {
-            // Simplified PDF via Print for Thai Support and A4 fit
             document.getElementById('pdf-date-text').innerText = "ประจำวันที่: " + document.getElementById('filter-date').value;
             document.getElementById('pdf-header').classList.remove('hidden');
             window.print();
             document.getElementById('pdf-header').classList.add('hidden');
         }
 
-        function viewMap(lat, lng, name) {
-            const url = `https://www.google.com/maps?q=${lat},${lng}`;
-            window.open(url, '_blank');
-        }
+        function viewMap(lat, lng, name) { window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank'); }
 
-        // --- ADMIN FEATURES (UNCHANGED CORE) ---
-        function enterAdminSettings() {
-            Swal.fire({
-                title: 'รหัสแอดมิน', input: 'password', showCancelButton: true, confirmButtonText: 'ตกลง'
-            }).then((res) => {
-                if (res.value === 'pflpfcm') {
-                    state.isAdmin = true;
-                    document.getElementById('admin-badge').classList.remove('hidden');
-                    document.getElementById('admin-user-selector').classList.remove('hidden');
-                    switchView('view-admin-crud');
-                } else if(res.value) Swal.fire('รหัสผิด', '', 'error');
-            });
-        }
-
-        function renderCRUDLists() {
-            const el = document.getElementById('list-entry-points');
-            const wl = document.getElementById('list-work-points');
-            const ul = document.getElementById('list-users-crud');
-            if(!el || !wl || !ul) return;
-            el.innerHTML = ''; wl.innerHTML = ''; ul.innerHTML = '';
-            state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
-            state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
-            state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b"><td class="px-2 py-2 font-mono">${u.id}</td><td class="px-2 py-2 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize">${u.role || 'user'}</td><td class="text-center"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 mr-2"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`;
-            });
-            initLucide();
-        }
-
-        function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border text-[10px]">
-                <div><div class="font-bold text-gray-700">${p.name}</div><div class="text-gray-400">Range: ${p.range}m</div></div>
-                <div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                <button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
-        }
-
-        // --- POINT CRUD ---
-        async function showPointModal(type, point = null) {
-            const isEdit = !!point;
-            const { value: v } = await Swal.fire({
-                title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุด',
-                html: `<div class="text-left space-y-1"><label class="text-[10px] font-bold">ชื่อจุด</label><input id="swal-name" class="swal2-input !mt-0" value="${point?point.name:''}" ${isEdit?'disabled':''}><label class="text-[10px] font-bold">Lat</label><input id="swal-lat" class="swal2-input !mt-0" value="${point?point.lat:state.location.lat}"><label class="text-[10px] font-bold">Lng</label><input id="swal-lng" class="swal2-input !mt-0" value="${point?point.lng:state.location.lng}"><label class="text-[10px] font-bold">รัศมี(ม.)</label><input id="swal-range" class="swal2-input !mt-0" value="${point?point.range:'100'}"></div>`,
-                preConfirm: () => ({ name: document.getElementById('swal-name').value, lat: document.getElementById('swal-lat').value, lng: document.getElementById('swal-lng').value, range: document.getElementById('swal-range').value })
-            });
-            if(v && v.name) {
-                const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint';
-                await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData();
-            }
-        }
-
-        async function deletePoint(type, name) {
-            if(!(await Swal.fire({ title: 'ลบจุดนี้?', showCancelButton: true })).isConfirmed) return;
-            const action = type === 'EntryPoints' ? 'deleteEntryPoint' : 'deleteWorkPoint';
-            await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify({ name }) }); fetchData();
-        }
-
-        // --- USER CRUD ---
-        async function showUserModal(u = null) {
-            const isEdit = !!u;
-            const { value: v } = await Swal.fire({
-                title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน',
-                html: `<div class="text-left space-y-1"><label class="text-[10px] font-bold">ID</label><input id="s-id" class="swal2-input !mt-0" value="${u?u.id:''}" ${isEdit?'disabled':''}><label class="text-[10px] font-bold">ชื่อเล่น</label><input id="s-nick" class="swal2-input !mt-0" value="${u?u.nickname:''}"><label class="text-[10px] font-bold">สิทธิ์</label><select id="s-role" class="swal2-input !mt-0"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select></div>`,
-                preConfirm: () => ({ id: document.getElementById('s-id').value, nickname: document.getElementById('s-nick').value, role: document.getElementById('s-role').value })
-            });
-            if(v && v.id) { await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
-        }
-
-        async function deleteUser(id) {
-            if(!(await Swal.fire({ title: 'ลบพนักงาน?', showCancelButton: true })).isConfirmed) return;
-            await fetch(`${API_URL}?action=deleteUser`, { method: 'POST', body: JSON.stringify({ id }) }); fetchData();
-        }
-
-        // --- FACE & PIN (REUSE PREVIOUS WORKING CODE) ---
+        // --- AUTH & PIN ---
         function renderPinDots() {
             const container = document.getElementById('pin-display'); if (!container) return; container.innerHTML = "";
             for(let i=0; i<6; i++) {
@@ -695,6 +627,7 @@
         function checkSession() { const s = localStorage.getItem('pfl_session'); if (s) { try { const sess = JSON.parse(s); if(sess.expiry > Date.now()) { state.user = sess.user; document.getElementById('display-user-name').innerText = state.user.nickname; switchView('view-main'); } } catch(e) {} } }
         function logout() { stopAllVideo(); state.isAdmin = false; localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); }
 
+        // --- REGISTRATION & ADMIN CRUD ---
         async function handleRegisterNext() {
             const uid = document.getElementById('reg-user-list').value; if(!uid) return Swal.fire('เตือน', 'เลือกรายชื่อก่อน', 'warning');
             if(state.registerStep === 1) {
@@ -734,6 +667,49 @@
                 Swal.fire({ icon: 'success', title: 'สำเร็จ' }); switchView('view-login'); fetchData();
             } catch (e) { Swal.fire('Error', 'บันทึกไม่ได้', 'error'); }
         }
+
+        function enterAdminSettings() {
+            Swal.fire({ title: 'รหัสแอดมิน', input: 'password', showCancelButton: true }).then((res) => {
+                if (res.value === 'pflpfcm') { state.isAdmin = true; document.getElementById('admin-badge').classList.remove('hidden'); document.getElementById('admin-user-selector').classList.remove('hidden'); switchView('view-admin-crud'); }
+                else if(res.value) Swal.fire('รหัสผิด', '', 'error');
+            });
+        }
+        function renderCRUDLists() {
+            const el = document.getElementById('list-entry-points'); const wl = document.getElementById('list-work-points'); const ul = document.getElementById('list-users-crud');
+            if(!el || !wl || !ul) return;
+            el.innerHTML = ''; wl.innerHTML = ''; ul.innerHTML = '';
+            state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
+            state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
+            state.users.forEach(u => {
+                ul.innerHTML += `<tr class="border-b"><td class="px-2 py-2 font-mono text-[10px]">${u.id}</td><td class="px-2 py-2 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize">${u.role || 'user'}</td><td class="text-center"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 mr-2"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`;
+            });
+            initLucide();
+        }
+        function createPointRow(p, action) {
+            return `<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border text-[10px] mb-1">
+                <div><div class="font-bold text-gray-700">${p.name}</div><div class="text-gray-400">Range: ${p.range}m</div></div>
+                <div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
+        }
+        async function showPointModal(type, p = null) {
+            const isEdit = !!p;
+            const { value: v } = await Swal.fire({
+                title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุด',
+                html: `<input id="s-name" class="swal2-input" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input" placeholder="Range" value="${p?p.range:'100'}">`,
+                preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
+            });
+            if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
+        }
+        async function deletePoint(type, name) { if(!(await Swal.fire({ title: 'ลบ?', showCancelButton: true })).isConfirmed) return; const action = type === 'EntryPoints' ? 'deleteEntryPoint' : 'deleteWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify({ name }) }); fetchData(); }
+        async function showUserModal(u = null) {
+            const isEdit = !!u;
+            const { value: v } = await Swal.fire({
+                title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน',
+                html: `<input id="s-uid" class="swal2-input" placeholder="ID" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
+                preConfirm: () => ({ id: document.getElementById('s-uid').value, nickname: document.getElementById('s-unick').value, role: document.getElementById('s-urole').value })
+            });
+            if(v && v.id) { await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
+        }
+        async function deleteUser(id) { if(!(await Swal.fire({ title: 'ลบ?', showCancelButton: true })).isConfirmed) return; await fetch(`${API_URL}?action=deleteUser`, { method: 'POST', body: JSON.stringify({ id }) }); fetchData(); }
 
         function updateTime() {
             const now = new Date();
