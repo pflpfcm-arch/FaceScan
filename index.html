@@ -31,23 +31,31 @@
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
         /* Professional Table Styling */
-        .report-table { width: 100%; table-layout: fixed; }
+        .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         .report-table th, .report-table td { 
-            @apply px-1 py-2 text-[9px] md:text-xs overflow-hidden text-ellipsis whitespace-nowrap;
+            @apply px-1 py-2 text-[9px] md:text-xs overflow-hidden text-ellipsis whitespace-nowrap border-b border-gray-100;
         }
-        .report-table th { @apply font-bold text-gray-500 uppercase bg-gray-50 border-b border-gray-100; }
-
+        
+        /* Print/PDF Pagination Logic */
         @media print {
-            @page { size: A4; margin: 1.2cm; }
+            @page { size: A4; margin: 1cm; }
             .no-print { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; }
             .card-shadow { box-shadow: none !important; border: none !important; }
-            #pdf-header { display: block !important; margin-bottom: 25px; }
-            .report-table { table-layout: auto !important; width: 100% !important; border: 0.5pt solid #ccc; }
-            .report-table th { background-color: #f3f4f6 !important; border-bottom: 1.5pt solid #000; color: #000 !important; font-size: 10pt !important; padding: 8px 4px !important; }
-            .report-table td { border-bottom: 0.5pt solid #eee; color: #000 !important; font-size: 9.5pt !important; padding: 6px 4px !important; }
-            .status-badge { border: 0.5pt solid #ccc !important; background: transparent !important; color: black !important; }
+            
+            /* Repeat header on every page */
+            thead { display: table-header-group !important; }
+            
+            .report-table { table-layout: auto !important; width: 100% !important; border: 0.5pt solid #000 !important; }
+            .report-table th { background-color: #f3f4f6 !important; border: 0.5pt solid #000 !important; color: #000 !important; font-size: 10pt !important; padding: 6px 2px !important; }
+            .report-table td { border: 0.5pt solid #ccc !important; color: #000 !important; font-size: 9.5pt !important; padding: 5px 2px !important; }
+            
+            /* Force page break every 25 rows */
+            .page-break-row { page-break-after: always !important; }
+            
+            /* High visibility status in print */
+            .status-badge { border: 0.2pt solid #000 !important; background: transparent !important; color: black !important; }
         }
     </style>
 </head>
@@ -104,7 +112,7 @@
 
             <div id="login-pin-section" class="hidden space-y-6">
                 <div id="pin-display" class="flex justify-center space-x-3 my-6"></div>
-                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto font-kanit">
                     <button onclick="pressPin(1)" class="numpad-btn">1</button>
                     <button onclick="pressPin(2)" class="numpad-btn">2</button>
                     <button onclick="pressPin(3)" class="numpad-btn">3</button>
@@ -130,8 +138,8 @@
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div id="reg-form-content">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">เลือกรายชื่อพนักงาน</label>
-                    <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium"></select>
+                    <label class="block text-sm font-medium text-gray-700 mb-2 font-kanit">เลือกรายชื่อพนักงาน</label>
+                    <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium font-kanit"></select>
                 </div>
                 <div id="face-scan-section" class="hidden space-y-4 text-center">
                     <p class="text-sm font-semibold text-blue-600" id="scan-status">กรุณามองตรงที่กล้อง</p>
@@ -140,12 +148,12 @@
                         <canvas id="reg-overlay"></canvas>
                     </div>
                 </div>
-                <div id="pin-setup-section" class="hidden space-y-4">
-                    <p class="text-center font-medium text-sm text-gray-600 font-kanit">ตั้งรหัส PIN 6 หลัก</p>
+                <div id="pin-setup-section" class="hidden space-y-4 font-kanit">
+                    <p class="text-center font-medium text-sm text-gray-600">ตั้งรหัส PIN 6 หลัก</p>
                     <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
                     <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl mt-2" placeholder="******">
                 </div>
-                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all">ถัดไป</button>
+                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all font-kanit">ถัดไป</button>
             </div>
         </div>
 
@@ -155,7 +163,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
                 <!-- Profile Card -->
                 <div class="lg:col-span-1 bg-white p-6 rounded-2xl card-shadow text-center border border-gray-50 space-y-4 relative overflow-hidden">
-                    <div id="admin-badge" class="hidden absolute top-3 right-3 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Mode</div>
+                    <div id="admin-badge" class="hidden absolute top-3 right-3 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Recording</div>
                     <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider">ผู้ใช้งานปัจจุบัน</h3>
                     <div id="display-user-name" class="font-bold text-gray-800 text-xl truncate">-</div>
                     <div class="py-4 border-y border-gray-50">
@@ -199,7 +207,7 @@
                             </div>
                         </div>
                     </div>
-                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="ระบุหมายเหตุ..."></textarea>
+                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="หมายเหตุ..."></textarea>
                     
                     <div class="grid grid-cols-3 gap-2 pt-2">
                         <button onclick="validateAndSubmit('มา')" class="bg-green-600 text-white p-3 rounded-xl font-bold hover:bg-green-700 transition-all flex flex-col items-center justify-center shadow-md">
@@ -221,24 +229,18 @@
             <!-- Report Section -->
             <div class="space-y-4">
                 <div class="flex items-center justify-between flex-wrap gap-4 no-print">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2 font-kanit"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานบันทึกเวลางาน</h3>
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2 font-kanit"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานประจำวัน</h3>
                     <div class="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-200 text-xs shadow-sm">
                         <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold text-gray-700 font-kanit">
                         <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold border-l border-gray-100 text-gray-600 font-kanit">
-                            <option value="ทั้งหมด">สถานะ: ทั้งหมด</option>
+                            <option value="ทั้งหมด">ทั้งหมด</option>
                             <option value="มา">มา</option>
                             <option value="ลา">ลา</option>
                             <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
                             <option value="ยังไม่ลงบันทึก">ยังไม่ลงบันทึก</option>
                         </select>
-                        <button onclick="generatePDF()" class="p-2 text-red-600 hover:bg-red-50 rounded-lg border-l border-gray-100" title="พิมพ์รายงาน PDF"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                        <button onclick="generatePDF()" class="p-2 text-red-600 hover:bg-red-50 rounded-lg border-l border-gray-100" title="ส่งออกรายงาน PDF"><i data-lucide="printer" class="w-4 h-4"></i></button>
                     </div>
-                </div>
-
-                <div id="pdf-header" class="hidden text-center">
-                    <h1 class="text-2xl font-bold mb-1 text-black font-kanit">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</h1>
-                    <p class="text-lg text-gray-700 font-bold font-kanit" id="pdf-date-text"></p>
-                    <div class="mt-4 border-b-2 border-black w-full"></div>
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
@@ -260,20 +262,28 @@
                     </div>
                 </div>
 
+                <!-- Report Table with Persistent Header Logic -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto relative">
-                    <table id="attendance-table" class="report-table">
-                        <thead class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
-                            <tr>
+                    <table id="attendance-table" class="report-table font-kanit">
+                        <thead>
+                            <!-- This Row is for PDF Title on every page -->
+                            <tr class="hidden" id="pdf-table-header-row">
+                                <th colspan="7" class="text-center py-4 bg-white border-none">
+                                    <div class="text-xl font-bold text-black font-kanit">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</div>
+                                    <div class="text-sm font-bold text-gray-700 font-kanit pdf-date-display"></div>
+                                </th>
+                            </tr>
+                            <tr class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
                                 <th class="w-[30px] text-center">#</th>
-                                <th class="w-[120px]">พนักงาน</th>
+                                <th class="w-[120px] text-left">พนักงาน</th>
                                 <th class="w-[50px] text-center">สถานะ</th>
-                                <th class="w-[110px] text-center">เข้างาน</th>
-                                <th class="w-[110px] text-center">เข้าบริษัท</th>
+                                <th class="w-[120px] text-center">เข้างาน</th>
+                                <th class="w-[120px] text-center">เข้าบริษัท</th>
                                 <th class="w-[100px]">หมายเหตุ</th>
                                 <th id="th-map" class="w-[40px] text-center no-print">Map</th>
                             </tr>
                         </thead>
-                        <tbody id="report-table-body" class="divide-y divide-gray-50 font-kanit"></tbody>
+                        <tbody id="report-table-body" class="divide-y divide-gray-50"></tbody>
                     </table>
                 </div>
             </div>
@@ -297,18 +307,18 @@
                     </table>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-kanit">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-kanit font-kanit">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
                     <h4 class="font-bold flex items-center justify-between"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
-                    <div id="list-entry-points" class="space-y-2 text-black"></div>
+                    <div id="list-entry-points" class="space-y-2 text-black font-kanit"></div>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700"><h4 class="font-bold flex items-center justify-between text-orange-700"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
-                    <div id="list-work-points" class="space-y-2 text-black"></div>
+                    <div id="list-work-points" class="space-y-2 text-black font-kanit"></div>
                 </div>
             </div>
         </div>
 
-    </script>
+    </main>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
@@ -531,7 +541,7 @@
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานอย่างน้อย 1 คน', 'warning');
+                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานที่ต้องการบันทึกแทน', 'warning');
                 const adminDate = document.getElementById('admin-record-date').value;
                 if(!adminDate) return Swal.fire('แจ้งเตือน', 'กรุณาระบุวันที่บันทึก', 'warning');
                 const now = new Date();
@@ -584,12 +594,17 @@
             } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกได้', 'error'); }
         }
 
+        // --- UPDATED REPORT GENERATION FOR PAGINATION & PDF ---
         function renderGlobalReport() {
             const selDate = document.getElementById('filter-date').value;
             const selStatus = document.getElementById('filter-status').value;
             const tbody = document.getElementById('report-table-body');
             const thMap = document.getElementById('th-map');
             
+            // Sync PDF header date display
+            const formattedDate = formatDateDDMMYYYY(selDate);
+            document.querySelectorAll('.pdf-date-display').forEach(el => el.innerText = "ข้อมูลประจำวันที่: " + formattedDate);
+
             tbody.innerHTML = "";
             let sums = { present: 0, leave: 0, half: 0, missing: 0 };
 
@@ -630,23 +645,33 @@
                     <span class="text-green-600 font-mono font-bold">(${att ? formatTimeHHMM(att.timeCompany) : ''})</span>
                 `;
 
+                // Add pagination class every 25 rows
+                const rowClass = ((index + 1) % 25 === 0) ? "page-break-row" : "";
+
                 tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 border-b border-gray-100">
+                    <tr class="hover:bg-gray-50 border-b border-gray-100 ${rowClass}">
                         <td class="text-center font-mono text-[9px] text-gray-400 font-bold">${index + 1}</td>
                         <td class="py-2 px-1">
-                            <span class="font-bold text-gray-800 text-[10px]">${u.nickname} (${u.id})</span>
+                            <span class="font-bold text-gray-800 text-[10px] whitespace-nowrap">${u.nickname} (${u.id})</span>
                         </td>
                         <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
-                        <td class="text-center">${workCell}</td>
-                        <td class="text-center">${companyCell}</td>
+                        <td class="text-center whitespace-nowrap">${workCell}</td>
+                        <td class="text-center whitespace-nowrap">${companyCell}</td>
                         <td class="text-[9px] text-gray-400 italic font-medium truncate">${att ? att.note : '-'}</td>
                         <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
-            document.getElementById('sum-present').innerText = sums.present;
-            document.getElementById('sum-leave').innerText = sums.leave;
-            document.getElementById('sum-half').innerText = sums.half;
-            document.getElementById('sum-missing').innerText = sums.missing;
+            
+            const presentEl = document.getElementById('sum-present');
+            const leaveEl = document.getElementById('sum-leave');
+            const halfEl = document.getElementById('sum-half');
+            const missingEl = document.getElementById('sum-missing');
+            
+            if(presentEl) presentEl.innerText = sums.present;
+            if(leaveEl) leaveEl.innerText = sums.leave;
+            if(halfEl) halfEl.innerText = sums.half;
+            if(missingEl) missingEl.innerText = sums.missing;
+            
             initLucide();
         }
 
@@ -658,9 +683,11 @@
         }
 
         function generatePDF() {
-            const dateVal = document.getElementById('filter-date').value;
-            document.getElementById('pdf-date-text').innerText = "ข้อมูลประจำวันที่: " + formatDateDDMMYYYY(dateVal);
+            // Show the PDF header row inside the table before printing
+            const headerRow = document.getElementById('pdf-table-header-row');
+            if(headerRow) headerRow.classList.remove('hidden');
             window.print();
+            if(headerRow) headerRow.classList.add('hidden');
         }
 
         function viewMap(userLat, userLng, name, epCoords, wpCoords) {
@@ -745,7 +772,7 @@
             state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
             state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
             state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b"><td class="px-2 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-2 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
+                ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-2 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-2 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
             });
             initLucide();
         }
@@ -758,7 +785,7 @@
             const isEdit = !!p;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
-                html: `<input id="s-name" class="swal2-input text-sm" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm" placeholder="ระยะอนุญาต(ม.)" value="${p?p.range:'100'}">`,
+                html: `<input id="s-name" class="swal2-input text-sm font-kanit" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm font-kanit" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm font-kanit" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm font-kanit" placeholder="ระยะอนุญาต(ม.)" value="${p?p.range:'100'}">`,
                 preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
             });
             if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
@@ -768,7 +795,7 @@
             const isEdit = !!u;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน',
-                html: `<input id="s-uid" class="swal2-input text-sm" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm font-kanit"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
+                html: `<input id="s-uid" class="swal2-input text-sm font-kanit" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm font-kanit" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm font-kanit"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
                 preConfirm: () => ({ id: document.getElementById('s-uid').value, nickname: document.getElementById('s-unick').value, role: document.getElementById('s-urole').value })
             });
             if(v && v.id) { await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
