@@ -30,20 +30,23 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        .report-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 600px; }
-        .report-table th { @apply sticky top-0 bg-gray-50 z-10; }
-        .report-table td { @apply py-3 px-2 align-middle; }
+        /* Optimized Table Styling for Single Screen View */
+        .report-table { width: 100%; table-layout: fixed; }
+        .report-table th, .report-table td { 
+            @apply px-1 py-2.5 text-[9px] md:text-xs overflow-hidden text-ellipsis whitespace-nowrap;
+        }
+        .report-table th { @apply font-bold text-gray-500 uppercase tracking-tighter bg-gray-50; }
 
         @media print {
-            @page { size: A4; margin: 1.2cm; }
+            @page { size: A4; margin: 1cm; }
             .no-print { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; }
             .card-shadow { box-shadow: none !important; border: none !important; }
-            #pdf-header { display: block !important; margin-bottom: 20px; }
-            .report-table { min-width: 100% !important; border: 1px solid #ddd; }
-            .report-table th { background-color: #f9fafb !important; border-bottom: 1.5pt solid #333; color: #000 !important; font-weight: bold; }
-            .report-table td { border-bottom: 0.5pt solid #eee; color: #000 !important; font-size: 10pt !important; }
+            #pdf-header { display: block !important; margin-bottom: 15px; }
+            .report-table { table-layout: auto !important; width: 100% !important; border: 0.5pt solid #ddd; }
+            .report-table th { background-color: #f3f4f6 !important; border-bottom: 1pt solid #000; color: #000 !important; font-size: 9pt !important; }
+            .report-table td { border-bottom: 0.2pt solid #eee; color: #000 !important; font-size: 9pt !important; }
         }
     </style>
 </head>
@@ -62,7 +65,7 @@
                 <div class="bg-blue-600 p-2 rounded-lg shadow-sm"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
                 <div>
                     <h1 class="text-lg font-bold text-gray-800 leading-none">PFL Attendance</h1>
-                    <p class="text-[10px] text-gray-400 font-medium">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
+                    <p class="text-[10px] text-gray-400 font-medium tracking-tight">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -81,7 +84,7 @@
         <!-- SECTION: Login -->
         <div id="view-login" class="max-w-lg mx-auto space-y-6 text-center py-10 no-print">
             <div class="flex justify-between items-center px-4">
-                <h2 class="text-2xl font-bold text-gray-800">เข้าสู่ระบบ</h2>
+                <h2 class="text-2xl font-bold text-gray-800 font-kanit">เข้าสู่ระบบ</h2>
                 <button onclick="enterAdminSettings()" class="text-[10px] text-gray-300 hover:text-gray-500 uppercase tracking-widest font-bold">Admin Login</button>
             </div>
             
@@ -95,7 +98,7 @@
                     <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                     <canvas id="login-overlay"></canvas>
                 </div>
-                <p class="text-sm font-medium text-blue-600 animate-pulse" id="face-login-status">กำลังสแกนหาใบหน้าของคุณ...</p>
+                <p class="text-sm font-medium text-blue-600 animate-pulse" id="face-login-status">กำลังสแกนหาใบหน้าเพื่อเข้าสู่ระบบ...</p>
             </div>
 
             <div id="login-pin-section" class="hidden space-y-6">
@@ -121,7 +124,7 @@
         <!-- SECTION: Register -->
         <div id="view-register" class="max-w-lg mx-auto hidden space-y-6 no-print">
             <div class="flex items-center space-x-2">
-                <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
                 <h2 class="text-xl font-bold font-kanit text-gray-800">ลงทะเบียนพนักงาน</h2>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
@@ -137,7 +140,7 @@
                     </div>
                 </div>
                 <div id="pin-setup-section" class="hidden space-y-4">
-                    <p class="text-center font-medium text-sm text-gray-600">ตั้งรหัส PIN 6 หลัก</p>
+                    <p class="text-center font-medium text-sm text-gray-600 font-kanit">ตั้งรหัส PIN 6 หลัก</p>
                     <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
                     <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl mt-2" placeholder="******">
                 </div>
@@ -169,11 +172,11 @@
                     <div id="admin-controls-area" class="hidden pb-4 border-b border-gray-100 space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight italic underline">เลือกวันที่ลงบันทึก (Admin):</label>
-                                <input type="date" id="admin-record-date" class="w-full p-2.5 bg-red-50/50 border border-red-100 rounded-lg text-sm font-bold text-red-700 outline-none">
+                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight italic underline font-kanit">เลือกวันที่ลงบันทึก (Admin):</label>
+                                <input type="date" id="admin-record-date" class="w-full p-2.5 bg-red-50/50 border border-red-100 rounded-lg text-sm font-bold text-red-700 outline-none font-kanit">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight">เลือกรายชื่อพนักงาน:</label>
+                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight font-kanit">เลือกรายชื่อพนักงาน:</label>
                                 <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50"></div>
                             </div>
                         </div>
@@ -195,7 +198,7 @@
                             </div>
                         </div>
                     </div>
-                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="ระบุหมายเหตุ..."></textarea>
+                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="หมายเหตุ..."></textarea>
                     
                     <div class="grid grid-cols-3 gap-2 pt-2">
                         <button onclick="validateAndSubmit('มา')" class="bg-green-600 text-white p-3 rounded-xl font-bold hover:bg-green-700 transition-all flex flex-col items-center justify-center shadow-md">
@@ -217,10 +220,10 @@
             <!-- Report Section -->
             <div class="space-y-4">
                 <div class="flex items-center justify-between flex-wrap gap-4 no-print">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานประจำวัน</h3>
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานบันทึกเวลางาน</h3>
                     <div class="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-200 text-xs shadow-sm">
-                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold text-gray-700">
-                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold border-l border-gray-100 text-gray-600">
+                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold text-gray-700 font-kanit">
+                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold border-l border-gray-100 text-gray-600 font-kanit">
                             <option value="ทั้งหมด">ทั้งหมด</option>
                             <option value="มา">มา</option>
                             <option value="ลา">ลา</option>
@@ -232,8 +235,8 @@
                 </div>
 
                 <div id="pdf-header" class="hidden text-center">
-                    <h1 class="text-2xl font-bold mb-1">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</h1>
-                    <p class="text-lg text-gray-700" id="pdf-date-text"></p>
+                    <h1 class="text-2xl font-bold mb-1 text-black">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</h1>
+                    <p class="text-lg text-gray-700 font-bold" id="pdf-date-text"></p>
                     <div class="mt-4 border-b-2 border-black w-full"></div>
                 </div>
 
@@ -256,17 +259,17 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto relative">
                     <table id="attendance-table" class="report-table">
-                        <thead class="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100 tracking-tighter">
+                        <thead class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase">
                             <tr>
-                                <th class="w-8 text-center">#</th>
-                                <th class="w-44">ชื่อพนักงาน</th>
-                                <th class="w-20 text-center">สถานะ</th>
-                                <th class="text-center">เข้างาน (จุด/เวลา)</th>
-                                <th class="text-center">เข้าบริษัท (จุด/เวลา)</th>
-                                <th class="w-32">หมายเหตุ</th>
-                                <th id="th-map" class="w-10 text-center no-print">Map</th>
+                                <th class="w-[8%] text-center">#</th>
+                                <th class="w-[22%]">ชื่อพนักงาน</th>
+                                <th class="w-[12%] text-center">สถานะ</th>
+                                <th class="w-[20%] text-center">เข้างาน</th>
+                                <th class="w-[20%] text-center">เข้าบริษัท</th>
+                                <th class="w-[18%]">หมายเหตุ</th>
+                                <th id="th-map" class="w-[10%] text-center no-print">Map</th>
                             </tr>
                         </thead>
                         <tbody id="report-table-body" class="divide-y divide-gray-50 font-kanit"></tbody>
@@ -275,29 +278,27 @@
             </div>
         </div>
 
-        <!-- SECTION: Admin CRUD -->
+        <!-- SECTION: Admin CRUD Panel -->
         <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print">
             <div class="flex items-center justify-between">
                 <button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-xl font-bold text-gray-800">จัดการรายชื่อและพิกัด</h2>
+                <h2 class="text-xl font-bold">จัดการรายชื่อและพิกัด</h2>
                 <div></div>
             </div>
-            
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                <div class="flex justify-between items-center"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> จัดการพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm">+ เพิ่ม</button></div>
+                <div class="flex justify-between items-center font-kanit"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm">+ เพิ่มพนักงาน</button></div>
                 <div class="overflow-x-auto border border-gray-50 rounded-xl">
                     <table class="w-full text-xs text-left">
-                        <thead class="bg-gray-50 font-bold text-gray-500 tracking-tight">
+                        <thead class="bg-gray-50 font-bold text-gray-500 uppercase">
                             <tr><th class="px-4 py-3">ID</th><th class="px-4 py-3">ชื่อเล่น</th><th class="px-4 py-3 text-center">สิทธิ์</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
                         </thead>
                         <tbody id="list-users-crud" class="divide-y text-gray-700"></tbody>
                     </table>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
-                    <h4 class="font-bold flex items-center justify-between font-kanit"><span>จุดบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+                    <h4 class="font-bold flex items-center justify-between font-kanit"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
                     <div id="list-entry-points" class="space-y-2 text-black"></div>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700"><h4 class="font-bold flex items-center justify-between text-orange-700 font-kanit"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
@@ -323,21 +324,11 @@
         };
 
         window.onload = async () => {
-            initLucide();
-            updateTime();
-            setInterval(updateTime, 1000);
+            initLucide(); updateTime(); setInterval(updateTime, 1000);
             document.getElementById('filter-date').valueAsDate = new Date();
-            
-            try {
-                await initFaceModels();
-                await fetchData();
-                startFaceLogin();
-            } catch (err) { console.error(err); } 
+            try { await initFaceModels(); await fetchData(); startFaceLogin(); } catch (err) { console.error(err); } 
             finally { document.getElementById('loading-overlay').style.display = 'none'; }
-
-            initGPS();
-            renderPinDots();
-            checkSession();
+            initGPS(); renderPinDots(); checkSession();
         };
 
         function initLucide() { if (typeof lucide !== 'undefined') lucide.createIcons(); else setTimeout(initLucide, 500); }
@@ -420,13 +411,12 @@
                     state.gpsError = false;
                     const gpsText = document.getElementById('gps-text');
                     const gpsBanner = document.getElementById('gps-banner');
-                    if(gpsText) gpsText.innerText = `พิกัดคงที่: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
+                    if(gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
                     if(gpsBanner) {
                         gpsBanner.classList.replace('bg-yellow-50', 'bg-green-50');
                         gpsBanner.classList.replace('bg-red-50', 'bg-green-50');
                         gpsBanner.classList.replace('text-yellow-700', 'text-green-700');
                         gpsBanner.classList.replace('text-red-700', 'text-green-700');
-                        document.getElementById('gps-icon')?.classList.remove('text-red-500');
                     }
                 }, (err) => {
                     state.gpsError = true;
@@ -439,12 +429,7 @@
                         gpsBanner.classList.replace('text-yellow-700', 'text-red-700');
                         gpsBanner.classList.replace('text-green-700', 'text-red-700');
                     }
-                    if (err.code === 1) { // PERMISSION_DENIED
-                         Swal.fire({ icon: 'error', title: 'GPS ถูกปิดอยู่', text: 'กรุณาเปิด GPS และอนุญาตให้เข้าถึงตำแหน่งในเบราว์เซอร์ของคุณก่อนใช้งาน', confirmButtonText: 'ตกลง' });
-                    }
                 }, { enableHighAccuracy: true });
-            } else {
-                Swal.fire('ไม่รองรับ GPS', 'อุปกรณ์ของคุณไม่รองรับการระบุตำแหน่งผ่านเบราว์เซอร์', 'error');
             }
         }
 
@@ -532,12 +517,10 @@
             return `${d}/${m}/${y}`;
         }
 
-        // --- VALIDATE AND SUBMIT ---
         async function validateAndSubmit(status) {
-            // Check GPS first for non-admins
             if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
                 if (!state.location.lat || !state.location.lng || state.gpsError) {
-                    return Swal.fire({ icon: 'warning', title: 'กรุณาเปิด GPS', text: 'ระบบไม่พบพิกัดตำแหน่งของคุณ กรุณาเปิด GPS และรอให้ระบบยืนยันตำแหน่งก่อนบันทึก' });
+                    return Swal.fire({ icon: 'warning', title: 'กรุณาเปิด GPS', text: 'ไม่พบพิกัดตำแหน่งของคุณ กรุณาเปิด GPS และรอจนกว่าตำแหน่งจะปรากฏก่อนบันทึก' });
                 }
             }
 
@@ -547,10 +530,9 @@
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('เตือน', 'กรุณาเลือกรายชื่อพนักงานที่ต้องการบันทึกแทน', 'warning');
-                
+                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานอย่างน้อย 1 คน', 'warning');
                 const adminDate = document.getElementById('admin-record-date').value;
-                if(!adminDate) return Swal.fire('เตือน', 'กรุณาระบุวันที่บันทึก', 'warning');
+                if(!adminDate) return Swal.fire('แจ้งเตือน', 'กรุณาระบุวันที่บันทึก', 'warning');
                 const now = new Date();
                 recordTimestamp = new Date(adminDate + "T" + now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0') + ":00").toISOString();
             } else {
@@ -563,19 +545,18 @@
             const tCompany = document.getElementById('time-company').value;
             const tWork = document.getElementById('time-work').value;
 
-            if(!tCompany || !tWork) return Swal.fire('ข้อมูลไม่ครบ', 'ต้องระบุเวลาบันทึกทั้งสองจุดก่อน', 'warning');
+            if(!tCompany || !tWork) return Swal.fire('ระบุเวลา', 'ต้องระบุเวลาบันทึกทั้งสองจุด', 'warning');
 
-            // Geofencing Check
             if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
                 const ep = state.entryPoints.find(p => p.name === pCompany);
                 const wp = state.workPoints.find(p => p.name === pWork);
                 if (ep) {
                     const d = getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng);
-                    if (d > ep.range) return Swal.fire('พิกัดบริษัทผิดพลาด', `ห่างจากจุดบริษัท ${Math.round(d)} ม. (จำกัด ${ep.range} ม.)`, 'error');
+                    if (d > ep.range) return Swal.fire('พิกัดบริษัทผิดพลาด', `คุณอยู่นอกระยะ (${Math.round(d)}ม.)`, 'error');
                 }
                 if (wp) {
                     const d = getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng);
-                    if (d > wp.range) return Swal.fire('พิกัดหน้างานผิดพลาด', `ห่างจากจุดเข้างาน ${Math.round(d)} ม. (จำกัด ${wp.range} ม.)`, 'error');
+                    if (d > wp.range) return Swal.fire('พิกัดหน้างานผิดพลาด', `คุณอยู่นอกระยะ (${Math.round(d)}ม.)`, 'error');
                 }
             }
 
@@ -599,10 +580,9 @@
                 document.getElementById('attendance-note').value = "";
                 if(state.isAdmin) document.querySelectorAll('input[name="admin-user-target"]').forEach(cb => cb.checked = false);
                 await fetchData();
-            } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกได้', 'error'); }
+            } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกข้อมูลได้', 'error'); }
         }
 
-        // --- GLOBAL REPORT ---
         function renderGlobalReport() {
             const selDate = document.getElementById('filter-date').value;
             const selStatus = document.getElementById('filter-status').value;
@@ -628,31 +608,32 @@
 
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
-                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-500 hover:scale-110"><i data-lucide="map"></i></button>` : '';
                 const recordedByAdmin = att ? att.recordedByAdmin : false;
                 const hideDetails = (status === "ลา") || (status === "ลาครึ่งวัน" && recordedByAdmin);
 
                 const workCell = hideDetails ? '-' : `
-                    <div class="font-bold text-[10px] text-gray-700 leading-tight">${att ? att.pointWork : '-'}</div>
-                    <div class="text-[11px] text-blue-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeWork) : ''}</div>
+                    <div class="font-bold text-[9px] text-gray-700 leading-none mb-0.5">${att ? att.pointWork : '-'}</div>
+                    <div class="text-[10px] text-blue-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeWork) : ''}</div>
                 `;
                 const companyCell = hideDetails ? '-' : `
-                    <div class="font-bold text-[10px] text-gray-700 leading-tight">${att ? att.pointCompany : '-'}</div>
-                    <div class="text-[11px] text-green-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeCompany) : ''}</div>
+                    <div class="font-bold text-[9px] text-gray-700 leading-none mb-0.5">${att ? att.pointCompany : '-'}</div>
+                    <div class="text-[10px] text-green-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeCompany) : ''}</div>
                 `;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 border-b border-gray-100">
                         <td class="text-center font-mono text-[9px] text-gray-400 font-bold">${index + 1}</td>
-                        <td class="py-2.5">
-                            <div class="font-bold text-gray-800 leading-tight text-[11px] truncate">${u.nickname}</div>
+                        <td class="py-2 px-1">
+                            <div class="font-bold text-gray-800 leading-tight text-[10px] truncate">${u.nickname}</div>
                             <div class="text-[8px] text-gray-400 font-bold font-mono tracking-tighter">(${u.id})</div>
                         </td>
-                        <td class="text-center"><span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${getStatusClass(status)}">${status}</span></td>
+                        <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold ${getStatusClass(status)}">${status}</span></td>
                         <td class="text-center">${workCell}</td>
                         <td class="text-center">${companyCell}</td>
-                        <td class="text-[9px] text-gray-400 italic break-all leading-tight px-2 font-medium">${att ? att.note : '-'}</td>
-                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
+                        <td class="text-[9px] text-gray-400 italic break-all leading-tight px-1 font-medium">${att ? att.note : '-'}</td>
+                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">
+                            ${(att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-500 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : ''}
+                        </td>
                     </tr>`;
             });
             document.getElementById('sum-present').innerText = sums.present;
@@ -677,7 +658,6 @@
 
         function viewMap(lat, lng, name) { window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank'); }
 
-        // --- AUTH & PIN ---
         function renderPinDots() {
             const container = document.getElementById('pin-display'); if (!container) return; container.innerHTML = "";
             for(let i=0; i<6; i++) {
@@ -697,7 +677,6 @@
         function checkSession() { const s = localStorage.getItem('pfl_session'); if (s) { try { const sess = JSON.parse(s); if(sess.expiry > Date.now()) { state.user = sess.user; document.getElementById('display-user-name').innerText = `${state.user.nickname} (${state.user.id})`; switchView('view-main'); } } catch(e) {} } }
         function logout() { stopAllVideo(); state.isAdmin = false; localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); }
 
-        // --- REGISTRATION ---
         async function handleRegisterNext() {
             const uid = document.getElementById('reg-user-list').value; if(!uid) return Swal.fire('เตือน', 'เลือกรายชื่อก่อน', 'warning');
             if(state.registerStep === 1) {
@@ -723,7 +702,7 @@
                         }
                     }, 300);
                 };
-            } catch (err) { Swal.fire('Error', 'เปิดกล้องไม่สำเร็จ', 'error'); }
+            } catch (err) { Swal.fire('Error', 'เปิดกล้องไม่ได้', 'error'); }
         }
         function finishScan() {
             document.getElementById('face-scan-section').classList.add('hidden'); document.getElementById('pin-setup-section').classList.remove('hidden');
@@ -738,17 +717,12 @@
             } catch (e) { Swal.fire('Error', 'ไม่สำเร็จ', 'error'); }
         }
 
-        // --- ADMIN ---
         function enterAdminSettings() {
-            Swal.fire({ title: 'รหัสแอดมิน', input: 'password', showCancelButton: true }).then((res) => {
+            Swal.fire({ title: 'รหัสแอดมิน', input: 'password', showCancelButton: true, confirmButtonText: 'ตกลง' }).then((res) => {
                 if (res.value === 'pflpfcm') { 
-                    state.isAdmin = true; 
-                    document.getElementById('admin-badge').classList.remove('hidden'); 
-                    document.getElementById('admin-controls-area').classList.remove('hidden'); 
-                    document.getElementById('admin-record-date').valueAsDate = new Date();
+                    state.isAdmin = true; document.getElementById('admin-badge').classList.remove('hidden'); document.getElementById('admin-controls-area').classList.remove('hidden'); document.getElementById('admin-record-date').valueAsDate = new Date();
                     switchView('view-admin-crud'); populateSelectors();
-                }
-                else if(res.value) Swal.fire('รหัสผิด', '', 'error');
+                } else if(res.value) Swal.fire('รหัสไม่ถูกต้อง', '', 'error');
             });
         }
         function renderCRUDLists() {
@@ -758,20 +732,20 @@
             state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
             state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
             state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b"><td class="px-4 py-3 font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 p-1 hover:bg-blue-50 rounded transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1 hover:bg-red-50 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
+                ul.innerHTML += `<tr class="border-b"><td class="px-4 py-3 font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
             });
             initLucide();
         }
         function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm">
-                <div><div class="font-bold text-gray-700 font-kanit">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter">Range: ${p.range}m</div></div>
+            return `<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border text-[10px] mb-1">
+                <div><div class="font-bold text-gray-700">${p.name}</div><div class="text-gray-400 font-mono">Range:${p.range}m</div></div>
                 <div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
         }
         async function showPointModal(type, p = null) {
             const isEdit = !!p;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
-                html: `<input id="s-name" class="swal2-input text-sm" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm" placeholder="ระยะอนุญาต(ม.)" value="${p?p.range:'100'}">`,
+                html: `<input id="s-name" class="swal2-input text-sm" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm" placeholder="Range (ม.)" value="${p?p.range:'100'}">`,
                 preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
             });
             if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
@@ -780,8 +754,8 @@
         async function showUserModal(u = null) {
             const isEdit = !!u;
             const { value: v } = await Swal.fire({
-                title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงานใหม่',
-                html: `<input id="s-uid" class="swal2-input text-sm" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm" placeholder="ชื่อเล่น" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
+                title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน',
+                html: `<input id="s-uid" class="swal2-input text-sm" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
                 preConfirm: () => ({ id: document.getElementById('s-uid').value, nickname: document.getElementById('s-unick').value, role: document.getElementById('s-urole').value })
             });
             if(v && v.id) { await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
