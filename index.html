@@ -30,7 +30,7 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        /* Professional Table Styling */
+        /* Professional Table Styling for App View */
         .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         .report-table th, .report-table td { 
             @apply px-1 py-2 text-[9px] md:text-xs overflow-hidden text-ellipsis whitespace-nowrap border-b border-gray-100;
@@ -46,16 +46,17 @@
             
             /* Repeat header on every page */
             thead { display: table-header-group !important; }
+            #pdf-table-header-row { display: table-row !important; }
             
             .report-table { table-layout: auto !important; width: 100% !important; border: 0.5pt solid #000 !important; }
-            .report-table th { background-color: #f3f4f6 !important; border: 0.5pt solid #000 !important; color: #000 !important; font-size: 10pt !important; padding: 6px 2px !important; }
-            .report-table td { border: 0.5pt solid #ccc !important; color: #000 !important; font-size: 9.5pt !important; padding: 5px 2px !important; }
-            
-            /* Force page break every 25 rows */
-            .page-break-row { page-break-after: always !important; }
+            .report-table th { background-color: #f3f4f6 !important; border: 0.5pt solid #000 !important; color: #000 !important; font-size: 10pt !important; padding: 6px 4px !important; }
+            .report-table td { border: 0.5pt solid #ccc !important; color: #000 !important; font-size: 9.5pt !important; padding: 5px 4px !important; white-space: nowrap !important; }
             
             /* High visibility status in print */
-            .status-badge { border: 0.2pt solid #000 !important; background: transparent !important; color: black !important; }
+            .status-badge { border: 0.2pt solid #000 !important; background: transparent !important; color: black !important; padding: 1px 4px !important; }
+            
+            /* Force page break logic */
+            .page-break-row { page-break-after: always !important; }
         }
     </style>
 </head>
@@ -64,7 +65,7 @@
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center space-y-4">
         <div class="loader w-12 h-12 border-4"></div>
-        <p class="text-gray-600 animate-pulse font-medium text-sm text-center">PFL Attendance กำลังเริ่มระบบ...<br><span class="text-[10px] text-gray-400 font-normal">กรุณาอนุญาตการเข้าถึงตำแหน่ง (GPS)</span></p>
+        <p class="text-gray-600 animate-pulse font-medium text-sm text-center font-kanit">PFL Attendance กำลังเริ่มระบบ...<br><span class="text-[10px] text-gray-400 font-normal">กรุณาอนุญาตการเข้าถึงตำแหน่ง (GPS)</span></p>
     </div>
 
     <!-- Header -->
@@ -73,15 +74,15 @@
             <div class="flex items-center space-x-2">
                 <div class="bg-blue-600 p-2 rounded-lg shadow-sm"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
                 <div>
-                    <h1 class="text-lg font-bold text-gray-800 leading-none">PFL Attendance</h1>
-                    <p class="text-[10px] text-gray-400 font-medium tracking-tight">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
+                    <h1 class="text-lg font-bold text-gray-800 leading-none font-kanit">PFL Attendance</h1>
+                    <p class="text-[10px] text-gray-400 font-medium tracking-tight font-kanit">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
                 <button id="btn-admin-config" onclick="enterAdminSettings()" class="p-2 text-gray-400 hover:text-blue-600 transition-colors">
                     <i data-lucide="settings" class="w-5 h-5"></i>
                 </button>
-                <button onclick="logout()" class="text-sm text-red-500 font-medium flex items-center hover:bg-red-50 px-3 py-1 rounded-lg transition-colors">
+                <button onclick="logout()" class="text-sm text-red-500 font-medium flex items-center hover:bg-red-50 px-3 py-1 rounded-lg transition-colors font-kanit">
                     <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> ออกจากระบบ
                 </button>
             </div>
@@ -94,12 +95,12 @@
         <div id="view-login" class="max-w-lg mx-auto space-y-6 text-center py-10 no-print">
             <div class="flex justify-between items-center px-4">
                 <h2 class="text-2xl font-bold text-gray-800 font-kanit">เข้าสู่ระบบ</h2>
-                <button onclick="enterAdminSettings()" class="text-[10px] text-gray-300 hover:text-gray-500 uppercase tracking-widest font-bold">Admin Login</button>
+                <button onclick="enterAdminSettings()" class="text-[10px] text-gray-300 hover:text-gray-500 uppercase tracking-widest font-bold font-kanit">Admin Login</button>
             </div>
             
             <div class="flex justify-center space-x-8 mb-6 border-b border-gray-100 text-gray-400 text-sm">
-                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all font-medium"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
-                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all font-medium"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
+                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all font-medium font-kanit"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
+                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all font-medium font-kanit"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
             </div>
 
             <div id="login-face-section" class="space-y-4">
@@ -107,7 +108,7 @@
                     <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                     <canvas id="login-overlay"></canvas>
                 </div>
-                <p class="text-sm font-medium text-blue-600 animate-pulse" id="face-login-status">กำลังสแกนหาใบหน้าเพื่อเข้าสู่ระบบ...</p>
+                <p class="text-sm font-medium text-blue-600 animate-pulse font-kanit" id="face-login-status">กำลังสแกนหาใบหน้าเพื่อเข้าสู่ระบบ...</p>
             </div>
 
             <div id="login-pin-section" class="hidden space-y-6">
@@ -127,7 +128,7 @@
                     <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="delete"></i></button>
                 </div>
             </div>
-            <p class="mt-8 text-sm text-gray-400">ยังไม่มีข้อมูลใบหน้า? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
+            <p class="mt-8 text-sm text-gray-400 font-kanit">ยังไม่มีข้อมูลใบหน้า? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
         </div>
 
         <!-- SECTION: Register -->
@@ -142,13 +143,13 @@
                     <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium font-kanit"></select>
                 </div>
                 <div id="face-scan-section" class="hidden space-y-4 text-center">
-                    <p class="text-sm font-semibold text-blue-600" id="scan-status">กรุณามองตรงที่กล้อง</p>
+                    <p class="text-sm font-semibold text-blue-600 font-kanit" id="scan-status">กรุณามองตรงที่กล้อง</p>
                     <div id="reg-video-container" class="mx-auto aspect-square rounded-2xl overflow-hidden bg-black ring-4 ring-blue-50">
                         <video id="reg-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                         <canvas id="reg-overlay"></canvas>
                     </div>
                 </div>
-                <div id="pin-setup-section" class="hidden space-y-4 font-kanit">
+                <div id="pin-setup-section" class="hidden space-y-4 font-kanit font-kanit">
                     <p class="text-center font-medium text-sm text-gray-600">ตั้งรหัส PIN 6 หลัก</p>
                     <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
                     <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl mt-2" placeholder="******">
@@ -157,35 +158,33 @@
             </div>
         </div>
 
-        <!-- SECTION: Main Dashboard -->
+        <!-- SECTION: Main Integrated Dashboard -->
         <div id="view-main" class="hidden space-y-8 pb-10">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
-                <!-- Profile Card -->
                 <div class="lg:col-span-1 bg-white p-6 rounded-2xl card-shadow text-center border border-gray-50 space-y-4 relative overflow-hidden">
                     <div id="admin-badge" class="hidden absolute top-3 right-3 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Recording</div>
-                    <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider">ผู้ใช้งานปัจจุบัน</h3>
-                    <div id="display-user-name" class="font-bold text-gray-800 text-xl truncate">-</div>
+                    <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider font-kanit">ผู้ใช้งานปัจจุบัน</h3>
+                    <div id="display-user-name" class="font-bold text-gray-800 text-xl truncate font-kanit">-</div>
                     <div class="py-4 border-y border-gray-50">
                         <div class="text-4xl font-bold text-blue-600 font-mono tracking-tight" id="current-time">00:00:00</div>
-                        <div class="text-gray-500 text-[11px] mt-1 font-medium" id="current-date">-</div>
+                        <div class="text-gray-500 text-[11px] mt-1 font-medium font-kanit" id="current-date">-</div>
                     </div>
-                    <div id="gps-banner" class="flex items-center justify-center p-2.5 bg-yellow-50 text-yellow-700 rounded-xl text-[10px] border border-yellow-100 font-medium transition-all duration-500">
+                    <div id="gps-banner" class="flex items-center justify-center p-2.5 bg-yellow-50 text-yellow-700 rounded-xl text-[10px] border border-yellow-100 font-medium transition-all duration-500 font-kanit">
                         <i id="gps-icon" data-lucide="map-pin" class="w-3 h-3 mr-1"></i>
                         <span id="gps-text">กำลังเช็คตำแหน่ง GPS...</span>
                     </div>
                 </div>
 
-                <!-- Attendance Form -->
                 <div class="lg:col-span-2 bg-white p-6 rounded-2xl card-shadow border border-gray-50 space-y-4">
                     <div id="admin-controls-area" class="hidden pb-4 border-b border-gray-100 space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-kanit">
                             <div class="space-y-1">
                                 <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight italic underline font-kanit">เลือกวันที่ลงบันทึก (Admin):</label>
-                                <input type="date" id="admin-record-date" class="w-full p-2.5 bg-red-50/50 border border-red-100 rounded-lg text-sm font-bold text-red-700 outline-none font-kanit">
+                                <input type="date" id="admin-record-date" class="w-full p-2.5 bg-red-50/50 border border-red-100 rounded-lg text-sm font-bold text-red-700 outline-none">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight font-kanit">เลือกรายชื่อพนักงาน:</label>
+                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight">เลือกรายชื่อพนักงาน:</label>
                                 <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit"></div>
                             </div>
                         </div>
@@ -193,32 +192,32 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
-                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">จุดเข้าบริษัท & เวลา</label>
+                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide font-kanit">จุดเข้าบริษัท & เวลา</label>
                             <div class="flex gap-1">
-                                <select id="point-company" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium"></select>
-                                <input type="time" id="time-company" class="w-26 p-3 bg-white border border-blue-200 rounded-lg text-xs font-bold text-blue-600 outline-none">
+                                <select id="point-company" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium font-kanit"></select>
+                                <input type="time" id="time-company" class="w-26 p-3 bg-white border border-blue-200 rounded-lg text-xs font-bold text-blue-600 outline-none font-kanit">
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">จุดเข้างาน & เวลา</label>
+                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide font-kanit">จุดเข้างาน & เวลา</label>
                             <div class="flex gap-1">
-                                <select id="point-work" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium"></select>
-                                <input type="time" id="time-work" class="w-26 p-3 bg-white border border-orange-200 rounded-lg text-xs font-bold text-orange-600 outline-none">
+                                <select id="point-work" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium font-kanit"></select>
+                                <input type="time" id="time-work" class="w-26 p-3 bg-white border border-orange-200 rounded-lg text-xs font-bold text-orange-600 outline-none font-kanit">
                             </div>
                         </div>
                     </div>
-                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="หมายเหตุ..."></textarea>
+                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 font-kanit" placeholder="หมายเหตุ..."></textarea>
                     
                     <div class="grid grid-cols-3 gap-2 pt-2">
-                        <button onclick="validateAndSubmit('มา')" class="bg-green-600 text-white p-3 rounded-xl font-bold hover:bg-green-700 transition-all flex flex-col items-center justify-center shadow-md">
+                        <button onclick="validateAndSubmit('มา')" class="bg-green-600 text-white p-3 rounded-xl font-bold hover:bg-green-700 transition-all flex flex-col items-center justify-center shadow-md font-kanit">
                             <i data-lucide="check-circle" class="w-5 h-5 mb-0.5"></i>
                             <span class="text-[10px]">มาทำงาน</span>
                         </button>
-                        <button onclick="validateAndSubmit('ลา')" class="bg-red-50 text-red-600 p-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-all flex flex-col items-center justify-center">
+                        <button onclick="validateAndSubmit('ลา')" class="bg-red-50 text-red-600 p-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-all flex flex-col items-center justify-center font-kanit">
                             <i data-lucide="x-circle" class="w-5 h-5 mb-0.5"></i>
                             <span class="text-[10px]">ลาหยุด</span>
                         </button>
-                        <button onclick="validateAndSubmit('ลาครึ่งวัน')" class="bg-orange-50 text-orange-600 p-3 rounded-xl font-bold border border-orange-100 hover:bg-orange-100 transition-all flex flex-col items-center justify-center">
+                        <button onclick="validateAndSubmit('ลาครึ่งวัน')" class="bg-orange-50 text-orange-600 p-3 rounded-xl font-bold border border-orange-100 hover:bg-orange-100 transition-all flex flex-col items-center justify-center font-kanit">
                             <i data-lucide="clock-3" class="w-5 h-5 mb-0.5"></i>
                             <span class="text-[10px]">ลาครึ่งวัน</span>
                         </button>
@@ -239,65 +238,64 @@
                             <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
                             <option value="ยังไม่ลงบันทึก">ยังไม่ลงบันทึก</option>
                         </select>
-                        <button onclick="generatePDF()" class="p-2 text-red-600 hover:bg-red-50 rounded-lg border-l border-gray-100" title="ส่งออกรายงาน PDF"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                        <button onclick="generatePDF()" class="p-2 text-red-600 hover:bg-red-50 rounded-lg border-l border-gray-100 font-kanit" title="ส่งออกรายงาน PDF"><i data-lucide="printer" class="w-4 h-4"></i></button>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
                     <div class="bg-white p-4 rounded-xl border-l-4 border-green-500 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">มาทำงาน</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider font-kanit">มาทำงาน</p>
                         <p id="sum-present" class="text-2xl font-bold text-green-600 font-mono">0</p>
                     </div>
                     <div class="bg-white p-4 rounded-xl border-l-4 border-red-500 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ลาหยุด</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider font-kanit">ลาหยุด</p>
                         <p id="sum-leave" class="text-2xl font-bold text-red-600 font-mono">0</p>
                     </div>
                     <div class="bg-white p-4 rounded-xl border-l-4 border-orange-400 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ลาครึ่งวัน</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider font-kanit">ลาครึ่งวัน</p>
                         <p id="sum-half" class="text-2xl font-bold text-orange-500 font-mono">0</p>
                     </div>
                     <div class="bg-white p-4 rounded-xl border-l-4 border-gray-300 shadow-sm text-center">
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ยังไม่บันทึก</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider font-kanit">ยังไม่บันทึก</p>
                         <p id="sum-missing" class="text-2xl font-bold text-gray-500 font-mono">0</p>
                     </div>
                 </div>
 
-                <!-- Report Table with Persistent Header Logic -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto relative">
                     <table id="attendance-table" class="report-table font-kanit">
                         <thead>
-                            <!-- This Row is for PDF Title on every page -->
+                            <!-- This Row is for PDF Header that repeats on every page -->
                             <tr class="hidden" id="pdf-table-header-row">
                                 <th colspan="7" class="text-center py-4 bg-white border-none">
-                                    <div class="text-xl font-bold text-black font-kanit">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</div>
+                                    <div class="text-xl font-bold text-black font-kanit mb-1">รายงานบันทึกเวลาทำงานฝ่ายกำกับรถพาเหรด</div>
                                     <div class="text-sm font-bold text-gray-700 font-kanit pdf-date-display"></div>
                                 </th>
                             </tr>
                             <tr class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
-                                <th class="w-[30px] text-center">#</th>
-                                <th class="w-[120px] text-left">พนักงาน</th>
-                                <th class="w-[50px] text-center">สถานะ</th>
-                                <th class="w-[120px] text-center">เข้างาน</th>
-                                <th class="w-[120px] text-center">เข้าบริษัท</th>
-                                <th class="w-[100px]">หมายเหตุ</th>
-                                <th id="th-map" class="w-[40px] text-center no-print">Map</th>
+                                <th class="w-[35px] text-center">#</th>
+                                <th class="w-[140px] text-left">พนักงาน</th>
+                                <th class="w-[55px] text-center">สถานะ</th>
+                                <th class="text-center">เข้างาน</th>
+                                <th class="text-center">เข้าบริษัท</th>
+                                <th class="w-[100px] text-left">หมายเหตุ</th>
+                                <th id="th-map" class="w-[45px] text-center no-print">Map</th>
                             </tr>
                         </thead>
-                        <tbody id="report-table-body" class="divide-y divide-gray-50"></tbody>
+                        <tbody id="report-table-body" class="divide-y divide-gray-50 font-kanit"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
         <!-- SECTION: Admin CRUD Panel -->
-        <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print">
+        <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print font-kanit">
             <div class="flex items-center justify-between">
                 <button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-xl font-bold text-gray-800 font-kanit">จัดการรายชื่อและพิกัด</h2>
+                <h2 class="text-xl font-bold text-gray-800">จัดการรายชื่อและพิกัด</h2>
                 <div></div>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                <div class="flex justify-between items-center font-kanit"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm">+ เพิ่มพนักงาน</button></div>
+                <div class="flex justify-between items-center font-kanit"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm font-kanit">+ เพิ่มพนักงาน</button></div>
                 <div class="overflow-x-auto border border-gray-50 rounded-xl">
                     <table class="w-full text-xs text-left">
                         <thead class="bg-gray-50 font-bold text-gray-500 uppercase tracking-tight">
@@ -307,12 +305,12 @@
                     </table>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-kanit font-kanit">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
-                    <h4 class="font-bold flex items-center justify-between"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700 font-kanit font-kanit">
+                    <h4 class="font-bold flex items-center justify-between"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm font-kanit">+ เพิ่ม</button></h4>
                     <div id="list-entry-points" class="space-y-2 text-black font-kanit"></div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700"><h4 class="font-bold flex items-center justify-between text-orange-700"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700 font-kanit font-kanit"><h4 class="font-bold flex items-center justify-between"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm font-kanit">+ เพิ่ม</button></h4>
                     <div id="list-work-points" class="space-y-2 text-black font-kanit"></div>
                 </div>
             </div>
@@ -456,8 +454,8 @@
 
         function switchLoginMode(mode) {
             state.loginMode = mode; stopAllVideo();
-            document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-2 transition-all font-medium' : 'pb-2 flex items-center gap-2 transition-all font-medium';
-            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-2 transition-all font-medium' : 'pb-2 flex items-center gap-2 transition-all font-medium';
+            document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-2 transition-all font-medium font-kanit' : 'pb-2 flex items-center gap-2 transition-all font-medium font-kanit';
+            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-2 transition-all font-medium font-kanit' : 'pb-2 flex items-center gap-2 transition-all font-medium font-kanit';
             document.getElementById('login-face-section').classList.toggle('hidden', mode !== 'face');
             document.getElementById('login-pin-section').classList.toggle('hidden', mode !== 'pin');
             if (mode === 'face') startFaceLogin();
@@ -492,7 +490,7 @@
                                     if (foundUser) {
                                         new faceapi.draw.DrawBox(resizedDetection.detection.box, { label: foundUser.nickname, boxColor: '#10b981' }).draw(canvas);
                                         statusEl.innerText = "พบใบหน้า: " + foundUser.nickname;
-                                        statusEl.className = "text-sm font-bold text-green-600";
+                                        statusEl.className = "text-sm font-bold text-green-600 font-kanit";
                                         clearInterval(interval); setTimeout(() => loginSuccess(foundUser), 800);
                                     }
                                 }
@@ -531,7 +529,7 @@
         async function validateAndSubmit(status) {
             if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
                 if (!state.location.lat || !state.location.lng || state.gpsError) {
-                    return Swal.fire({ icon: 'warning', title: 'กรุณาเปิด GPS', text: 'ไม่พบพิกัดตำแหน่งของคุณ กรุณาเปิด GPS และรอจนกว่าตำแหน่งจะปรากฏก่อนบันทึก' });
+                    return Swal.fire({ icon: 'warning', title: 'กรุณาเปิด GPS', text: 'ไม่พบพิกัดตำแหน่งของคุณ กรุณาเปิด GPS และรอจนกว่าตำแหน่งจะปรากฏก่อนบันทึก', confirmButtonText: 'ตกลง' });
                 }
             }
 
@@ -541,7 +539,7 @@
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานที่ต้องการบันทึกแทน', 'warning');
+                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานอย่างน้อย 1 คน', 'warning');
                 const adminDate = document.getElementById('admin-record-date').value;
                 if(!adminDate) return Swal.fire('แจ้งเตือน', 'กรุณาระบุวันที่บันทึก', 'warning');
                 const now = new Date();
@@ -632,7 +630,7 @@
                     if(wp) wpCoords = `${wp.lat},${wp.lng}`;
                 }
 
-                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}', '${epCoords}', '${wpCoords}')" class="text-blue-500 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
+                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}', '${epCoords}', '${wpCoords}')" class="text-blue-50 p-1 rounded-full"><i data-lucide="map" class="w-3.5 h-3.5 text-blue-600"></i></button>` : '';
                 const recordedByAdmin = att ? att.recordedByAdmin : false;
                 const hideDetails = (status === "ลา") || (status === "ลาครึ่งวัน" && recordedByAdmin);
 
@@ -645,19 +643,19 @@
                     <span class="text-green-600 font-mono font-bold">(${att ? formatTimeHHMM(att.timeCompany) : ''})</span>
                 `;
 
-                // Add pagination class every 25 rows
+                // Add pagination logic: page-break every 25 rows
                 const rowClass = ((index + 1) % 25 === 0) ? "page-break-row" : "";
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 border-b border-gray-100 ${rowClass}">
                         <td class="text-center font-mono text-[9px] text-gray-400 font-bold">${index + 1}</td>
-                        <td class="py-2 px-1">
+                        <td class="py-2.5 px-1">
                             <span class="font-bold text-gray-800 text-[10px] whitespace-nowrap">${u.nickname} (${u.id})</span>
                         </td>
                         <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
                         <td class="text-center whitespace-nowrap">${workCell}</td>
                         <td class="text-center whitespace-nowrap">${companyCell}</td>
-                        <td class="text-[9px] text-gray-400 italic font-medium truncate">${att ? att.note : '-'}</td>
+                        <td class="text-[9px] text-gray-400 px-1 font-medium truncate">${att ? att.note : '-'}</td>
                         <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
@@ -666,12 +664,10 @@
             const leaveEl = document.getElementById('sum-leave');
             const halfEl = document.getElementById('sum-half');
             const missingEl = document.getElementById('sum-missing');
-            
             if(presentEl) presentEl.innerText = sums.present;
             if(leaveEl) leaveEl.innerText = sums.leave;
             if(halfEl) halfEl.innerText = sums.half;
             if(missingEl) missingEl.innerText = sums.missing;
-            
             initLucide();
         }
 
@@ -683,7 +679,6 @@
         }
 
         function generatePDF() {
-            // Show the PDF header row inside the table before printing
             const headerRow = document.getElementById('pdf-table-header-row');
             if(headerRow) headerRow.classList.remove('hidden');
             window.print();
@@ -711,7 +706,7 @@
         async function handlePinLogin() {
             const hashedPin = CryptoJS.SHA256(state.pin).toString();
             const user = state.users.find(u => u.pin === hashedPin);
-            if(user) loginSuccess(user); else { Swal.fire('รหัส PIN ผิด', '', 'error'); clearPin(); }
+            if(user) loginSuccess(user); else { Swal.fire({ icon: 'error', title: 'รหัส PIN ผิด', text: 'กรุณาลองใหม่อีกครั้ง', fontKanit: true }); clearPin(); }
         }
         function loginSuccess(u) { state.user = u; localStorage.setItem('pfl_session', JSON.stringify({ user: u, expiry: Date.now() + 28800000 })); document.getElementById('display-user-name').innerText = `${u.nickname} (${u.id})`; switchView('view-main'); clearPin(); }
         function checkSession() { const s = localStorage.getItem('pfl_session'); if (s) { try { const sess = JSON.parse(s); if(sess.expiry > Date.now()) { state.user = sess.user; document.getElementById('display-user-name').innerText = `${state.user.nickname} (${state.user.id})`; switchView('view-main'); } } catch(e) {} } }
@@ -777,8 +772,8 @@
             initLucide();
         }
         function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm">
-                <div><div class="font-bold text-gray-700 font-kanit font-bold">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter font-bold">Range: ${p.range}m</div></div>
+            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm font-kanit">
+                <div><div class="font-bold text-gray-700 font-bold">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter font-bold">Range: ${p.range}m</div></div>
                 <div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
         }
         async function showPointModal(type, p = null) {
