@@ -30,23 +30,24 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        /* Optimized Table Styling for Single Screen View */
+        /* Professional Table Styling */
         .report-table { width: 100%; table-layout: fixed; }
         .report-table th, .report-table td { 
-            @apply px-1 py-2.5 text-[9px] md:text-xs overflow-hidden text-ellipsis whitespace-nowrap;
+            @apply px-1 py-2 text-[9px] md:text-xs overflow-hidden text-ellipsis whitespace-nowrap;
         }
-        .report-table th { @apply font-bold text-gray-500 uppercase tracking-tighter bg-gray-50; }
+        .report-table th { @apply font-bold text-gray-500 uppercase bg-gray-50 border-b border-gray-100; }
 
         @media print {
-            @page { size: A4; margin: 1cm; }
+            @page { size: A4; margin: 1.2cm; }
             .no-print { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; }
             .card-shadow { box-shadow: none !important; border: none !important; }
-            #pdf-header { display: block !important; margin-bottom: 15px; }
-            .report-table { table-layout: auto !important; width: 100% !important; border: 0.5pt solid #ddd; }
-            .report-table th { background-color: #f3f4f6 !important; border-bottom: 1pt solid #000; color: #000 !important; font-size: 9pt !important; }
-            .report-table td { border-bottom: 0.2pt solid #eee; color: #000 !important; font-size: 9pt !important; }
+            #pdf-header { display: block !important; margin-bottom: 25px; }
+            .report-table { table-layout: auto !important; width: 100% !important; border: 0.5pt solid #ccc; }
+            .report-table th { background-color: #f3f4f6 !important; border-bottom: 1.5pt solid #000; color: #000 !important; font-size: 10pt !important; padding: 8px 4px !important; }
+            .report-table td { border-bottom: 0.5pt solid #eee; color: #000 !important; font-size: 9.5pt !important; padding: 6px 4px !important; }
+            .status-badge { border: 0.5pt solid #ccc !important; background: transparent !important; color: black !important; }
         }
     </style>
 </head>
@@ -129,7 +130,7 @@
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div id="reg-form-content">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">เลือกชื่อพนักงาน</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">เลือกรายชื่อพนักงาน</label>
                     <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium"></select>
                 </div>
                 <div id="face-scan-section" class="hidden space-y-4 text-center">
@@ -177,7 +178,7 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight font-kanit">เลือกรายชื่อพนักงาน:</label>
-                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50"></div>
+                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit"></div>
                             </div>
                         </div>
                     </div>
@@ -198,7 +199,7 @@
                             </div>
                         </div>
                     </div>
-                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="หมายเหตุ..."></textarea>
+                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="ระบุหมายเหตุ..."></textarea>
                     
                     <div class="grid grid-cols-3 gap-2 pt-2">
                         <button onclick="validateAndSubmit('มา')" class="bg-green-600 text-white p-3 rounded-xl font-bold hover:bg-green-700 transition-all flex flex-col items-center justify-center shadow-md">
@@ -220,11 +221,11 @@
             <!-- Report Section -->
             <div class="space-y-4">
                 <div class="flex items-center justify-between flex-wrap gap-4 no-print">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานบันทึกเวลางาน</h3>
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2 font-kanit"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานบันทึกเวลางาน</h3>
                     <div class="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-200 text-xs shadow-sm">
                         <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold text-gray-700 font-kanit">
                         <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold border-l border-gray-100 text-gray-600 font-kanit">
-                            <option value="ทั้งหมด">ทั้งหมด</option>
+                            <option value="ทั้งหมด">สถานะ: ทั้งหมด</option>
                             <option value="มา">มา</option>
                             <option value="ลา">ลา</option>
                             <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
@@ -235,8 +236,8 @@
                 </div>
 
                 <div id="pdf-header" class="hidden text-center">
-                    <h1 class="text-2xl font-bold mb-1 text-black">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</h1>
-                    <p class="text-lg text-gray-700 font-bold" id="pdf-date-text"></p>
+                    <h1 class="text-2xl font-bold mb-1 text-black font-kanit">บันทึกลงเวลาทำงาน ฝ่ายกำกับรถพาเหรด</h1>
+                    <p class="text-lg text-gray-700 font-bold font-kanit" id="pdf-date-text"></p>
                     <div class="mt-4 border-b-2 border-black w-full"></div>
                 </div>
 
@@ -261,15 +262,15 @@
 
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto relative">
                     <table id="attendance-table" class="report-table">
-                        <thead class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase">
+                        <thead class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
                             <tr>
-                                <th class="w-[8%] text-center">#</th>
-                                <th class="w-[22%]">ชื่อพนักงาน</th>
-                                <th class="w-[12%] text-center">สถานะ</th>
-                                <th class="w-[20%] text-center">เข้างาน</th>
-                                <th class="w-[20%] text-center">เข้าบริษัท</th>
-                                <th class="w-[18%]">หมายเหตุ</th>
-                                <th id="th-map" class="w-[10%] text-center no-print">Map</th>
+                                <th class="w-[30px] text-center">#</th>
+                                <th class="w-[120px]">พนักงาน</th>
+                                <th class="w-[50px] text-center">สถานะ</th>
+                                <th class="w-[110px] text-center">เข้างาน</th>
+                                <th class="w-[110px] text-center">เข้าบริษัท</th>
+                                <th class="w-[100px]">หมายเหตุ</th>
+                                <th id="th-map" class="w-[40px] text-center no-print">Map</th>
                             </tr>
                         </thead>
                         <tbody id="report-table-body" class="divide-y divide-gray-50 font-kanit"></tbody>
@@ -289,25 +290,25 @@
                 <div class="flex justify-between items-center font-kanit"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm">+ เพิ่มพนักงาน</button></div>
                 <div class="overflow-x-auto border border-gray-50 rounded-xl">
                     <table class="w-full text-xs text-left">
-                        <thead class="bg-gray-50 font-bold text-gray-500 uppercase">
+                        <thead class="bg-gray-50 font-bold text-gray-500 uppercase tracking-tight">
                             <tr><th class="px-4 py-3 text-center">ID</th><th class="px-4 py-3">ชื่อเล่น</th><th class="px-4 py-3 text-center">สิทธิ์</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
                         </thead>
                         <tbody id="list-users-crud" class="divide-y text-gray-700"></tbody>
                     </table>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-kanit">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
-                    <h4 class="font-bold flex items-center justify-between font-kanit"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
-                    <div id="list-entry-points" class="space-y-2 text-black font-kanit"></div>
+                    <h4 class="font-bold flex items-center justify-between"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+                    <div id="list-entry-points" class="space-y-2 text-black"></div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700"><h4 class="font-bold flex items-center justify-between text-orange-700 font-kanit"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
-                    <div id="list-work-points" class="space-y-2 text-black font-kanit"></div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700"><h4 class="font-bold flex items-center justify-between text-orange-700"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+                    <div id="list-work-points" class="space-y-2 text-black"></div>
                 </div>
             </div>
         </div>
 
-    </main>
+    </script>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
@@ -411,7 +412,7 @@
                     state.gpsError = false;
                     const gpsText = document.getElementById('gps-text');
                     const gpsBanner = document.getElementById('gps-banner');
-                    if(gpsText) gpsText.innerText = `พิกัดคงที่: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
+                    if(gpsText) gpsText.innerText = `พิกัด: ${state.location.lat.toFixed(4)}, ${state.location.lng.toFixed(4)}`;
                     if(gpsBanner) {
                         gpsBanner.classList.replace('bg-yellow-50', 'bg-green-50');
                         gpsBanner.classList.replace('bg-red-50', 'bg-green-50');
@@ -422,7 +423,7 @@
                     state.gpsError = true;
                     const gpsText = document.getElementById('gps-text');
                     const gpsBanner = document.getElementById('gps-banner');
-                    if(gpsText) gpsText.innerText = "กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง";
+                    if(gpsText) gpsText.innerText = "กรุณาเปิด GPS";
                     if(gpsBanner) {
                         gpsBanner.classList.replace('bg-yellow-50', 'bg-red-50');
                         gpsBanner.classList.replace('bg-green-50', 'bg-red-50');
@@ -530,7 +531,7 @@
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานที่ต้องการบันทึกแทน', 'warning');
+                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานอย่างน้อย 1 คน', 'warning');
                 const adminDate = document.getElementById('admin-record-date').value;
                 if(!adminDate) return Swal.fire('แจ้งเตือน', 'กรุณาระบุวันที่บันทึก', 'warning');
                 const now = new Date();
@@ -552,15 +553,15 @@
                 const wp = state.workPoints.find(p => p.name === pWork);
                 if (ep) {
                     const d = getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng);
-                    if (d > ep.range) return Swal.fire('พิกัดบริษัทผิดพลาด', `ห่างจากจุดบริษัท ${Math.round(d)} ม. (จำกัด ${ep.range} ม.)`, 'error');
+                    if (d > ep.range) return Swal.fire('พิกัดบริษัทผิดพลาด', `ห่าง ${Math.round(d)} ม.`, 'error');
                 }
                 if (wp) {
                     const d = getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng);
-                    if (d > wp.range) return Swal.fire('พิกัดหน้างานผิดพลาด', `ห่างจากจุดเข้างาน ${Math.round(d)} ม. (จำกัด ${wp.range} ม.)`, 'error');
+                    if (d > wp.range) return Swal.fire('พิกัดหน้างานผิดพลาด', `ห่าง ${Math.round(d)} ม.`, 'error');
                 }
             }
 
-            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
                 for (const tid of targetIds) {
@@ -580,7 +581,7 @@
                 document.getElementById('attendance-note').value = "";
                 if(state.isAdmin) document.querySelectorAll('input[name="admin-user-target"]').forEach(cb => cb.checked = false);
                 await fetchData();
-            } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกข้อมูลได้', 'error'); }
+            } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกได้', 'error'); }
         }
 
         function renderGlobalReport() {
@@ -608,7 +609,6 @@
 
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
-                // Marker Logic for Admin
                 let epCoords = ''; let wpCoords = '';
                 if(att) {
                     const ep = state.entryPoints.find(p => p.name === att.pointCompany);
@@ -622,25 +622,24 @@
                 const hideDetails = (status === "ลา") || (status === "ลาครึ่งวัน" && recordedByAdmin);
 
                 const workCell = hideDetails ? '-' : `
-                    <div class="font-bold text-[9px] text-gray-700 leading-none mb-0.5">${att ? att.pointWork : '-'}</div>
-                    <div class="text-[10px] text-blue-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeWork) : ''}</div>
+                    <span class="font-bold text-gray-700">${att ? att.pointWork : '-'}</span>
+                    <span class="text-blue-600 font-mono font-bold">(${att ? formatTimeHHMM(att.timeWork) : ''})</span>
                 `;
                 const companyCell = hideDetails ? '-' : `
-                    <div class="font-bold text-[9px] text-gray-700 leading-none mb-0.5">${att ? att.pointCompany : '-'}</div>
-                    <div class="text-[10px] text-green-600 font-mono font-bold">${att ? formatTimeHHMM(att.timeCompany) : ''}</div>
+                    <span class="font-bold text-gray-700">${att ? att.pointCompany : '-'}</span>
+                    <span class="text-green-600 font-mono font-bold">(${att ? formatTimeHHMM(att.timeCompany) : ''})</span>
                 `;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 border-b border-gray-100">
                         <td class="text-center font-mono text-[9px] text-gray-400 font-bold">${index + 1}</td>
-                        <td class="py-2 px-1 overflow-hidden">
-                            <div class="font-bold text-gray-800 leading-tight text-[10px] truncate">${u.nickname}</div>
-                            <div class="text-[8px] text-gray-400 font-bold font-mono tracking-tighter truncate">(${u.id})</div>
+                        <td class="py-2 px-1">
+                            <span class="font-bold text-gray-800 text-[10px]">${u.nickname} (${u.id})</span>
                         </td>
-                        <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold ${getStatusClass(status)}">${status}</span></td>
+                        <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
                         <td class="text-center">${workCell}</td>
                         <td class="text-center">${companyCell}</td>
-                        <td class="text-[9px] text-gray-400 italic leading-tight px-1 font-medium truncate">${att ? att.note : '-'}</td>
+                        <td class="text-[9px] text-gray-400 italic font-medium truncate">${att ? att.note : '-'}</td>
                         <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
@@ -665,13 +664,10 @@
         }
 
         function viewMap(userLat, userLng, name, epCoords, wpCoords) {
-            // Constructing a Google Maps URL for multiple points using Directions API
-            // origin = User location, waypoints = Company, destination = Work
             let url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}`;
             if (epCoords) url += `&waypoints=${epCoords}`;
             if (wpCoords) url += `&destination=${wpCoords}`;
-            else if (epCoords) url += `&destination=${epCoords}`; // Fallback if destination is not defined but waypoint is
-            
+            else if (epCoords) url += `&destination=${epCoords}`;
             window.open(url, '_blank');
         }
 
