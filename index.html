@@ -30,20 +30,20 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        /* Ultra-Compact Table Styling for Fit-to-Screen */
+        /* Ultra-Compact Table Styling */
         .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         .report-table th, .report-table td { 
             @apply border-b border-gray-100 overflow-hidden text-ellipsis whitespace-nowrap;
             padding: 8px 2px;
-            font-size: 8px; /* Consistent small font for mobile fit */
+            font-size: 7.5px; /* Fixed small size for mobile viewing */
         }
         @media (min-width: 768px) {
-            .report-table th, .report-table td { font-size: 11px; padding: 10px 4px; }
+            .report-table th, .report-table td { font-size: 10.5px; padding: 10px 4px; }
         }
         .report-table th { @apply font-bold text-gray-500 uppercase bg-gray-50 tracking-tighter; }
 
         @media print {
-            @page { size: A4; margin: 1cm; }
+            @page { size: A4; margin: 0.8cm; }
             .no-print { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; }
@@ -70,7 +70,7 @@
     <header id="main-header" class="hidden bg-white shadow-sm p-3 sticky top-0 z-50 no-print">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <div class="bg-blue-600 p-1.5 rounded-lg shadow-sm"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
+                <div class="bg-blue-600 p-1.5 rounded-lg shadow-sm"><i data-lucide="truck" class="text-white w-4 h-4"></i></div>
                 <div>
                     <h1 class="text-lg font-bold text-gray-800 leading-none font-kanit">PFL Attendance</h1>
                     <p class="text-[9px] text-gray-400 font-medium tracking-tight font-kanit">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
@@ -80,7 +80,7 @@
                 <button id="btn-admin-config" onclick="enterAdminSettings()" class="p-2 text-gray-400 hover:text-blue-600 transition-colors">
                     <i data-lucide="settings" class="w-4 h-4"></i>
                 </button>
-                <button onclick="logout()" class="text-xs text-red-500 font-medium flex items-center hover:bg-red-50 px-2 py-1 rounded-lg transition-colors font-kanit">
+                <button onclick="logout()" class="text-sm text-red-500 font-medium flex items-center hover:bg-red-50 px-2 py-1 rounded-lg transition-colors font-kanit">
                     <i data-lucide="log-out" class="w-3 h-3 mr-1"></i> ออก
                 </button>
             </div>
@@ -160,7 +160,6 @@
         <div id="view-main" class="hidden space-y-8 pb-10">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
-                <!-- Profile Card -->
                 <div class="lg:col-span-1 bg-white p-5 rounded-2xl card-shadow text-center border border-gray-50 space-y-4 relative overflow-hidden">
                     <div id="admin-badge" class="hidden absolute top-2 right-2 bg-red-100 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Recording</div>
                     <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider font-kanit">ผู้ใช้งานปัจจุบัน</h3>
@@ -175,7 +174,6 @@
                     </div>
                 </div>
 
-                <!-- Attendance Form -->
                 <div class="lg:col-span-2 bg-white p-6 rounded-2xl card-shadow border border-gray-50 space-y-4">
                     <div id="admin-controls-area" class="hidden pb-4 border-b border-gray-100 space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-kanit">
@@ -184,7 +182,7 @@
                                 <input type="date" id="admin-record-date" class="w-full p-2.5 bg-red-50/50 border border-red-100 rounded-lg text-sm font-bold text-red-700 outline-none">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight font-kanit">เลือกรายชื่อพนักงาน:</label>
+                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight">เลือกรายชื่อพนักงาน:</label>
                                 <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit text-[10px]"></div>
                             </div>
                         </div>
@@ -242,6 +240,7 @@
                     </div>
                 </div>
 
+                <!-- Stats Summary -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
                     <div class="bg-white p-4 rounded-xl border-l-4 border-green-500 shadow-sm text-center">
                         <p id="sum-present" class="text-2xl font-bold text-green-600 font-mono">0</p>
@@ -261,6 +260,7 @@
                     </div>
                 </div>
 
+                <!-- Report Table with Updated Fixed Layout and Widths -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
                     <table id="attendance-table" class="report-table font-kanit">
                         <thead>
@@ -271,13 +271,13 @@
                                 </th>
                             </tr>
                             <tr class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
-                                <th class="w-[7%] text-center">#</th>
-                                <th class="w-[28%] text-left">พนักงาน</th>
+                                <th class="w-[6%] text-center">#</th>
+                                <th class="w-[20%] text-left">พนักงาน</th>
                                 <th class="w-[12%] text-center">สถานะ</th>
-                                <th class="w-[18%] text-center">เข้างาน</th>
-                                <th class="w-[18%] text-center">เข้าบริษัท</th>
+                                <th class="w-[23%] text-center">เข้างาน</th>
+                                <th class="w-[23%] text-center">เข้าบริษัท</th>
                                 <th class="w-[10%] text-left">หมายเหตุ</th>
-                                <th id="th-map" class="w-[7%] text-center no-print">Map</th>
+                                <th id="th-map" class="w-[6%] text-center no-print">Map</th>
                             </tr>
                         </thead>
                         <tbody id="report-table-body" class="divide-y divide-gray-50"></tbody>
@@ -332,7 +332,10 @@
             initLucide(); updateTime(); setInterval(updateTime, 1000);
             document.getElementById('filter-date').valueAsDate = new Date();
             try { await initFaceModels(); await fetchData(); startFaceLogin(); } catch (err) { console.error(err); } 
-            finally { document.getElementById('loading-overlay').style.display = 'none'; }
+            finally { 
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if(loadingOverlay) loadingOverlay.style.display = 'none'; 
+            }
             initGPS(); renderPinDots(); checkSession();
         };
 
@@ -386,7 +389,7 @@
                 adminCheckList.innerHTML = '';
                 state.users.forEach(u => {
                     adminCheckList.innerHTML += `
-                        <label class="flex items-center gap-1 p-1 hover:bg-red-100 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
+                        <label class="flex items-center gap-1.5 p-1 hover:bg-red-50 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
                             <input type="checkbox" name="admin-user-target" value="${u.id}" class="w-3 h-3 rounded text-red-600">
                             <span class="truncate">${u.nickname} (${u.id})</span>
                         </label>`;
@@ -465,8 +468,10 @@
                                     const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
                                     if (foundUser) {
                                         new faceapi.draw.DrawBox(resizedDetection.detection.box, { label: foundUser.nickname, boxColor: '#10b981' }).draw(canvas);
-                                        statusEl.innerText = "พบใบหน้า: " + foundUser.nickname;
-                                        statusEl.className = "text-xs font-bold text-green-600 font-kanit";
+                                        if(statusEl) {
+                                            statusEl.innerText = "พบใบหน้า: " + foundUser.nickname;
+                                            statusEl.className = "text-sm font-bold text-green-600 font-kanit";
+                                        }
                                         clearInterval(interval); setTimeout(() => loginSuccess(foundUser), 800);
                                     }
                                 }
@@ -513,7 +518,7 @@
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกพนักงานที่ต้องการบันทึกแทน', 'warning');
+                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานอย่างน้อย 1 คน', 'warning');
                 const adminDate = document.getElementById('admin-record-date').value;
                 if(!adminDate) return Swal.fire('แจ้งเตือน', 'กรุณาระบุวันที่บันทึก', 'warning');
                 const now = new Date();
@@ -605,10 +610,10 @@
                     <tr class="hover:bg-gray-50 border-b border-gray-100 ${rowClass}">
                         <td class="text-center font-mono font-bold text-gray-400">${index + 1}</td>
                         <td class="py-2.5 px-0.5"><span class="${infoClass} whitespace-nowrap text-gray-800">${u.nickname} (${u.id})</span></td>
-                        <td class="text-center"><span class="px-1 py-0.5 rounded-full text-[7.5px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
+                        <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[7.5px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
                         <td class="text-center whitespace-nowrap">${workCell}</td>
                         <td class="text-center whitespace-nowrap">${companyCell}</td>
-                        <td class="px-1 font-medium truncate text-[8px] md:text-[10px]">${att ? att.note : '-'}</td>
+                        <td class="px-1 font-medium truncate">${att ? att.note : '-'}</td>
                         <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
@@ -708,7 +713,7 @@
             state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
             state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
             state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-2 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-2 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-50 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
+                ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-2 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-2 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-50 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-50 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
             });
             initLucide();
         }
@@ -738,8 +743,10 @@
 
         function updateTime() {
             const now = new Date();
-            if(document.getElementById('current-time')) document.getElementById('current-time').innerText = now.toLocaleTimeString('th-TH', { hour12: false });
-            if(document.getElementById('current-date')) document.getElementById('current-date').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const currentTimeEl = document.getElementById('current-time');
+            const currentDateEl = document.getElementById('current-date');
+            if(currentTimeEl) currentTimeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+            if(currentDateEl) currentDateEl.innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             const hhmm = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
             const tc = document.getElementById('time-company'); if(tc && !tc.value) tc.value = hhmm;
             const tw = document.getElementById('time-work'); if(tw && !tw.value) tw.value = hhmm;
