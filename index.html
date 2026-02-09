@@ -129,7 +129,7 @@
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div id="reg-form-content">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">เลือกรายชื่อพนักงาน</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">เลือกชื่อพนักงาน</label>
                     <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium"></select>
                 </div>
                 <div id="face-scan-section" class="hidden space-y-4 text-center">
@@ -282,7 +282,7 @@
         <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print">
             <div class="flex items-center justify-between">
                 <button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-xl font-bold">จัดการรายชื่อและพิกัด</h2>
+                <h2 class="text-xl font-bold text-gray-800 font-kanit">จัดการรายชื่อและพิกัด</h2>
                 <div></div>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
@@ -290,7 +290,7 @@
                 <div class="overflow-x-auto border border-gray-50 rounded-xl">
                     <table class="w-full text-xs text-left">
                         <thead class="bg-gray-50 font-bold text-gray-500 uppercase">
-                            <tr><th class="px-4 py-3">ID</th><th class="px-4 py-3">ชื่อเล่น</th><th class="px-4 py-3 text-center">สิทธิ์</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
+                            <tr><th class="px-4 py-3 text-center">ID</th><th class="px-4 py-3">ชื่อเล่น</th><th class="px-4 py-3 text-center">สิทธิ์</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
                         </thead>
                         <tbody id="list-users-crud" class="divide-y text-gray-700"></tbody>
                     </table>
@@ -299,10 +299,10 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
                     <h4 class="font-bold flex items-center justify-between font-kanit"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
-                    <div id="list-entry-points" class="space-y-2 text-black"></div>
+                    <div id="list-entry-points" class="space-y-2 text-black font-kanit"></div>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700"><h4 class="font-bold flex items-center justify-between text-orange-700 font-kanit"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
-                    <div id="list-work-points" class="space-y-2 text-black"></div>
+                    <div id="list-work-points" class="space-y-2 text-black font-kanit"></div>
                 </div>
             </div>
         </div>
@@ -411,7 +411,7 @@
                     state.gpsError = false;
                     const gpsText = document.getElementById('gps-text');
                     const gpsBanner = document.getElementById('gps-banner');
-                    if(gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
+                    if(gpsText) gpsText.innerText = `พิกัดคงที่: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`;
                     if(gpsBanner) {
                         gpsBanner.classList.replace('bg-yellow-50', 'bg-green-50');
                         gpsBanner.classList.replace('bg-red-50', 'bg-green-50');
@@ -445,8 +445,8 @@
 
         function switchLoginMode(mode) {
             state.loginMode = mode; stopAllVideo();
-            document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
-            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-2' : 'pb-2 flex items-center gap-2';
+            document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-2 transition-all font-medium' : 'pb-2 flex items-center gap-2 transition-all font-medium';
+            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-2 transition-all font-medium' : 'pb-2 flex items-center gap-2 transition-all font-medium';
             document.getElementById('login-face-section').classList.toggle('hidden', mode !== 'face');
             document.getElementById('login-pin-section').classList.toggle('hidden', mode !== 'pin');
             if (mode === 'face') startFaceLogin();
@@ -530,7 +530,7 @@
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานอย่างน้อย 1 คน', 'warning');
+                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายชื่อพนักงานที่ต้องการบันทึกแทน', 'warning');
                 const adminDate = document.getElementById('admin-record-date').value;
                 if(!adminDate) return Swal.fire('แจ้งเตือน', 'กรุณาระบุวันที่บันทึก', 'warning');
                 const now = new Date();
@@ -545,18 +545,18 @@
             const tCompany = document.getElementById('time-company').value;
             const tWork = document.getElementById('time-work').value;
 
-            if(!tCompany || !tWork) return Swal.fire('ระบุเวลา', 'ต้องระบุเวลาบันทึกทั้งสองจุด', 'warning');
+            if(!tCompany || !tWork) return Swal.fire('ระบุเวลา', 'ต้องระบุเวลาบันทึกทั้งสองจุดก่อน', 'warning');
 
             if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
                 const ep = state.entryPoints.find(p => p.name === pCompany);
                 const wp = state.workPoints.find(p => p.name === pWork);
                 if (ep) {
                     const d = getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng);
-                    if (d > ep.range) return Swal.fire('พิกัดบริษัทผิดพลาด', `คุณอยู่นอกระยะ (${Math.round(d)}ม.)`, 'error');
+                    if (d > ep.range) return Swal.fire('พิกัดบริษัทผิดพลาด', `ห่างจากจุดบริษัท ${Math.round(d)} ม. (จำกัด ${ep.range} ม.)`, 'error');
                 }
                 if (wp) {
                     const d = getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng);
-                    if (d > wp.range) return Swal.fire('พิกัดหน้างานผิดพลาด', `คุณอยู่นอกระยะ (${Math.round(d)}ม.)`, 'error');
+                    if (d > wp.range) return Swal.fire('พิกัดหน้างานผิดพลาด', `ห่างจากจุดเข้างาน ${Math.round(d)} ม. (จำกัด ${wp.range} ม.)`, 'error');
                 }
             }
 
@@ -608,6 +608,16 @@
 
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
+                // Marker Logic for Admin
+                let epCoords = ''; let wpCoords = '';
+                if(att) {
+                    const ep = state.entryPoints.find(p => p.name === att.pointCompany);
+                    const wp = state.workPoints.find(p => p.name === att.pointWork);
+                    if(ep) epCoords = `${ep.lat},${ep.lng}`;
+                    if(wp) wpCoords = `${wp.lat},${wp.lng}`;
+                }
+
+                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}', '${epCoords}', '${wpCoords}')" class="text-blue-500 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
                 const recordedByAdmin = att ? att.recordedByAdmin : false;
                 const hideDetails = (status === "ลา") || (status === "ลาครึ่งวัน" && recordedByAdmin);
 
@@ -623,17 +633,15 @@
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 border-b border-gray-100">
                         <td class="text-center font-mono text-[9px] text-gray-400 font-bold">${index + 1}</td>
-                        <td class="py-2 px-1">
+                        <td class="py-2 px-1 overflow-hidden">
                             <div class="font-bold text-gray-800 leading-tight text-[10px] truncate">${u.nickname}</div>
-                            <div class="text-[8px] text-gray-400 font-bold font-mono tracking-tighter">(${u.id})</div>
+                            <div class="text-[8px] text-gray-400 font-bold font-mono tracking-tighter truncate">(${u.id})</div>
                         </td>
                         <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold ${getStatusClass(status)}">${status}</span></td>
                         <td class="text-center">${workCell}</td>
                         <td class="text-center">${companyCell}</td>
-                        <td class="text-[9px] text-gray-400 italic break-all leading-tight px-1 font-medium">${att ? att.note : '-'}</td>
-                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">
-                            ${(att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-500 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : ''}
-                        </td>
+                        <td class="text-[9px] text-gray-400 italic leading-tight px-1 font-medium truncate">${att ? att.note : '-'}</td>
+                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
             document.getElementById('sum-present').innerText = sums.present;
@@ -652,11 +660,20 @@
 
         function generatePDF() {
             const dateVal = document.getElementById('filter-date').value;
-            document.getElementById('pdf-date-text').innerText = "ประจำวันที่: " + formatDateDDMMYYYY(dateVal);
+            document.getElementById('pdf-date-text').innerText = "ข้อมูลประจำวันที่: " + formatDateDDMMYYYY(dateVal);
             window.print();
         }
 
-        function viewMap(lat, lng, name) { window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank'); }
+        function viewMap(userLat, userLng, name, epCoords, wpCoords) {
+            // Constructing a Google Maps URL for multiple points using Directions API
+            // origin = User location, waypoints = Company, destination = Work
+            let url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}`;
+            if (epCoords) url += `&waypoints=${epCoords}`;
+            if (wpCoords) url += `&destination=${wpCoords}`;
+            else if (epCoords) url += `&destination=${epCoords}`; // Fallback if destination is not defined but waypoint is
+            
+            window.open(url, '_blank');
+        }
 
         function renderPinDots() {
             const container = document.getElementById('pin-display'); if (!container) return; container.innerHTML = "";
@@ -732,20 +749,20 @@
             state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
             state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
             state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b"><td class="px-4 py-3 font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
+                ul.innerHTML += `<tr class="border-b"><td class="px-2 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-2 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
             });
             initLucide();
         }
         function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border text-[10px] mb-1">
-                <div><div class="font-bold text-gray-700">${p.name}</div><div class="text-gray-400 font-mono">Range:${p.range}m</div></div>
+            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm">
+                <div><div class="font-bold text-gray-700 font-kanit font-bold">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter font-bold">Range: ${p.range}m</div></div>
                 <div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
         }
         async function showPointModal(type, p = null) {
             const isEdit = !!p;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
-                html: `<input id="s-name" class="swal2-input text-sm" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm" placeholder="Range (ม.)" value="${p?p.range:'100'}">`,
+                html: `<input id="s-name" class="swal2-input text-sm" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm" placeholder="ระยะอนุญาต(ม.)" value="${p?p.range:'100'}">`,
                 preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
             });
             if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
@@ -755,7 +772,7 @@
             const isEdit = !!u;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน',
-                html: `<input id="s-uid" class="swal2-input text-sm" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
+                html: `<input id="s-uid" class="swal2-input text-sm" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm font-kanit"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
                 preConfirm: () => ({ id: document.getElementById('s-uid').value, nickname: document.getElementById('s-unick').value, role: document.getElementById('s-urole').value })
             });
             if(v && v.id) { await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
