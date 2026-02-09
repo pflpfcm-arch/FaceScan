@@ -30,13 +30,13 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        /* Updated Table Styling - Allowing Text Wrap */
+        /* Table Styling - Consistent with wrap logic */
         .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         .report-table th, .report-table td { 
             @apply border-b border-gray-100 whitespace-normal break-words;
             padding: 8px 3px;
             font-size: 8px;
-            vertical-align: top; /* Align text to top when wrapped */
+            vertical-align: top;
         }
         @media (min-width: 768px) {
             .report-table th, .report-table td { font-size: 10.5px; padding: 10px 5px; }
@@ -185,7 +185,7 @@
                                 <input type="date" id="admin-record-date" class="w-full p-2.5 bg-red-50/50 border border-red-100 rounded-lg text-sm font-bold text-red-700 outline-none">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight font-kanit">เลือกรายชื่อพนักงาน:</label>
+                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight">เลือกรายชื่อพนักงาน:</label>
                                 <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit text-[10px]"></div>
                             </div>
                         </div>
@@ -290,7 +290,9 @@
 
         <!-- SECTION: Admin CRUD Panel -->
         <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print font-kanit">
-            <div class="flex items-center justify-between"><button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button><h2 class="text-xl font-bold text-gray-800">จัดการระบบ</h2><div></div></div>
+            <div class="flex items-center justify-between"><button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
+                <h2 class="text-xl font-bold text-gray-800">จัดการระบบ</h2><div></div>
+            </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div class="flex justify-between items-center font-kanit"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm font-kanit">+ เพิ่มพนักงาน</button></div>
                 <div class="overflow-x-auto border border-gray-50 rounded-xl">
@@ -314,6 +316,10 @@
         </div>
 
     </main>
+
+    <footer class="bg-white border-t p-4 text-center text-gray-400 text-[8px] uppercase tracking-widest no-print">
+        <p>COPY RIGHT 2026 @ ฝ่ายกำกับรถพาเหรด</p>
+    </footer>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
@@ -387,7 +393,7 @@
                 adminCheckList.innerHTML = '';
                 state.users.forEach(u => {
                     adminCheckList.innerHTML += `
-                        <label class="flex items-center gap-1.5 p-1 hover:bg-red-50 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
+                        <label class="flex items-center gap-1 p-1 hover:bg-red-50 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
                             <input type="checkbox" name="admin-user-target" value="${u.id}" class="w-3 h-3 rounded text-red-600">
                             <span class="truncate">${u.nickname} (${u.id})</span>
                         </label>`;
@@ -595,7 +601,6 @@
                     if(ep) epCoords = `${ep.lat},${ep.lng}`; if(wp) wpCoords = `${wp.lat},${wp.lng}`;
                 }
                 const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}', '${epCoords}', '${wpCoords}')" class="text-blue-600 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
-                const recordedByAdmin = att ? att.recordedByAdmin : false;
                 const hideDetails = (status === "ลา") || (status === "ลาครึ่งวัน" && att?.recordedByAdmin);
 
                 const infoClass = "font-bold text-gray-700";
@@ -608,7 +613,7 @@
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 border-b border-gray-100 ${rowClass}">
                         <td class="text-center font-mono font-bold text-gray-400">${index + 1}</td>
-                        <td class="py-2 px-0.5"><span class="${infoClass} text-gray-800">${u.nickname} (${u.id})</span></td>
+                        <td class="py-2.5 px-0.5"><span class="${infoClass} text-gray-800">${u.nickname} (${u.id})</span></td>
                         <td class="text-center"><span class="px-1.5 py-0.5 rounded-full text-[7.5px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
                         <td class="text-center">${workCell}</td>
                         <td class="text-center">${companyCell}</td>
@@ -710,18 +715,27 @@
             if(!el || !wl || !ul) return;
             el.innerHTML = ''; wl.innerHTML = ''; ul.innerHTML = '';
             state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-4 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-50 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-50 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
+                ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-4 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-50 p-1 hover:bg-blue-50 rounded"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-50 p-1 hover:bg-red-50 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`;
             });
             initLucide();
         }
         function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm font-kanit"><div><div class="font-bold text-gray-700 font-bold">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter font-bold">Range: ${p.range}m</div></div><div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-50 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
+            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm font-kanit"><div><div class="font-bold text-gray-700 font-bold">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter font-bold">Range: ${p.range}m</div></div><div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-500 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
         }
         async function showPointModal(type, p = null) {
             const isEdit = !!p;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
-                html: `<input id="s-name" class="swal2-input text-sm font-kanit" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}><input id="s-lat" class="swal2-input text-sm font-kanit" placeholder="Lat" value="${p?p.lat:state.location.lat}"><input id="s-lng" class="swal2-input text-sm font-kanit" placeholder="Lng" value="${p?p.lng:state.location.lng}"><input id="s-range" class="swal2-input text-sm font-kanit" placeholder="ระยะอนุญาต(ม.)" value="${p?p.range:'100'}">`,
+                html: `
+                    <div class="space-y-3 font-kanit">
+                        <input id="s-name" class="swal2-input text-sm !m-0 !w-full" placeholder="ชื่อจุด" value="${p?p.name:''}" ${isEdit?'disabled':''}>
+                        <div class="flex gap-2">
+                            <input id="s-lat" class="swal2-input text-sm !m-0 !w-full" placeholder="Lat" value="${p?p.lat:state.location.lat}">
+                            <input id="s-lng" class="swal2-input text-sm !m-0 !w-full" placeholder="Lng" value="${p?p.lng:state.location.lng}">
+                        </div>
+                        <button type="button" onclick="document.getElementById('s-lat').value=state.location.lat;document.getElementById('s-lng').value=state.location.lng" class="w-full text-[10px] bg-blue-100 text-blue-700 py-2 rounded-lg font-bold border border-blue-200">ใช้พิกัดปัจจุบันของคุณ</button>
+                        <input id="s-range" class="swal2-input text-sm !m-0 !w-full" placeholder="ระยะอนุญาต (เมตร)" value="${p?p.range:'100'}">
+                    </div>`,
                 preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
             });
             if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
