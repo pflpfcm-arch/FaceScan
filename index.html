@@ -30,7 +30,7 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        /* ตารางรายงานที่รองรับการปัดบรรทัดและเห็นครบทุกคอลัมน์ */
+        /* ตารางรายงานที่รองรับการปัดบรรทัดและไม่ทับซ้อนกัน */
         .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         .report-table th, .report-table td { 
             @apply border-b border-gray-100 break-words whitespace-normal;
@@ -179,13 +179,13 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight">เลือกรายชื่อพนักงาน:</label>
-                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit text-[10px]"></div>
+                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit text-[10px]"></div>
                             </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- เข้าบริษัท -->
+                        <!-- ส่วนเข้าบริษัท -->
                         <div class="space-y-2">
                             <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide font-kanit">บันทึกเข้าบริษัท</label>
                             <div class="flex gap-1">
@@ -196,7 +196,7 @@
                                 <i data-lucide="building-2" class="w-4 h-4"></i> บันทึกเวลาเข้าบริษัท
                             </button>
                         </div>
-                        <!-- เข้าหน้างาน -->
+                        <!-- ส่วนเข้าหน้างาน -->
                         <div class="space-y-2">
                             <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide font-kanit">บันทึกเข้าหน้างาน</label>
                             <div class="flex gap-1">
@@ -247,17 +247,17 @@
                             <tr class="hidden" id="pdf-table-header-row">
                                 <th colspan="7" class="text-center py-6 bg-white border-none">
                                     <div class="text-2xl font-bold text-black font-kanit mb-2 text-center">รายงานบันทึกเวลาทำงานฝ่ายกำกับรถพาเหรด</div>
-                                    <div class="text-lg font-bold text-gray-800 pdf-date-display font-kanit text-center"></div>
+                                    <div class="text-sm font-bold text-gray-700 pdf-date-display font-kanit text-center"></div>
                                 </th>
                             </tr>
                             <tr class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
                                 <th class="w-[8%] text-center">#</th>
-                                <th class="w-[22%] text-left">พนักงาน</th>
+                                <th class="w-[20%] text-left">พนักงาน</th>
                                 <th class="w-[12%] text-center">สถานะ</th>
-                                <th class="w-[22%] text-center">เข้าหน้างาน</th>
-                                <th class="w-[22%] text-center">เข้าบริษัท</th>
-                                <th class="w-[10%] text-left">โน้ต</th>
-                                <th id="th-map" class="w-[4%] text-center no-print">Map</th>
+                                <th class="w-[24%] text-center">เข้าหน้างาน</th>
+                                <th class="w-[24%] text-center">เข้าบริษัท</th>
+                                <th class="w-[12%] text-left">โน้ต</th>
+                                <th id="th-map" class="w-[8%] text-center no-print">Map</th>
                             </tr>
                         </thead>
                         <tbody id="report-table-body" class="divide-y divide-gray-50"></tbody>
@@ -266,7 +266,7 @@
             </div>
         </div>
 
-        <!-- Admin Panels remain unchanged as per request -->
+        <!-- Admin Panels -->
         <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print font-kanit">
             <div class="flex items-center justify-between"><button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button><h2 class="text-xl font-bold text-gray-800">จัดการระบบ</h2><div></div></div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
@@ -297,7 +297,10 @@
             initLucide(); updateTime(); setInterval(updateTime, 1000);
             document.getElementById('filter-date').valueAsDate = new Date();
             try { await initFaceModels(); await fetchData(); startFaceLogin(); } catch (err) { console.error(err); } 
-            finally { document.getElementById('loading-overlay').style.display = 'none'; }
+            finally { 
+                const overlay = document.getElementById('loading-overlay');
+                if(overlay) overlay.style.display = 'none'; 
+            }
             initGPS(); renderPinDots(); checkSession();
         };
 
@@ -351,7 +354,7 @@
                 adminCheckList.innerHTML = '';
                 state.users.forEach(u => {
                     adminCheckList.innerHTML += `
-                        <label class="flex items-center gap-1 p-1 hover:bg-red-100 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
+                        <label class="flex items-center gap-1 p-1 hover:bg-red-50 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
                             <input type="checkbox" name="admin-user-target" value="${u.id}" class="w-3 h-3 rounded text-red-600">
                             <span class="truncate">${u.nickname} (${u.id})</span>
                         </label>`;
@@ -368,14 +371,17 @@
                     state.gpsError = false;
                     const gpsText = document.getElementById('gps-text');
                     const gpsBanner = document.getElementById('gps-banner');
-                    if(gpsText) gpsText.innerText = `พิกัด: ${state.location.lat.toFixed(4)}, ${state.location.lng.toFixed(4)}`;
-                    if(gpsBanner) gpsBanner.className = "flex items-center justify-center p-2 bg-green-50 text-green-700 rounded-xl text-[10px] border border-green-100 font-medium";
+                    if(gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(4)}, ${state.location.lng.toFixed(4)}`;
+                    if(gpsBanner) {
+                        gpsBanner.className = "flex items-center justify-center p-2 bg-green-50 text-green-700 rounded-xl text-[10px] border border-green-100 font-medium font-kanit";
+                    }
                 }, (err) => {
                     state.gpsError = true;
+                    const gpsText = document.getElementById('gps-text');
                     const gpsBanner = document.getElementById('gps-banner');
+                    if(gpsText) gpsText.innerText = "กรุณาเปิด GPS";
                     if(gpsBanner) {
-                        gpsBanner.className = "flex items-center justify-center p-2 bg-red-50 text-red-700 rounded-xl text-[10px] border border-red-100 font-medium";
-                        document.getElementById('gps-text').innerText = "กรุณาเปิด GPS";
+                        gpsBanner.className = "flex items-center justify-center p-2 bg-red-50 text-red-700 rounded-xl text-[10px] border border-red-100 font-medium font-kanit";
                     }
                 }, { enableHighAccuracy: true });
             }
@@ -405,6 +411,7 @@
 
         async function startFaceLogin() {
             const video = document.getElementById('login-video');
+            const statusEl = document.getElementById('face-login-status');
             const canvas = document.getElementById('login-overlay');
             if(!video || !canvas) return;
             try {
@@ -420,18 +427,32 @@
                             const bestMatch = state.faceMatcher.findBestMatch(detection.descriptor);
                             if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
                                 const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
-                                if (foundUser) { clearInterval(interval); loginSuccess(foundUser); }
+                                if (foundUser) {
+                                    if(statusEl) {
+                                        statusEl.innerText = "พบใบหน้า: " + foundUser.nickname;
+                                        statusEl.className = "text-sm font-bold text-green-600 font-kanit";
+                                    }
+                                    clearInterval(interval); setTimeout(() => loginSuccess(foundUser), 800);
+                                }
                             }
                         }
                     }, 300);
                 };
-            } catch (err) {}
+            } catch (err) { if(statusEl) statusEl.innerText = "กรุณาเปิดกล้อง"; }
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
         function formatTimeHHMM(t) { 
             if(!t) return ''; 
-            let match = t.toString().match(/(\d{1,2}:\d{2})/);
-            return match ? match[1] : t; 
+            let tStr = t.toString().trim();
+            let match = tStr.match(/(\d{1,2}:\d{2})/);
+            return match ? match[1] : tStr; 
         }
 
         function formatDateDDMMYYYY(dateString) {
@@ -441,9 +462,9 @@
         }
 
         async function validateAndSubmit(status, subType = 'all') {
-            if (!state.isAdmin && status === 'มา') {
+            if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
                 if (!state.location.lat || !state.location.lng || state.gpsError) {
-                    return Swal.fire({ icon: 'warning', title: 'กรุณาเปิด GPS', text: 'ไม่พบพิกัดตำแหน่งของคุณ' });
+                    return Swal.fire({ icon: 'warning', title: 'กรุณาเปิด GPS', text: 'ไม่พบตำแหน่งของคุณ กรุณาเปิด GPS และรอจนตำแหน่งปรากฏก่อนบันทึก', confirmButtonText: 'ตกลง' });
                 }
             }
 
@@ -451,7 +472,7 @@
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
-                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'เลือกรายชื่อพนักงานก่อน', 'warning');
+                if (targetIds.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกพนักงานที่ต้องการบันทึกแทน', 'warning');
             } else {
                 targetIds = [state.user.id];
             }
@@ -461,26 +482,32 @@
             const tCompany = document.getElementById('time-company').value;
             const tWork = document.getElementById('time-work').value;
 
-            if (subType === 'company' && !tCompany) return Swal.fire('ระบุเวลา', 'เลือกเวลาเข้าบริษัทก่อน', 'warning');
-            if (subType === 'work' && !tWork) return Swal.fire('ระบุเวลา', 'เลือกเวลาเข้างานก่อน', 'warning');
+            if (subType === 'company' && !tCompany) return Swal.fire('ข้อมูลไม่ครบ', 'ต้องระบุเวลาบันทึกเข้าบริษัทก่อน', 'warning');
+            if (subType === 'work' && !tWork) return Swal.fire('ข้อมูลไม่ครบ', 'ต้องระบุเวลาบันทึกเข้างานก่อน', 'warning');
 
-            // Geofencing
             if (!state.isAdmin && status === 'มา') {
                 if (subType === 'company') {
                     const ep = state.entryPoints.find(p => p.name === pCompany);
-                    if (ep && getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng) > ep.range) return Swal.fire('พิกัดผิดพลาด', 'คุณอยู่นอกพื้นที่บริษัท', 'error');
+                    if (ep && getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng) > ep.range) return Swal.fire('พิกัดผิดพลาด', `คุณอยู่นอกรัศมีบริษัท (${Math.round(getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng))}ม.)`, 'error');
                 }
                 if (subType === 'work') {
                     const wp = state.workPoints.find(p => p.name === pWork);
-                    if (wp && getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng) > wp.range) return Swal.fire('พิกัดผิดพลาด', 'คุณอยู่นอกพื้นที่หน้างาน', 'error');
+                    if (wp && getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng) > wp.range) return Swal.fire('พิกัดผิดพลาด', `คุณอยู่นอกรัศมีหน้างาน (${Math.round(getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng))}ม.)`, 'error');
                 }
             }
 
-            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             
-            // Format timestamp for display in sheet
+            // Format timestamp as dd/mm/yyyy, hh:mm
             const now = new Date();
-            const formattedTs = now.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '');
+            let timestampToSave;
+            if (state.isAdmin) {
+                const adminDate = document.getElementById('admin-record-date').value; // yyyy-mm-dd
+                const [y,m,d] = adminDate.split('-');
+                timestampToSave = `${d}/${m}/${y}, 00:00`;
+            } else {
+                timestampToSave = now.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '');
+            }
 
             try {
                 for (const tid of targetIds) {
@@ -492,32 +519,39 @@
                         timeCompany: (subType === 'company' || subType === 'all') ? tCompany : '',
                         pointCompany: (subType === 'company' || subType === 'all') ? pCompany : '',
                         note: document.getElementById('attendance-note').value,
-                        lat: state.location.lat, lng: state.location.lng, timestamp: formattedTs, recordedByAdmin: state.isAdmin
+                        lat: state.location.lat, lng: state.location.lng, 
+                        timestamp: timestampToSave, recordedByAdmin: state.isAdmin
                     };
                     await fetch(API_URL + "?action=saveAttendance", { method: 'POST', body: JSON.stringify(data) });
                 }
-                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1000, showConfirmButton: false });
+                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
                 await fetchData();
-            } catch (e) { Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'); }
+            } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกได้', 'error'); }
         }
 
         function renderGlobalReport() {
-            const selDate = document.getElementById('filter-date').value;
+            const selDate = document.getElementById('filter-date').value; // yyyy-mm-dd
             const selStatus = document.getElementById('filter-status').value;
             const tbody = document.getElementById('report-table-body');
-            const formattedDate = formatDateDDMMYYYY(selDate);
-            document.querySelectorAll('.pdf-date-display').forEach(el => el.innerText = "ประจำวันที่: " + formattedDate);
+            
+            const formattedDateDisplay = formatDateDDMMYYYY(selDate);
+            document.querySelectorAll('.pdf-date-display').forEach(el => el.innerText = "ประจำวันที่: " + formattedDateDisplay);
 
             if(!tbody) return;
             tbody.innerHTML = "";
             if (state.isAdmin) document.getElementById('th-map').style.display = ""; else document.getElementById('th-map').style.display = "none";
 
             state.users.forEach((u, index) => {
+                // กรองข้อมูลเฉพาะพนักงานที่ล็อกอินอยู่ (ยกเว้น Admin ให้เห็นทั้งหมด)
+                if (!state.isAdmin && u.id !== state.user?.id) return;
+
                 const att = state.attendance.find(a => {
                     // a.timestamp is dd/mm/yyyy, hh:mm
-                    const parts = a.timestamp.toString().split(',')[0].split('/');
-                    const aFormatted = `${parts[2]}-${parts[1]}-${parts[0]}`; // yyyy-mm-dd
-                    return a.userId == u.id && aFormatted === selDate;
+                    const tsStr = a.timestamp ? a.timestamp.toString() : "";
+                    const dateMatch = tsStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+                    if (!dateMatch) return false;
+                    const aDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`; // yyyy-mm-dd
+                    return a.userId == u.id && aDate === selDate;
                 });
                 
                 const status = att ? att.status : "ยังไม่ลงบันทึก";
@@ -526,15 +560,21 @@
                 const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-600 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
                 const rowClass = ((index + 1) % 25 === 0) ? "page-break-row" : "";
 
+                const infoClass = "font-bold text-gray-700";
+                const timeClass = "font-mono font-bold";
+
+                const workCell = `<span class="${infoClass}">${att?.pointWork ? att.pointWork : '-'}</span> <span class="${timeClass} text-blue-600">${att?.timeWork ? '(' + formatTimeHHMM(att.timeWork) + ')' : ''}</span>`;
+                const companyCell = `<span class="${infoClass}">${att?.pointCompany ? att.pointCompany : '-'}</span> <span class="${timeClass} text-green-600">${att?.timeCompany ? '(' + formatTimeHHMM(att.timeCompany) + ')' : ''}</span>`;
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 ${rowClass}">
                         <td>${index + 1}</td>
                         <td class="text-left font-bold text-gray-800">${u.nickname} (${u.id})</td>
-                        <td><span class="px-1.5 py-0.5 rounded-full text-[7px] font-bold ${getStatusClass(status)}">${status}</span></td>
-                        <td>${att?.pointWork ? att.pointWork : '-'} ${att?.timeWork ? '(' + formatTimeHHMM(att.timeWork) + ')' : ''}</td>
-                        <td>${att?.pointCompany ? att.pointCompany : '-'} ${att?.timeCompany ? '(' + formatTimeHHMM(att.timeCompany) + ')' : ''}</td>
-                        <td class="text-left text-gray-500">${att ? att.note : '-'}</td>
-                        <td class="${state.isAdmin ? '' : 'hidden'} no-print">${mapBtn}</td>
+                        <td><span class="px-1.5 py-0.5 rounded-full text-[7.5px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
+                        <td>${workCell}</td>
+                        <td>${companyCell}</td>
+                        <td class="px-1 font-medium text-[7.5px] md:text-[9.5px]">${att ? (att.note || '-') : '-'}</td>
+                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
             initLucide();
@@ -546,11 +586,13 @@
         }
 
         function generatePDF() {
-            const hr = document.getElementById('pdf-table-header-row'); if(hr) hr.classList.remove('hidden');
-            window.print(); if(hr) hr.classList.add('hidden');
+            const headerRow = document.getElementById('pdf-table-header-row');
+            if(headerRow) headerRow.classList.remove('hidden');
+            window.print();
+            if(headerRow) headerRow.classList.add('hidden');
         }
 
-        function viewMap(uLat, uLng, name) { window.open(`https://www.google.com/maps?q=${uLat},${uLng}`, '_blank'); }
+        function viewMap(uLat, uLng, name) { window.open(`https://www.google.com/maps/dir/?api=1&origin=${uLat},${uLng}`, '_blank'); }
 
         function renderPinDots() {
             const container = document.getElementById('pin-display'); if (!container) return; container.innerHTML = "";
@@ -565,7 +607,7 @@
         async function handlePinLogin() {
             const hashedPin = CryptoJS.SHA256(state.pin).toString();
             const user = state.users.find(u => u.pin === hashedPin);
-            if(user) loginSuccess(user); else { Swal.fire('รหัส PIN ผิด', 'ลองใหม่อีกครั้ง', 'error'); clearPin(); }
+            if(user) loginSuccess(user); else { Swal.fire({ icon: 'error', title: 'รหัส PIN ผิด', text: 'กรุณาลองใหม่', fontKanit: true }); clearPin(); }
         }
         function loginSuccess(u) { state.user = u; localStorage.setItem('pfl_session', JSON.stringify({ user: u, expiry: Date.now() + 28800000 })); document.getElementById('display-user-name').innerText = `${u.nickname} (${u.id})`; switchView('view-main'); clearPin(); }
         function checkSession() { const s = localStorage.getItem('pfl_session'); if (s) { try { const sess = JSON.parse(s); if(sess.expiry > Date.now()) { state.user = sess.user; document.getElementById('display-user-name').innerText = `${state.user.nickname} (${state.user.id})`; switchView('view-main'); } } catch(e) {} } }
@@ -591,7 +633,7 @@
                         if (det) {
                             const nose = det.landmarks.getNose(); const jaw = det.landmarks.getJawOutline();
                             if ((nose[0].x - jaw[0].x) / (jaw[16].x - jaw[0].x) > 0.45) {
-                                state.tempDescriptor = det.descriptor; document.getElementById('scan-status').innerText = "สำเร็จ!"; clearInterval(interval); finishScan();
+                                state.tempDescriptor = det.descriptor; document.getElementById('scan-status').innerText = "บันทึกใบหน้าสำเร็จ!"; clearInterval(interval); finishScan();
                             }
                         }
                     }, 300);
@@ -607,21 +649,24 @@
             try {
                 await fetch(API_URL + "?action=saveLog", { method: 'POST', body: JSON.stringify({ userId: id, pin: CryptoJS.SHA256(pin).toString(), faceDescriptor: JSON.stringify(Array.from(state.tempDescriptor)), type: 'register' }) });
                 Swal.fire('สำเร็จ', 'ลงทะเบียนเรียบร้อย', 'success'); switchView('view-login'); fetchData();
-            } catch (e) { Swal.fire('Error', 'ผิดพลาด', 'error'); }
+            } catch (e) { Swal.fire('Error', 'ไม่สำเร็จ', 'error'); }
         }
 
         function enterAdminSettings() {
             if (state.user && state.user.role === 'admin') { proceedToAdminMode(); return; }
-            Swal.fire({ title: 'รหัสแอดมิน', input: 'password', showCancelButton: true, confirmButtonText: 'ตกลง' }).then((res) => {
+            Swal.fire({ title: 'รหัสแอดมิน', input: 'password', showCancelButton: true, confirmButtonText: 'ตกลง', fontKanit: true }).then((res) => {
                 if (res.value === 'pflpfcm') proceedToAdminMode();
                 else if(res.value) Swal.fire('รหัสไม่ถูกต้อง', '', 'error');
             });
         }
         function proceedToAdminMode() {
             state.isAdmin = true; 
-            document.getElementById('admin-badge').classList.remove('hidden'); 
-            document.getElementById('admin-controls-area').classList.remove('hidden'); 
-            document.getElementById('admin-record-date').valueAsDate = new Date();
+            const adminBadge = document.getElementById('admin-badge');
+            const ac = document.getElementById('admin-controls-area');
+            const rd = document.getElementById('admin-record-date');
+            if(adminBadge) adminBadge.classList.remove('hidden'); 
+            if(ac) ac.classList.remove('hidden'); 
+            if(rd) rd.valueAsDate = new Date();
             switchView('view-admin-crud'); populateSelectors();
         }
 
@@ -631,24 +676,23 @@
             el.innerHTML = ''; wl.innerHTML = ''; ul.innerHTML = '';
             state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
             state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
-            state.users.forEach(u => ul.innerHTML += `<tr class="border-b"><td class="px-4 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-2"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg border border-blue-100"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-600 hover:bg-red-50 p-1.5 rounded-lg border border-red-100"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`);
+            state.users.forEach(u => ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-4 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-600 p-1 hover:bg-blue-50 rounded transition-all"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-600 p-1 hover:bg-red-50 rounded transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`);
             initLucide();
         }
         function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm"><div><div class="font-bold text-gray-700 font-bold">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter">Lat: ${p.lat}, Lng: ${p.lng}</div></div><div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-600 p-1.5 bg-white border border-blue-100 rounded-lg"><i data-lucide="edit-3" class="w-3 h-3"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-600 p-1.5 bg-white border border-red-100 rounded-lg"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div>`;
+            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-[10px] mb-1.5 shadow-sm font-kanit"><div><div class="font-bold text-gray-700 font-bold">${p.name}</div><div class="text-gray-400 font-mono tracking-tighter">Lat: ${p.lat}, Lng: ${p.lng} (${p.range}m)</div></div><div class="flex gap-1"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-600 p-1 bg-white border border-blue-100 rounded hover:bg-blue-50 transition-all"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-600 p-1 bg-white border border-red-100 rounded hover:bg-red-50 transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></div>`;
         }
         
         async function showPointModal(type, p = null) {
             const isEdit = !!p;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
-                html: `<div class="space-y-3 text-left font-kanit"><div><label class="text-[10px] font-bold">ชื่อจุด</label><input id="s-name" class="swal2-input !mt-1 !mb-0 !w-full text-sm" placeholder="ชื่อ" value="${p?p.name:''}" ${isEdit?'disabled':''}></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] font-bold text-gray-700">Lat</label><input id="s-lat" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono" value="${p?p.lat:state.location.lat}"></div><div><label class="text-[10px] font-bold text-gray-700">Lng</label><input id="s-lng" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono" value="${p?p.lng:state.location.lng}"></div></div><button type="button" onclick="document.getElementById('s-lat').value=state.location.lat.toFixed(6);document.getElementById('s-lng').value=state.location.lng.toFixed(6)" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-[11px] shadow-sm flex items-center justify-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ใช้พิกัดปัจจุบันของคุณ</button><div><label class="text-[10px] font-bold">ระยะอนุญาต (เมตร)</label><input id="s-range" class="swal2-input !mt-1 !mb-0 !w-full text-sm" value="${p?p.range:'100'}"></div></div>`,
+                html: `<div class="space-y-3 text-left font-kanit"><div><label class="text-[10px] font-bold">ชื่อจุด</label><input id="s-name" class="swal2-input !mt-1 !mb-0 !w-full text-sm" value="${p?p.name:''}" ${isEdit?'disabled':''}></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] font-bold">Lat</label><input id="s-lat" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono" value="${p?p.lat:state.location.lat}"></div><div><label class="text-[10px] font-bold">Lng</label><input id="s-lng" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono" value="${p?p.lng:state.location.lng}"></div></div><button type="button" onclick="document.getElementById('s-lat').value=state.location.lat.toFixed(6);document.getElementById('s-lng').value=state.location.lng.toFixed(6)" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-[11px] shadow-sm flex items-center justify-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ใช้พิกัดปัจจุบันของคุณ</button><div><label class="text-[10px] font-bold">ระยะอนุญาต (เมตร)</label><input id="s-range" class="swal2-input !mt-1 !mb-0 !w-full text-sm" value="${p?p.range:'100'}"></div></div>`,
                 didOpen: () => lucide.createIcons(),
                 preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
             });
             if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
         }
-
         async function deletePoint(type, name) { if(!(await Swal.fire({ title: 'ลบจุดนี้?', icon: 'warning', showCancelButton: true })).isConfirmed) return; const action = type === 'EntryPoints' ? 'deleteEntryPoint' : 'deleteWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify({ name }) }); fetchData(); }
         async function showUserModal(u = null) {
             const isEdit = !!u;
@@ -663,20 +707,16 @@
 
         function updateTime() {
             const now = new Date();
-            if(document.getElementById('current-time')) document.getElementById('current-time').innerText = now.toLocaleTimeString('th-TH', { hour12: false });
-            if(document.getElementById('current-date')) document.getElementById('current-date').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const timeEl = document.getElementById('current-time');
+            const dateEl = document.getElementById('current-date');
+            if(timeEl) timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+            if(dateEl) dateEl.innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             const hhmm = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
             const tc = document.getElementById('time-company'); if(tc && !tc.value) tc.value = hhmm;
             const tw = document.getElementById('time-work'); if(tw && !tw.value) tw.value = hhmm;
         }
 
         function retryFetchData() { fetchData(); }
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
     </script>
 </body>
 </html>
