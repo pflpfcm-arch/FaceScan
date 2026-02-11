@@ -95,9 +95,9 @@
                 <button onclick="enterAdminSettings()" class="text-[10px] text-gray-300 hover:text-gray-500 uppercase font-bold font-kanit">Admin Mode</button>
             </div>
             
-            <div class="flex justify-center space-x-8 mb-6 border-b border-gray-100 text-gray-400 text-sm">
-                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all font-medium font-kanit"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
-                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all font-medium font-kanit"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
+            <div class="flex justify-center space-x-8 mb-6 border-b border-gray-100 text-gray-400 text-sm font-kanit">
+                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all font-medium"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
+                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all font-medium"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
             </div>
 
             <div id="login-face-section" class="space-y-4">
@@ -110,7 +110,7 @@
 
             <div id="login-pin-section" class="hidden space-y-6">
                 <div id="pin-display" class="flex justify-center space-x-3 my-6"></div>
-                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto font-kanit font-kanit">
+                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto font-kanit">
                     <button onclick="pressPin(1)" class="numpad-btn">1</button>
                     <button onclick="pressPin(2)" class="numpad-btn">2</button>
                     <button onclick="pressPin(3)" class="numpad-btn">3</button>
@@ -125,7 +125,7 @@
                     <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="delete"></i></button>
                 </div>
             </div>
-            <p class="mt-8 text-sm text-gray-400 font-kanit">ยังไม่มีข้อมูลประวัติ? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
+            <p class="mt-8 text-sm text-gray-400 font-kanit">ยังไม่มีข้อมูลใบหน้า? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
         </div>
 
         <!-- SECTION: Register -->
@@ -160,7 +160,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
                 <!-- Profile Card -->
                 <div class="lg:col-span-1 bg-white p-5 rounded-2xl card-shadow text-center border border-gray-50 space-y-4 relative overflow-hidden">
-                    <div id="admin-badge" class="hidden absolute top-2 right-2 bg-red-100 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Recording</div>
+                    <div id="admin-badge" class="hidden absolute top-2 right-2 bg-red-100 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Mode</div>
                     <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider font-kanit">ยินดีต้อนรับคุณ</h3>
                     <div id="display-user-name" class="font-bold text-gray-800 text-xl truncate font-kanit">-</div>
                     <div class="py-4 border-y border-gray-50">
@@ -183,7 +183,7 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight">เลือกรายชื่อพนักงาน:</label>
-                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit text-[10px]"></div>
+                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit text-[10px]"></div>
                             </div>
                         </div>
                     </div>
@@ -275,7 +275,7 @@
                             <tr class="hidden" id="pdf-table-header-row">
                                 <th colspan="7" class="text-center py-6 bg-white border-none">
                                     <div class="text-2xl font-bold text-black mb-2 text-center font-kanit">รายงานบันทึกเวลาทำงานฝ่ายกำกับรถพาเหรด</div>
-                                    <div class="text-lg font-bold text-gray-800 pdf-date-display text-center font-kanit"></div>
+                                    <div class="text-sm font-bold text-gray-700 pdf-date-display text-center font-kanit"></div>
                                 </th>
                             </tr>
                             <tr class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
@@ -311,11 +311,11 @@
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-kanit">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700 font-kanit">
                     <h4 class="font-bold flex items-center justify-between"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
                     <div id="list-entry-points" class="space-y-2 text-black text-xs"></div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700"><h4 class="font-bold flex items-center justify-between"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700 font-kanit font-kanit font-kanit"><h4 class="font-bold flex items-center justify-between"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
                     <div id="list-work-points" class="space-y-2 text-black text-xs"></div>
                 </div>
             </div>
@@ -465,11 +465,9 @@
                     timeInput.value = "";
                 } else {
                     timeInput.disabled = false;
-                    // Auto-fill current time if empty
-                    if(!timeInput.value) {
-                        const now = new Date();
-                        timeInput.value = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
-                    }
+                    // Auto-fill current time
+                    const now = new Date();
+                    timeInput.value = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
                 }
             }
         }
@@ -598,7 +596,7 @@
                 document.getElementById('point-work').value = "";
                 document.getElementById('time-company').disabled = true;
                 document.getElementById('time-work').disabled = true;
-                await fetchData(); 
+                await fetchData(); // Force reload data
             } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกได้', 'error'); }
         }
 
@@ -619,17 +617,28 @@
             if (state.isAdmin) thMap.style.display = ""; else thMap.style.display = "none";
 
             state.users.forEach((u, index) => {
+                // สำหรับ User ปกติให้เห็นข้อมูลทุกคน (ตามความต้องการข้อ 4), Admin เห็นทั้งหมด
                 const att = state.attendance.find(a => {
                     if (!a.timestamp) return false;
                     const tsStr = a.timestamp.toString();
                     const dateMatch = tsStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
                     if (!dateMatch) return false;
-                    const aDate = `${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+                    
+                    const day = dateMatch[1].padStart(2, '0');
+                    const month = dateMatch[2].padStart(2, '0');
+                    const year = dateMatch[3];
+                    const aDate = `${year}-${month}-${day}`; 
                     return a.userId.toString() === u.id.toString() && aDate === selDate;
                 });
                 
                 const status = att ? att.status : "ยังไม่ลงบันทึก";
-                if (status === "มา") sums.present++; else if (status === "ลา") sums.leave++; else if (status === "ลาครึ่งวัน") sums.half++; else sums.missing++;
+
+                // Counting logic
+                if (status === "มา") sums.present++; 
+                else if (status === "ลา") sums.leave++; 
+                else if (status === "ลาครึ่งวัน") sums.half++; 
+                else sums.missing++;
+
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
                 const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}')" class="text-blue-600 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
