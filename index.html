@@ -30,12 +30,12 @@
         .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
         
-        /* ตารางรายงานที่รองรับการปัดบรรทัดและไม่ทับซ้อนกัน */
+        /* Ultra-Compact Table Styling */
         .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         .report-table th, .report-table td { 
             @apply border-b border-gray-100 break-words whitespace-normal;
             padding: 8px 3px;
-            font-size: 8px;
+            font-size: 8.5px;
             vertical-align: middle;
             text-align: center;
         }
@@ -49,38 +49,35 @@
             .no-print { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; }
-            .card-shadow { box-shadow: none !important; border: none !important; }
-            thead { display: table-header-group !important; }
-            #pdf-table-header-row { display: table-row !important; }
             .report-table { table-layout: auto !important; width: 100% !important; border: 0.5pt solid #000 !important; }
-            .report-table th { background-color: #f3f4f6 !important; border: 0.8pt solid #000 !important; color: #000 !important; font-size: 11pt !important; padding: 12px 6px !important; }
-            .report-table td { border: 0.5pt solid #444 !important; color: #000 !important; font-size: 10pt !important; padding: 12px 6px !important; height: 42px; vertical-align: middle !important; }
-            .status-badge { border: none !important; background: transparent !important; color: black !important; font-weight: bold !important; }
-            .page-break-row { page-break-after: always !important; }
+            .report-table th { background-color: #f3f4f6 !important; border: 0.8pt solid #000 !important; color: #000 !important; font-size: 11pt !important; padding: 10px 4px !important; }
+            .report-table td { border: 0.5pt solid #ccc !important; color: #000 !important; font-size: 10pt !important; padding: 12px 6px !important; }
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center space-y-4">
         <div class="loader w-12 h-12 border-4"></div>
         <p class="text-gray-600 animate-pulse font-medium text-sm text-center font-kanit">PFL Attendance กำลังเริ่มระบบ...<br><span class="text-[10px] text-gray-400 font-normal">กรุณาอนุญาตการเข้าถึงพิกัด (GPS)</span></p>
     </div>
 
+    <!-- Header -->
     <header id="main-header" class="hidden bg-white shadow-sm p-3 sticky top-0 z-50 no-print">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <div class="max-w-6xl mx-auto flex justify-between items-center font-kanit">
             <div class="flex items-center space-x-2">
                 <div class="bg-blue-600 p-1.5 rounded-lg shadow-sm"><i data-lucide="truck" class="text-white w-4 h-4"></i></div>
                 <div>
-                    <h1 class="text-lg font-bold text-gray-800 leading-none font-kanit">PFL Attendance</h1>
-                    <p class="text-[9px] text-gray-400 font-medium tracking-tight font-kanit">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
+                    <h1 class="text-lg font-bold text-gray-800 leading-none">PFL Attendance</h1>
+                    <p class="text-[9px] text-gray-400 font-medium tracking-tight">ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
                 <button id="btn-admin-config" onclick="enterAdminSettings()" class="p-2 text-gray-400 hover:text-blue-600 transition-colors">
                     <i data-lucide="settings" class="w-5 h-5"></i>
                 </button>
-                <button onclick="logout()" class="text-sm text-red-500 font-medium flex items-center hover:bg-red-50 px-3 py-1 rounded-lg transition-colors font-kanit">
+                <button onclick="logout()" class="text-sm text-red-500 font-medium flex items-center hover:bg-red-50 px-3 py-1 rounded-lg transition-colors">
                     <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> ออกจากระบบ
                 </button>
             </div>
@@ -90,25 +87,25 @@
     <main class="flex-grow container mx-auto max-w-6xl p-3 space-y-5">
         
         <!-- SECTION: Login -->
-        <div id="view-login" class="max-w-lg mx-auto space-y-6 text-center py-10 no-print">
+        <div id="view-login" class="max-w-lg mx-auto space-y-6 text-center py-10 no-print font-kanit">
             <div class="flex justify-between items-center px-4">
-                <h2 class="text-2xl font-bold text-gray-800 font-kanit">เข้าสู่ระบบ</h2>
-                <button onclick="enterAdminSettings()" class="text-[10px] text-gray-300 hover:text-gray-500 uppercase font-bold font-kanit">Admin Mode</button>
+                <h2 class="text-2xl font-bold text-gray-800">เข้าสู่ระบบ</h2>
+                <button onclick="enterAdminSettings()" class="text-[10px] text-gray-300 hover:text-gray-500 uppercase font-bold">Admin Mode</button>
             </div>
             <div class="flex justify-center space-x-8 mb-6 border-b border-gray-100 text-gray-400 text-sm">
-                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all font-medium font-kanit"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
-                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all font-medium font-kanit"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
+                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-2 tab-active flex items-center gap-2 transition-all font-medium"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
+                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-2 flex items-center gap-2 transition-all font-medium"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
             </div>
             <div id="login-face-section" class="space-y-4">
                 <div id="video-container" class="mx-auto aspect-square ring-4 ring-blue-50 ring-offset-2">
                     <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                     <canvas id="login-overlay"></canvas>
                 </div>
-                <p class="text-sm font-medium text-blue-600 animate-pulse font-kanit" id="face-login-status">กำลังสแกนหาใบหน้าเพื่อเข้าสู่ระบบ...</p>
+                <p class="text-sm font-medium text-blue-600 animate-pulse" id="face-login-status">กำลังสแกนหาใบหน้า...</p>
             </div>
             <div id="login-pin-section" class="hidden space-y-6">
                 <div id="pin-display" class="flex justify-center space-x-3 my-6"></div>
-                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto font-kanit">
+                <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
                     <button onclick="pressPin(1)" class="numpad-btn">1</button>
                     <button onclick="pressPin(2)" class="numpad-btn">2</button>
                     <button onclick="pressPin(3)" class="numpad-btn">3</button>
@@ -123,102 +120,104 @@
                     <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="delete"></i></button>
                 </div>
             </div>
-            <p class="mt-8 text-sm text-gray-400 font-kanit">ยังไม่มีข้อมูลประวัติ? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
+            <p class="mt-8 text-sm text-gray-400">ยังไม่มีข้อมูลประวัติ? <button onclick="switchView('view-register')" class="text-blue-600 font-semibold underline">ลงทะเบียนใหม่</button></p>
         </div>
 
-        <!-- SECTION: Register -->
-        <div id="view-register" class="max-w-lg mx-auto hidden space-y-6 no-print">
-            <div class="flex items-center space-x-2">
+        <!-- SECTION: Register (Hidden) -->
+        <div id="view-register" class="max-w-lg mx-auto hidden space-y-6 no-print font-kanit">
+             <div class="flex items-center space-x-2">
                 <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-xl font-bold font-kanit text-gray-800">ลงทะเบียนพนักงาน</h2>
+                <h2 class="text-xl font-bold text-gray-800">ลงทะเบียนพนักงาน</h2>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div id="reg-form-content">
-                    <label class="block text-sm font-medium text-gray-700 mb-2 font-kanit">เลือกรายชื่อพนักงาน</label>
-                    <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none font-kanit"></select>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">เลือกรายชื่อพนักงาน</label>
+                    <select id="reg-user-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"></select>
                 </div>
                 <div id="face-scan-section" class="hidden space-y-4 text-center">
-                    <p class="text-sm font-semibold text-blue-600 font-kanit" id="scan-status">กรุณามองตรงที่กล้อง</p>
+                    <p class="text-sm font-semibold text-blue-600" id="scan-status">กรุณามองตรงที่กล้อง</p>
                     <div id="reg-video-container" class="mx-auto aspect-square rounded-2xl overflow-hidden bg-black ring-4 ring-blue-50">
                         <video id="reg-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                         <canvas id="reg-overlay"></canvas>
                     </div>
                 </div>
-                <div id="pin-setup-section" class="hidden space-y-4 font-kanit">
+                <div id="pin-setup-section" class="hidden space-y-4">
                     <p class="text-center font-medium text-sm text-gray-600">ตั้งรหัส PIN 6 หลัก</p>
                     <input type="password" id="reg-pin" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl" placeholder="******">
                     <input type="password" id="reg-pin-confirm" maxlength="6" inputmode="numeric" class="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border rounded-xl mt-2" placeholder="******">
                 </div>
-                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all font-kanit">ถัดไป</button>
+                <button id="btn-next-step" onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all">ถัดไป</button>
             </div>
         </div>
 
         <!-- SECTION: Main Dashboard -->
         <div id="view-main" class="hidden space-y-8 pb-10">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print font-kanit">
                 <!-- Profile Card -->
                 <div class="lg:col-span-1 bg-white p-5 rounded-2xl card-shadow text-center border border-gray-50 space-y-4 relative overflow-hidden">
-                    <div id="admin-badge" class="hidden absolute top-2 right-2 bg-red-100 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Mode</div>
-                    <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider font-kanit">ยินดีต้อนรับคุณ</h3>
-                    <div id="display-user-name" class="font-bold text-gray-800 text-xl truncate font-kanit">-</div>
+                    <div id="admin-badge" class="hidden absolute top-2 right-2 bg-red-100 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">Admin Recording</div>
+                    <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider">ยินดีต้อนรับคุณ</h3>
+                    <div id="display-user-name" class="font-bold text-gray-800 text-xl truncate">-</div>
                     <div class="py-4 border-y border-gray-50">
                         <div class="text-4xl font-bold text-blue-600 font-mono tracking-tight" id="current-time">00:00:00</div>
-                        <div class="text-gray-500 text-[11px] mt-1 font-medium font-kanit" id="current-date">-</div>
+                        <div class="text-gray-500 text-[11px] mt-1 font-medium" id="current-date">-</div>
                     </div>
-                    <div id="gps-banner" class="flex items-center justify-center p-2.5 bg-yellow-50 text-yellow-700 rounded-xl text-[10px] border border-yellow-100 font-medium font-kanit">
+                    <div id="gps-banner" class="flex items-center justify-center p-2.5 bg-yellow-50 text-yellow-700 rounded-xl text-[10px] border border-yellow-100 font-medium">
                         <i id="gps-icon" data-lucide="map-pin" class="w-3 h-3 mr-1"></i>
                         <span id="gps-text">กำลังเช็คตำแหน่ง GPS...</span>
                     </div>
                 </div>
 
                 <!-- Attendance Form -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-2xl card-shadow border border-gray-100 space-y-4">
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl card-shadow border border-gray-100 space-y-5 font-kanit">
                     <div id="admin-controls-area" class="hidden pb-4 border-b border-gray-100 space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-kanit">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight italic underline">เลือกวันที่ลงบันทึก (Admin):</label>
+                                <label class="text-xs font-bold text-red-600 italic underline">เลือกวันที่ลงบันทึก (Admin):</label>
                                 <input type="date" id="admin-record-date" class="w-full p-2.5 bg-red-50/50 border border-red-100 rounded-lg text-sm font-bold text-red-700 outline-none">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 flex items-center gap-1 mb-1 tracking-tight">เลือกรายชื่อพนักงาน:</label>
-                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 font-kanit text-[10px]"></div>
+                                <label class="text-xs font-bold text-red-600">เลือกรายชื่อพนักงาน:</label>
+                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-red-50/30 rounded-lg border border-red-50 text-[10px]"></div>
                             </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- ส่วนเข้าบริษัท -->
                         <div class="space-y-2">
-                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide font-kanit">บันทึกเข้าบริษัท</label>
+                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">จุดเข้าบริษัท</label>
                             <div class="flex gap-1">
-                                <select id="point-company" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium font-kanit"></select>
-                                <input type="time" id="time-company" class="w-26 p-3 bg-white border border-blue-200 rounded-lg text-xs font-bold text-blue-600 outline-none font-kanit">
+                                <select id="point-company" onchange="handlePointChange('company')" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium">
+                                    <option value="" disabled selected>เลือกจุดเข้าบริษัท</option>
+                                </select>
+                                <input type="time" id="time-company" disabled class="w-26 p-3 bg-white border border-blue-200 rounded-lg text-xs font-bold text-blue-600 outline-none">
                             </div>
-                            <button onclick="validateAndSubmit('มา', 'company')" class="w-full bg-green-700 text-white p-3 rounded-xl font-bold hover:bg-green-800 transition-all flex items-center justify-center gap-2 shadow-sm font-kanit">
-                                <i data-lucide="building-2" class="w-4 h-4"></i> บันทึกเวลาเข้าบริษัท
-                            </button>
                         </div>
-                        <!-- ส่วนเข้าหน้างาน -->
                         <div class="space-y-2">
-                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide font-kanit">บันทึกเข้าหน้างาน</label>
+                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">จุดเข้าหน้างาน</label>
                             <div class="flex gap-1">
-                                <select id="point-work" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium font-kanit"></select>
-                                <input type="time" id="time-work" class="w-26 p-3 bg-white border border-orange-200 rounded-lg text-xs font-bold text-orange-600 outline-none font-kanit">
+                                <select id="point-work" onchange="handlePointChange('work')" class="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400 font-medium">
+                                    <option value="" disabled selected>เลือกจุดเข้างาน</option>
+                                </select>
+                                <input type="time" id="time-work" disabled class="w-26 p-3 bg-white border border-orange-200 rounded-lg text-xs font-bold text-orange-600 outline-none">
                             </div>
-                            <button onclick="validateAndSubmit('มา', 'work')" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm font-kanit">
-                                <i data-lucide="briefcase" class="w-4 h-4"></i> บันทึกเวลาเข้างาน
-                            </button>
                         </div>
                     </div>
                     
-                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 font-kanit" placeholder="ระบุหมายเหตุ..."></textarea>
+                    <textarea id="attendance-note" rows="1" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400" placeholder="ระบุหมายเหตุ..."></textarea>
                     
-                    <div class="grid grid-cols-2 gap-2 pt-2">
-                        <button onclick="validateAndSubmit('ลา', 'leave')" class="bg-red-50 text-red-600 p-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-all flex flex-col items-center justify-center font-kanit">
+                    <div class="pt-2">
+                        <button onclick="validateAndSubmit('มา')" class="w-full bg-blue-600 text-white p-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg">
+                            <i data-lucide="save" class="w-5 h-5"></i> บันทึกการทำงาน
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50">
+                        <button onclick="validateAndSubmit('ลา')" class="bg-red-50 text-red-600 p-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-all flex flex-col items-center justify-center">
                             <i data-lucide="x-circle" class="w-5 h-5 mb-0.5"></i>
                             <span class="text-[10px]">ลาหยุด</span>
                         </button>
-                        <button onclick="validateAndSubmit('ลาครึ่งวัน', 'half')" class="bg-orange-50 text-orange-600 p-3 rounded-xl font-bold border border-orange-100 hover:bg-orange-100 transition-all flex flex-col items-center justify-center font-kanit">
+                        <button onclick="validateAndSubmit('ลาครึ่งวัน')" class="bg-orange-50 text-orange-600 p-3 rounded-xl font-bold border border-orange-100 hover:bg-orange-100 transition-all flex flex-col items-center justify-center">
                             <i data-lucide="clock-3" class="w-5 h-5 mb-0.5"></i>
                             <span class="text-[10px]">ลาครึ่งวัน</span>
                         </button>
@@ -227,29 +226,49 @@
             </div>
 
             <!-- Report Section -->
-            <div class="space-y-4">
+            <div class="space-y-4 font-kanit">
                 <div class="flex items-center justify-between flex-wrap gap-4 no-print">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2 font-kanit"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานประจำวัน</h3>
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i> รายงานประจำวัน</h3>
                     <div class="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-200 text-xs shadow-sm">
-                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold text-gray-700 font-kanit">
-                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold border-l border-gray-100 text-gray-600 font-kanit font-kanit">
+                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold text-gray-700">
+                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold border-l border-gray-100 text-gray-600">
                             <option value="ทั้งหมด">ทั้งหมด</option>
                             <option value="มา">มา</option>
                             <option value="ลา">ลา</option>
                             <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
                             <option value="ยังไม่ลงบันทึก">ยังไม่ลง</option>
                         </select>
-                        <button onclick="generatePDF()" class="p-2 text-red-600 hover:bg-red-50 rounded-lg border-l border-gray-100 font-kanit" title="ส่งออกรายงาน PDF"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                        <button onclick="generatePDF()" class="p-2 text-red-600 hover:bg-red-50 rounded-lg border-l border-gray-100" title="PDF"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+
+                <!-- Stats Summary -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
+                    <div class="bg-white p-4 rounded-xl border-l-4 border-green-500 shadow-sm text-center">
+                        <p id="sum-present" class="text-2xl font-bold text-green-600 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">มาทำงาน</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border-l-4 border-red-500 shadow-sm text-center">
+                        <p id="sum-leave" class="text-2xl font-bold text-red-600 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ลาหยุด</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border-l-4 border-orange-400 shadow-sm text-center">
+                        <p id="sum-half" class="text-2xl font-bold text-orange-500 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ลาครึ่งวัน</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border-l-4 border-gray-300 shadow-sm text-center">
+                        <p id="sum-missing" class="text-2xl font-bold text-gray-500 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider">ยังไม่ลง</p>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
-                    <table id="attendance-table" class="report-table font-kanit">
+                    <table id="attendance-table" class="report-table">
                         <thead>
                             <tr class="hidden" id="pdf-table-header-row">
                                 <th colspan="7" class="text-center py-6 bg-white border-none">
-                                    <div class="text-2xl font-bold text-black font-kanit mb-2 text-center">รายงานบันทึกเวลาทำงานฝ่ายกำกับรถพาเหรด</div>
-                                    <div class="text-sm font-bold text-gray-700 pdf-date-display font-kanit text-center"></div>
+                                    <div class="text-2xl font-bold text-black mb-2 text-center">รายงานบันทึกเวลาทำงานฝ่ายกำกับรถพาเหรด</div>
+                                    <div class="text-lg font-bold text-gray-800 pdf-date-display text-center"></div>
                                 </th>
                             </tr>
                             <tr class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 uppercase tracking-tighter">
@@ -275,29 +294,21 @@
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div class="flex justify-between items-center font-kanit"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> รายชื่อพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm font-kanit">+ เพิ่มพนักงาน</button></div>
-                <div class="overflow-x-auto border border-gray-50 rounded-xl">
-                    <table class="w-full text-xs text-left">
-                        <thead class="bg-gray-50 font-bold text-gray-500 uppercase tracking-tight">
-                            <tr><th class="px-4 py-3 text-center">ID</th><th class="px-4 py-3">ชื่อเล่น</th><th class="px-4 py-3 text-center">สิทธิ์</th><th class="px-4 py-3 text-center">จัดการ</th></tr>
-                        </thead>
-                        <tbody id="list-users-crud" class="divide-y text-gray-700 font-kanit"></tbody>
-                    </table>
-                </div>
+                <div class="overflow-x-auto border border-gray-50 rounded-xl"><table class="w-full text-xs text-left"><thead class="bg-gray-50 font-bold text-gray-500 uppercase tracking-tight"><tr><th class="px-4 py-3 text-center">ID</th><th class="px-4 py-3">ชื่อเล่น</th><th class="px-4 py-3 text-center">สิทธิ์</th><th class="px-4 py-3 text-center">จัดการ</th></tr></thead><tbody id="list-users-crud" class="divide-y text-gray-700"></tbody></table></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-kanit">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-green-700 font-kanit">
-                    <h4 class="font-bold flex items-center justify-between"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm font-kanit">+ เพิ่ม</button></h4>
-                    <div id="list-entry-points" class="space-y-2 text-black font-kanit text-xs"></div>
+                    <h4 class="font-bold flex items-center justify-between"><span>จุดเข้าบริษัท</span> <button onclick="showPointModal('EntryPoints')" class="text-xs bg-green-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+                    <div id="list-entry-points" class="space-y-2 text-black text-xs"></div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700 font-kanit"><h4 class="font-bold flex items-center justify-between"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm font-kanit">+ เพิ่ม</button></h4>
-                    <div id="list-work-points" class="space-y-2 text-black font-kanit text-xs"></div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 text-orange-700 font-kanit"><h4 class="font-bold flex items-center justify-between"><span>จุดเข้างาน</span> <button onclick="showPointModal('WorkPoints')" class="text-xs bg-orange-600 text-white px-2 py-1 rounded shadow-sm">+ เพิ่ม</button></h4>
+                    <div id="list-work-points" class="space-y-2 text-black text-xs"></div>
                 </div>
             </div>
         </div>
-
     </main>
 
-    <footer class="bg-white border-t p-4 text-center text-gray-400 text-[8px] uppercase tracking-widest no-print">
+    <footer class="bg-white border-t p-4 text-center text-gray-400 text-[8px] uppercase tracking-widest no-print font-kanit">
         <p>COPY RIGHT 2026 @ ฝ่ายกำกับรถพาเหรด</p>
     </footer>
 
@@ -315,7 +326,7 @@
         window.onload = async () => {
             initLucide(); updateTime(); setInterval(updateTime, 1000);
             document.getElementById('filter-date').valueAsDate = new Date();
-            try { await initFaceModels(); await fetchData(); startFaceLogin(); } catch (err) { console.error(err); } 
+            try { await initFaceModels(); await fetchData(); startFaceLogin(); } catch (err) { console.error("Onload Error", err); } 
             finally { 
                 const overlay = document.getElementById('loading-overlay');
                 if(overlay) overlay.style.display = 'none'; 
@@ -366,21 +377,27 @@
             const wpSelect = document.getElementById('point-work');
 
             if(regList) {
-                regList.innerHTML = '<option value="">-- เลือกรายชื่อ --</option>';
+                regList.innerHTML = '<option value="" disabled selected>เลือกรายชื่อพนักงาน</option>';
                 state.users.forEach(u => regList.innerHTML += `<option value="${u.id}">${u.nickname} (${u.id})</option>`);
             }
             if(adminCheckList) {
                 adminCheckList.innerHTML = '';
                 state.users.forEach(u => {
                     adminCheckList.innerHTML += `
-                        <label class="flex items-center gap-1 p-1 hover:bg-red-100 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
-                            <input type="checkbox" name="admin-user-target" value="${u.id}" class="w-3 h-3 rounded text-red-600 focus:ring-red-500">
+                        <label class="flex items-center gap-1.5 p-1 hover:bg-red-100 rounded text-[9px] font-bold cursor-pointer transition-colors truncate">
+                            <input type="checkbox" name="admin-user-target" value="${u.id}" class="w-3.5 h-3.5 rounded text-red-600 focus:ring-red-500">
                             <span class="truncate">${u.nickname} (${u.id})</span>
                         </label>`;
                 });
             }
-            if(epSelect) { epSelect.innerHTML = ''; state.entryPoints.forEach(p => epSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`); }
-            if(wpSelect) { wpSelect.innerHTML = ''; state.workPoints.forEach(p => wpSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`); }
+            if(epSelect) { 
+                epSelect.innerHTML = '<option value="" disabled selected>เลือกจุดเข้าบริษัท</option>'; 
+                state.entryPoints.forEach(p => epSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`); 
+            }
+            if(wpSelect) { 
+                wpSelect.innerHTML = '<option value="" disabled selected>เลือกจุดเข้างาน</option>'; 
+                state.workPoints.forEach(p => wpSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`); 
+            }
         }
 
         function initGPS() {
@@ -388,49 +405,65 @@
                 navigator.geolocation.watchPosition((pos) => {
                     state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     state.gpsError = false;
-                    const gpsText = document.getElementById('gps-text');
-                    const gpsBanner = document.getElementById('gps-banner');
-                    if(gpsText) gpsText.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(4)}, ${state.location.lng.toFixed(4)}`;
-                    if(gpsBanner) {
-                        gpsBanner.className = "flex items-center justify-center p-2 bg-green-50 text-green-700 rounded-xl text-[10px] border border-green-100 font-medium font-kanit";
-                    }
+                    const gt = document.getElementById('gps-text');
+                    const gb = document.getElementById('gps-banner');
+                    if(gt) gt.innerText = `พิกัดปัจจุบัน: ${state.location.lat.toFixed(4)}, ${state.location.lng.toFixed(4)}`;
+                    if(gb) gb.className = "flex items-center justify-center p-2 bg-green-50 text-green-700 rounded-xl text-[10px] border border-green-100 font-medium font-kanit";
                 }, (err) => {
                     state.gpsError = true;
-                    const gpsText = document.getElementById('gps-text');
-                    const gpsBanner = document.getElementById('gps-banner');
-                    if(gpsText) gpsText.innerText = "กรุณาเปิด GPS";
-                    if(gpsBanner) {
-                        gpsBanner.className = "flex items-center justify-center p-2 bg-red-50 text-red-700 rounded-xl text-[10px] border border-red-100 font-medium font-kanit";
-                    }
+                    const gt = document.getElementById('gps-text');
+                    const gb = document.getElementById('gps-banner');
+                    if(gt) gt.innerText = "กรุณาเปิด GPS";
+                    if(gb) gb.className = "flex items-center justify-center p-2 bg-red-50 text-red-700 rounded-xl text-[10px] border border-red-100 font-medium font-kanit";
                 }, { enableHighAccuracy: true });
             }
         }
 
-        function switchView(viewId) {
-            stopAllVideo();
-            document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
-            document.getElementById(viewId)?.classList.remove('hidden');
-            document.getElementById('main-header')?.classList.toggle('hidden', viewId === 'view-login' || viewId === 'view-register');
-            if (viewId === 'view-login' && state.loginMode === 'face') startFaceLogin();
-            if (viewId === 'view-main') renderGlobalReport();
-            initLucide();
-        }
+        // --- INSTANT GEOFENCING LOGIC ---
+        function handlePointChange(type) {
+            const selectId = type === 'company' ? 'point-company' : 'point-work';
+            const timeId = type === 'company' ? 'time-company' : 'time-work';
+            const pointName = document.getElementById(selectId).value;
+            const points = type === 'company' ? state.entryPoints : state.workPoints;
+            const pointObj = points.find(p => p.name === pointName);
+            const timeInput = document.getElementById(timeId);
 
-        function switchLoginMode(mode) {
-            state.loginMode = mode; stopAllVideo();
-            document.getElementById('tab-face').className = mode === 'face' ? 'pb-2 tab-active flex items-center gap-1 font-medium font-kanit' : 'pb-2 flex items-center gap-1 font-medium font-kanit';
-            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-2 tab-active flex items-center gap-1 font-medium font-kanit' : 'pb-2 flex items-center gap-1 font-medium font-kanit';
-            document.getElementById('login-face-section').classList.toggle('hidden', mode !== 'face');
-            document.getElementById('login-pin-section').classList.toggle('hidden', mode !== 'pin');
-            if (mode === 'face') startFaceLogin();
-            initLucide();
-        }
+            if (state.isAdmin) {
+                timeInput.disabled = false;
+                if(!timeInput.value) {
+                    const now = new Date();
+                    timeInput.value = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+                }
+                return;
+            }
 
-        function stopAllVideo() { if (state.currentStream) { state.currentStream.getTracks().forEach(track => track.stop()); state.currentStream = null; } }
+            if (!state.location.lat || !state.location.lng || state.gpsError) {
+                Swal.fire({ icon: 'warning', title: 'GPS ไม่ทำงาน', text: 'กรุณาเปิด GPS และรอจนกว่าพิกัดปรากฏก่อนเลือกจุด' });
+                document.getElementById(selectId).value = "";
+                return;
+            }
+
+            if (pointObj) {
+                const dist = getDistance(state.location.lat, state.location.lng, pointObj.lat, pointObj.lng);
+                if (dist > pointObj.range) {
+                    Swal.fire({ 
+                        icon: 'error', 
+                        title: 'พิกัดห่างเกินไป', 
+                        text: `คุณอยู่ห่างจากจุดเข้า${type === 'company' ? 'บริษัท' : 'งาน'} (${pointObj.name}) ระยะ ${Math.round(dist)}ม.` 
+                    });
+                    document.getElementById(selectId).value = ""; 
+                    timeInput.disabled = true;
+                    timeInput.value = "";
+                } else {
+                    timeInput.disabled = false;
+                    const now = new Date();
+                    timeInput.value = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+                }
+            }
+        }
 
         async function startFaceLogin() {
             const video = document.getElementById('login-video');
-            const statusEl = document.getElementById('face-login-status');
             const canvas = document.getElementById('login-overlay');
             if(!video || !canvas) return;
             try {
@@ -441,30 +474,17 @@
                     faceapi.matchDimensions(canvas, displaySize);
                     const interval = setInterval(async () => {
                         if (state.view !== 'view-login' || state.loginMode !== 'face') { clearInterval(interval); return; }
-                        const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                        if (detection && state.faceMatcher) {
-                            const bestMatch = state.faceMatcher.findBestMatch(detection.descriptor);
+                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                        if (det && state.faceMatcher) {
+                            const bestMatch = state.faceMatcher.findBestMatch(det.descriptor);
                             if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
-                                const foundUser = state.users.find(u => u.id.toString() === bestMatch.label);
-                                if (foundUser) {
-                                    if(statusEl) {
-                                        statusEl.innerText = "พบใบหน้า: " + foundUser.nickname;
-                                        statusEl.className = "text-sm font-bold text-green-600 font-kanit";
-                                    }
-                                    clearInterval(interval); setTimeout(() => loginSuccess(foundUser), 800);
-                                }
+                                const user = state.users.find(u => u.id.toString() === bestMatch.label);
+                                if (user) { clearInterval(interval); loginSuccess(user); }
                             }
                         }
                     }, 300);
                 };
-            } catch (err) { if(statusEl) statusEl.innerText = "กรุณาเปิดกล้อง"; }
-        }
-
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            } catch (err) {}
         }
 
         function formatTimeHHMM(t) { 
@@ -480,14 +500,8 @@
             return `${d}/${m}/${y}`;
         }
 
-        async function validateAndSubmit(status, subType = 'all') {
-            if (!state.isAdmin && (status === 'มา' || status === 'ลาครึ่งวัน')) {
-                if (!state.location.lat || !state.location.lng || state.gpsError) {
-                    return Swal.fire({ icon: 'warning', title: 'กรุณาเปิด GPS', text: 'ไม่พบตำแหน่งของคุณ กรุณาเปิด GPS และรอจนตำแหน่งปรากฏก่อนบันทึก', confirmButtonText: 'ตกลง' });
-                }
-            }
-
-            let targetIds = []; let recordTimestamp;
+        async function validateAndSubmit(status) {
+            let targetIds = []; 
             if (state.isAdmin) {
                 const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
                 checked.forEach(cb => targetIds.push(cb.value));
@@ -497,101 +511,108 @@
             }
 
             const pCompany = document.getElementById('point-company').value;
-            const pWork = document.getElementById('point-work').value;
             const tCompany = document.getElementById('time-company').value;
+            const pWork = document.getElementById('point-work').value;
             const tWork = document.getElementById('time-work').value;
 
-            if (subType === 'company' && !tCompany) return Swal.fire('ข้อมูลไม่ครบ', 'ต้องระบุเวลาบันทึกเข้าบริษัทก่อน', 'warning');
-            if (subType === 'work' && !tWork) return Swal.fire('ข้อมูลไม่ครบ', 'ต้องระบุเวลาบันทึกเข้างานก่อน', 'warning');
-
-            if (!state.isAdmin && status === 'มา') {
-                if (subType === 'company') {
-                    const ep = state.entryPoints.find(p => p.name === pCompany);
-                    if (ep && getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng) > ep.range) return Swal.fire('พิกัดผิดพลาด', `คุณอยู่นอกรัศมีบริษัท (${Math.round(getDistance(state.location.lat, state.location.lng, ep.lat, ep.lng))}ม.)`, 'error');
-                }
-                if (subType === 'work') {
-                    const wp = state.workPoints.find(p => p.name === pWork);
-                    if (wp && getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng) > wp.range) return Swal.fire('พิกัดผิดพลาด', `คุณอยู่นอกรัศมีหน้างาน (${Math.round(getDistance(state.location.lat, state.location.lng, wp.lat, wp.lng))}ม.)`, 'error');
-                }
+            if (status === 'มา' && (!pCompany || !tCompany || !pWork || !tWork)) {
+                return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกจุดและระบุเวลาให้ครบถ้วนทั้งสองส่วน', 'warning');
             }
 
             Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             
-            // ใช้รูปแบบ Timestamp: dd/mm/yyyy, hh:mm
             const now = new Date();
-            let timestampToSave;
+            let recordTimestamp;
             if (state.isAdmin) {
-                const adminDate = document.getElementById('admin-record-date').value; // yyyy-mm-dd
-                const [y,m,d] = adminDate.split('-');
-                timestampToSave = `${d}/${m}/${y}, ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                const adminDate = document.getElementById('admin-record-date').value;
+                const dp = adminDate.split('-');
+                recordTimestamp = `${dp[2]}/${dp[1]}/${dp[0]}, ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
             } else {
-                timestampToSave = now.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '');
+                const d = now.getDate().toString().padStart(2, '0');
+                const m = (now.getMonth() + 1).toString().padStart(2, '0');
+                const yr = now.getFullYear();
+                const hh = now.getHours().toString().padStart(2, '0');
+                const mm = now.getMinutes().toString().padStart(2, '0');
+                const ss = now.getSeconds().toString().padStart(2, '0');
+                recordTimestamp = `${d}/${m}/${yr}, ${hh}:${mm}:${ss}`;
             }
 
             try {
                 for (const tid of targetIds) {
                     const targetUser = state.users.find(u => u.id == tid);
                     const data = {
-                        userId: tid, nickname: targetUser.nickname, status: status, subType: subType, 
-                        timeWork: (subType === 'work' || subType === 'all') ? tWork : '',
-                        pointWork: (subType === 'work' || subType === 'all') ? pWork : '',
-                        timeCompany: (subType === 'company' || subType === 'all') ? tCompany : '',
-                        pointCompany: (subType === 'company' || subType === 'all') ? pCompany : '',
+                        userId: tid, nickname: targetUser.nickname, status: status,
+                        pointCompany: pCompany, timeCompany: tCompany,
+                        pointWork: pWork, timeWork: tWork,
                         note: document.getElementById('attendance-note').value,
                         lat: state.location.lat, lng: state.location.lng, 
-                        timestamp: timestampToSave, recordedByAdmin: state.isAdmin
+                        timestamp: recordTimestamp, recordedByAdmin: state.isAdmin
                     };
                     await fetch(API_URL + "?action=saveAttendance", { method: 'POST', body: JSON.stringify(data) });
                 }
                 Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
-                await fetchData();
+                document.getElementById('attendance-note').value = "";
+                document.getElementById('point-company').value = "";
+                document.getElementById('point-work').value = "";
+                document.getElementById('time-company').disabled = true;
+                document.getElementById('time-work').disabled = true;
+                await fetchData(); 
             } catch (e) { Swal.fire('Error', 'ไม่สามารถบันทึกได้', 'error'); }
         }
 
         function renderGlobalReport() {
-            const selDate = document.getElementById('filter-date').value; // yyyy-mm-dd
+            const selDate = document.getElementById('filter-date').value; 
             const selStatus = document.getElementById('filter-status').value;
             const tbody = document.getElementById('report-table-body');
+            const thMap = document.getElementById('th-map');
             
             const formattedDateDisplay = formatDateDDMMYYYY(selDate);
             document.querySelectorAll('.pdf-date-display').forEach(el => el.innerText = "ประจำวันที่: " + formattedDateDisplay);
 
             if(!tbody) return;
             tbody.innerHTML = "";
-            if (state.isAdmin) document.getElementById('th-map').style.display = ""; else document.getElementById('th-map').style.display = "none";
+            let sums = { present: 0, leave: 0, half: 0, missing: 0 }; 
+
+            if (state.isAdmin) thMap.style.display = ""; else thMap.style.display = "none";
 
             state.users.forEach((u, index) => {
                 const att = state.attendance.find(a => {
-                    const tsStr = a.timestamp ? a.timestamp.toString() : "";
-                    const dateMatch = tsStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+                    if (!a.timestamp) return false;
+                    const tsStr = a.timestamp.toString();
+                    const dateMatch = tsStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
                     if (!dateMatch) return false;
-                    const aDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`; // yyyy-mm-dd
-                    return a.userId == u.id && aDate === selDate;
+                    const day = dateMatch[1].padStart(2, '0');
+                    const month = dateMatch[2].padStart(2, '0');
+                    const yr = dateMatch[3];
+                    const aDate = `${yr}-${month}-${day}`; 
+                    return a.userId.toString() === u.id.toString() && aDate === selDate;
                 });
                 
                 const status = att ? att.status : "ยังไม่ลงบันทึก";
+                if (status === "มา") sums.present++; else if (status === "ลา") sums.leave++; else if (status === "ลาครึ่งวัน") sums.half++; else sums.missing++;
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
-                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}', '${u.nickname}')" class="text-blue-600 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
-                const rowClass = ((index + 1) % 25 === 0) ? "page-break-row" : "";
-
+                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}')" class="text-blue-600 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
                 const infoClass = "font-bold text-gray-700";
                 const timeClass = "font-mono font-bold";
 
-                const workCell = `<span class="${infoClass}">${att?.pointWork ? att.pointWork : '-'}</span> <span class="${timeClass} text-blue-600">${att?.timeWork ? '(' + formatTimeHHMM(att.timeWork) + ')' : ''}</span>`;
-                const companyCell = `<span class="${infoClass}">${att?.pointCompany ? att.pointCompany : '-'}</span> <span class="${timeClass} text-green-600">${att?.timeCompany ? '(' + formatTimeHHMM(att.timeCompany) + ')' : ''}</span>`;
-
                 tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 ${rowClass}">
+                    <tr class="hover:bg-gray-50 border-b border-gray-100">
                         <td>${index + 1}</td>
                         <td class="text-left font-bold text-gray-800">${u.nickname} (${u.id})</td>
                         <td><span class="px-1.5 py-0.5 rounded-full text-[7.5px] font-bold status-badge ${getStatusClass(status)}">${status}</span></td>
-                        <td>${workCell}</td>
-                        <td>${companyCell}</td>
-                        <td class="px-1 font-medium text-[7.5px] md:text-[9.5px] text-left">${att ? (att.note || '-') : '-'}</td>
+                        <td><span class="${infoClass}">${att?.pointWork || '-'}</span> <span class="${timeClass} text-blue-600">${att?.timeWork ? '('+formatTimeHHMM(att.timeWork)+')' : ''}</span></td>
+                        <td><span class="${infoClass}">${att?.pointCompany || '-'}</span> <span class="${timeClass} text-green-600">${att?.timeCompany ? '('+formatTimeHHMM(att.timeCompany)+')' : ''}</span></td>
+                        <td class="px-1 font-medium text-[7.5px] md:text-[9.5px] text-left font-kanit">${att ? (att.note || '-') : '-'}</td>
                         <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center">${mapBtn}</td>
                     </tr>`;
             });
+
+            document.getElementById('sum-present').innerText = sums.present;
+            document.getElementById('sum-leave').innerText = sums.leave;
+            document.getElementById('sum-half').innerText = sums.half;
+            document.getElementById('sum-missing').innerText = sums.missing;
+
             initLucide();
         }
 
@@ -601,13 +622,11 @@
         }
 
         function generatePDF() {
-            const headerRow = document.getElementById('pdf-table-header-row');
-            if(headerRow) headerRow.classList.remove('hidden');
-            window.print();
-            if(headerRow) headerRow.classList.add('hidden');
+            const hr = document.getElementById('pdf-table-header-row'); if(hr) hr.classList.remove('hidden');
+            window.print(); if(hr) hr.classList.add('hidden');
         }
 
-        function viewMap(uLat, uLng, name) { window.open(`https://www.google.com/maps/dir/?api=1&origin=${uLat},${uLng}`, '_blank'); }
+        function viewMap(uLat, uLng) { window.open(`https://www.google.com/maps/dir/?api=1&origin=${uLat},${uLng}`, '_blank'); }
 
         function renderPinDots() {
             const container = document.getElementById('pin-display'); if (!container) return; container.innerHTML = "";
@@ -622,7 +641,7 @@
         async function handlePinLogin() {
             const hashedPin = CryptoJS.SHA256(state.pin).toString();
             const user = state.users.find(u => u.pin === hashedPin);
-            if(user) loginSuccess(user); else { Swal.fire({ icon: 'error', title: 'รหัส PIN ผิด', text: 'กรุณาลองใหม่', fontKanit: true }); clearPin(); }
+            if(user) loginSuccess(user); else { Swal.fire({ icon: 'error', title: 'รหัส PIN ผิด', text: 'กรุณาลองใหม่' }); clearPin(); }
         }
         function loginSuccess(u) { state.user = u; localStorage.setItem('pfl_session', JSON.stringify({ user: u, expiry: Date.now() + 28800000 })); document.getElementById('display-user-name').innerText = `${u.nickname} (${u.id})`; switchView('view-main'); clearPin(); }
         function checkSession() { const s = localStorage.getItem('pfl_session'); if (s) { try { const sess = JSON.parse(s); if(sess.expiry > Date.now()) { state.user = sess.user; document.getElementById('display-user-name').innerText = `${state.user.nickname} (${state.user.id})`; switchView('view-main'); } } catch(e) {} } }
@@ -663,7 +682,7 @@
         async function saveNewUser(id, pin) {
             try {
                 await fetch(API_URL + "?action=saveLog", { method: 'POST', body: JSON.stringify({ userId: id, pin: CryptoJS.SHA256(pin).toString(), faceDescriptor: JSON.stringify(Array.from(state.tempDescriptor)), type: 'register' }) });
-                Swal.fire('สำเร็จ', 'ลงทะเบียนเรียบร้อย', 'success'); switchView('view-login'); fetchData();
+                Swal.fire({ icon: 'success', title: 'ลงทะเบียนเรียบร้อย' }); switchView('view-login'); fetchData();
             } catch (e) { Swal.fire('Error', 'ไม่สำเร็จ', 'error'); }
         }
 
@@ -676,12 +695,9 @@
         }
         function proceedToAdminMode() {
             state.isAdmin = true; 
-            const adminBadge = document.getElementById('admin-badge');
-            const ac = document.getElementById('admin-controls-area');
-            const rd = document.getElementById('admin-record-date');
-            if(adminBadge) adminBadge.classList.remove('hidden'); 
-            if(ac) ac.classList.remove('hidden'); 
-            if(rd) rd.valueAsDate = new Date();
+            document.getElementById('admin-badge').classList.remove('hidden'); 
+            document.getElementById('admin-controls-area').classList.remove('hidden'); 
+            document.getElementById('admin-record-date').valueAsDate = new Date();
             switchView('view-admin-crud'); populateSelectors();
         }
 
@@ -691,7 +707,9 @@
             el.innerHTML = ''; wl.innerHTML = ''; ul.innerHTML = '';
             state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
             state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
-            state.users.forEach(u => ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-4 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-50 p-1 hover:bg-blue-50 rounded transition-all"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-50 p-1 hover:bg-red-50 rounded transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`);
+            state.users.forEach(u => {
+                ul.innerHTML += `<tr class="border-b"><td class="px-4 py-3 text-center font-mono text-[9px]">${u.id}</td><td class="px-4 py-3 font-bold">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-600 p-1 hover:bg-blue-50 rounded transition-all"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-600 p-1 hover:bg-red-50 rounded transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;
+            });
             initLucide();
         }
         function createPointRow(p, action) {
@@ -703,7 +721,7 @@
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
                 html: `<div class="space-y-3 text-left font-kanit"><div><label class="text-[10px] font-bold">ชื่อจุด</label><input id="s-name" class="swal2-input !mt-1 !mb-0 !w-full text-sm" value="${p?p.name:''}" ${isEdit?'disabled':''}></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] font-bold">Lat</label><input id="s-lat" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono" value="${p?p.lat:state.location.lat}"></div><div><label class="text-[10px] font-bold">Lng</label><input id="s-lng" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono" value="${p?p.lng:state.location.lng}"></div></div><button type="button" onclick="document.getElementById('s-lat').value=state.location.lat.toFixed(6);document.getElementById('s-lng').value=state.location.lng.toFixed(6)" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-[11px] shadow-sm flex items-center justify-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ใช้พิกัดปัจจุบันของคุณ</button><div><label class="text-[10px] font-bold">ระยะอนุญาต (เมตร)</label><input id="s-range" class="swal2-input !mt-1 !mb-0 !w-full text-sm" value="${p?p.range:'100'}"></div></div>`,
-                didOpen: () => lucide.createIcons(),
+                didOpen: () => { if (typeof lucide !== 'undefined') lucide.createIcons(); },
                 preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
             });
             if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
@@ -726,12 +744,15 @@
             const dateEl = document.getElementById('current-date');
             if(timeEl) timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
             if(dateEl) dateEl.innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const hhmm = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
-            const tc = document.getElementById('time-company'); if(tc && !tc.value) tc.value = hhmm;
-            const tw = document.getElementById('time-work'); if(tw && !tw.value) tw.value = hhmm;
         }
 
         function retryFetchData() { fetchData(); }
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
     </script>
 </body>
 </html>
