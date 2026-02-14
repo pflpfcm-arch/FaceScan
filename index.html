@@ -15,47 +15,54 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #ffffff; color: #333; }
+        body { font-family: 'Kanit', sans-serif; background-color: #ffffff; color: #333; overflow-x: hidden; }
         
-        /* Modern Numpad Style with Color Feedback */
+        /* Modern Numpad Style with Proportional Design */
         .numpad-btn {
-            @apply w-20 h-20 rounded-full flex items-center justify-center text-3xl font-light bg-[#f2f2f2] text-[#444] transition-all duration-150 active:scale-95 active:bg-blue-100 active:text-blue-600 select-none cursor-pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            @apply w-20 h-20 rounded-full flex items-center justify-center text-3xl font-light bg-[#f8f9fa] text-[#444] transition-all duration-150 active:scale-90 active:bg-blue-600 active:text-white select-none cursor-pointer border border-transparent shadow-sm;
         }
         
-        /* PIN Dot Indicators */
+        /* PIN Dot Indicators 6 Dots */
         .pin-dot {
-            @apply w-5 h-5 rounded-full border-2 border-gray-200 transition-all duration-200;
+            @apply w-5 h-5 rounded-full border-2 border-gray-200 transition-all duration-300;
         }
         .pin-dot.filled {
-            @apply bg-[#444444] border-[#444444] scale-110 shadow-sm;
+            @apply bg-blue-600 border-blue-600 scale-125 shadow-md;
         }
 
-        /* Elements Styling */
-        #video-container, #reg-video-container { position: relative; width: 100%; max-width: 320px; border-radius: 1.5rem; overflow: hidden; background: #000; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        /* Video Containers */
+        #video-container, #reg-video-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 320px; 
+            border-radius: 2.5rem; 
+            overflow: hidden; 
+            background: #000; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+        }
         #login-overlay, #reg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         
         .loader {
-            border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%;
+            border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%;
             width: 32px; height: 32px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         #loading-overlay { transition: opacity 0.5s ease-out; background: white; }
-        .tab-active { @apply border-b-2 border-blue-600 text-blue-600 font-bold; }
-        .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+        .tab-active { @apply border-b-4 border-blue-600 text-blue-600 font-bold; }
+        .card-shadow { box-shadow: 0 10px 40px rgba(0,0,0,0.03); }
         
         /* Report Table Styling */
         .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         .report-table th, .report-table td { 
-            @apply border-b border-gray-100 break-words whitespace-normal font-kanit;
-            padding: 10px 4px;
-            font-size: 9px;
+            @apply border-b border-gray-50 break-words whitespace-normal font-kanit;
+            padding: 12px 6px;
+            font-size: 10px;
             vertical-align: middle;
             text-align: center;
         }
         @media (min-width: 768px) {
-            .report-table th, .report-table td { font-size: 11px; padding: 14px 8px; }
+            .report-table th, .report-table td { font-size: 13px; padding: 16px 10px; }
         }
         .report-table th { @apply font-bold text-gray-400 uppercase bg-gray-50/50 tracking-wider; }
 
@@ -64,7 +71,7 @@
             .no-print { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; }
-            .report-table { border: 1px solid #eee !important; }
+            .report-table { border: 1px solid #eee !important; width: 100% !important; }
         }
     </style>
 </head>
@@ -73,64 +80,64 @@
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center space-y-4">
         <div class="loader"></div>
-        <p class="text-gray-500 font-medium text-sm text-center font-kanit">PFL Attendance<br><span class="text-[10px] text-gray-400 font-normal">กำลังเริ่มระบบรักษาความปลอดภัย...</span></p>
+        <p class="text-gray-500 font-medium text-sm text-center">PFL Attendance<br><span class="text-[10px] text-gray-400 font-normal">กำลังยืนยันพิกัดและเริ่มระบบ...</span></p>
     </div>
 
     <!-- Header -->
-    <header id="main-header" class="hidden bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 sticky top-0 z-50 no-print font-kanit">
+    <header id="main-header" class="hidden bg-white/90 backdrop-blur-xl border-b border-gray-100 p-4 sticky top-0 z-50 no-print">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-blue-200 shadow-lg"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
+                <div class="bg-blue-600 p-2.5 rounded-2xl shadow-blue-100 shadow-2xl"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
                 <div>
                     <h1 class="text-lg font-bold text-gray-800 leading-none tracking-tight">PFL Attendance</h1>
                     <p class="text-[9px] text-gray-400 font-medium uppercase tracking-widest">Parade Control System</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-4">
                 <button id="btn-admin-config" onclick="enterAdminSettings()" class="p-2 text-gray-300 hover:text-blue-600 transition-all">
-                    <i data-lucide="settings-2" class="w-5 h-5"></i>
+                    <i data-lucide="settings-2" class="w-6 h-6"></i>
                 </button>
-                <button onclick="logout()" class="text-sm text-red-500 font-semibold bg-red-50 px-4 py-1.5 rounded-full hover:bg-red-100 transition-all">
+                <button onclick="logout()" class="text-sm text-red-500 font-bold bg-red-50 px-5 py-2.5 rounded-full hover:bg-red-100 transition-all">
                     ออกจากระบบ
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow container mx-auto max-w-6xl p-4 space-y-6">
+    <main class="flex-grow container mx-auto max-w-6xl p-4 space-y-10">
         
         <!-- SECTION: Login -->
-        <div id="view-login" class="max-w-lg mx-auto space-y-8 text-center py-10 no-print">
+        <div id="view-login" class="max-w-lg mx-auto space-y-10 text-center py-6 no-print font-kanit">
             <div class="space-y-2">
-                <h2 class="text-3xl font-bold text-gray-800">เข้าใช้งานระบบ</h2>
-                <p class="text-gray-400 text-sm">กรุณาเลือกวิธีการเข้าสู่ระบบด้านล่าง</p>
+                <h2 class="text-3xl font-bold text-gray-800 tracking-tight">เข้าใช้งานระบบ</h2>
+                <p class="text-gray-400 text-sm">เลือกวิธีการยืนยันตัวตนเพื่อบันทึกเวลางาน</p>
             </div>
 
-            <div class="flex justify-center space-x-10 border-b border-gray-100 text-gray-400 text-sm">
-                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-3 tab-active flex items-center gap-2 transition-all"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
-                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-3 flex items-center gap-2 transition-all"><i data-lucide="key-round" class="w-4 h-4"></i> รหัส PIN</button>
+            <div class="flex justify-center space-x-14 border-b border-gray-100 text-gray-400 text-sm">
+                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-4 tab-active flex items-center gap-2 transition-all"><i data-lucide="scan-face" class="w-5 h-5"></i> สแกนใบหน้า</button>
+                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-4 flex items-center gap-2 transition-all"><i data-lucide="lock" class="w-5 h-5"></i> รหัส PIN</button>
             </div>
 
             <!-- Login Face -->
-            <div id="login-face-section" class="space-y-6">
-                <div id="video-container" class="mx-auto aspect-square ring-8 ring-blue-50">
+            <div id="login-face-section" class="space-y-8">
+                <div id="video-container" class="mx-auto aspect-square ring-[15px] ring-blue-50/60">
                     <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                     <canvas id="login-overlay"></canvas>
                 </div>
-                <p class="text-sm font-medium text-blue-500 animate-pulse" id="face-login-status">กำลังตรวจพิกัดและสแกนใบหน้า...</p>
+                <p class="text-sm font-medium text-blue-500 animate-pulse" id="face-login-status">กำลังตรวจพิกัดและสแกนใบหน้าพนักงาน...</p>
             </div>
 
-            <!-- Login PIN (Modern UI) -->
-            <div id="login-pin-section" class="hidden flex flex-col items-center space-y-10 py-4">
-                <div class="space-y-4">
-                    <h3 class="text-2xl font-semibold text-[#444]">กรุณากรอกรหัสผ่าน 6 หลัก</h3>
-                    <div id="pin-indicators-login" class="flex justify-center space-x-4">
+            <!-- Login PIN (Modern & Futuristic UI) -->
+            <div id="login-pin-section" class="hidden flex flex-col items-center space-y-12 py-4">
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-bold text-gray-700 tracking-tight">กรุณารหัสผ่าน 6 หลัก</h3>
+                    <div id="pin-indicators-login" class="flex justify-center space-x-5">
                         <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
                         <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-x-8 gap-y-6 max-w-xs mx-auto">
+                <div class="grid grid-cols-3 gap-x-10 gap-y-8 max-w-xs mx-auto">
                     <button onclick="pressPin(1)" class="numpad-btn">1</button>
                     <button onclick="pressPin(2)" class="numpad-btn">2</button>
                     <button onclick="pressPin(3)" class="numpad-btn">3</button>
@@ -140,53 +147,58 @@
                     <button onclick="pressPin(7)" class="numpad-btn">7</button>
                     <button onclick="pressPin(8)" class="numpad-btn">8</button>
                     <button onclick="pressPin(9)" class="numpad-btn">9</button>
-                    <div class="w-20 h-20"></div>
+                    <div class="w-20"></div>
                     <button onclick="pressPin(0)" class="numpad-btn">0</button>
-                    <button onclick="backspacePin()" class="w-20 h-20 flex items-center justify-center text-gray-400 active:scale-75 transition-transform cursor-pointer">
-                        <i data-lucide="delete" class="w-10 h-10"></i>
+                    <button onclick="backspacePin()" class="w-20 h-20 flex items-center justify-center text-gray-400 active:scale-75 transition-all cursor-pointer">
+                        <i data-lucide="delete" class="w-14 h-14"></i>
                     </button>
                 </div>
-                <button onclick="retryFetchData()" class="text-blue-500 flex items-center gap-1 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity">
-                    <i data-lucide="refresh-ccw" class="w-3 h-3"></i> อัปเดตข้อมูลพนักงาน
+                <button onclick="retryFetchData()" class="text-blue-500 flex items-center gap-2 text-xs font-bold opacity-60 hover:opacity-100 transition-opacity">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> อัปเดตฐานข้อมูลพนักงาน
                 </button>
             </div>
             
-            <p class="mt-8 text-sm text-gray-400 font-kanit">ยังไม่มีข้อมูลในระบบ? <button onclick="switchView('view-register')" class="text-blue-600 font-bold underline">ลงทะเบียนใหม่ที่นี่</button></p>
+            <p class="mt-8 text-sm text-gray-400 font-kanit">ยังไม่เคยบันทึกข้อมูล? <button onclick="switchView('view-register')" class="text-blue-600 font-bold underline">ลงทะเบียนใช้งานใหม่</button></p>
         </div>
 
         <!-- SECTION: Register -->
-        <div id="view-register" class="max-w-lg mx-auto hidden space-y-6 no-print">
+        <div id="view-register" class="max-w-lg mx-auto hidden space-y-8 no-print font-kanit">
              <div class="flex items-center space-x-2">
                 <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="arrow-left"></i></button>
-                <h2 class="text-xl font-bold text-gray-800 tracking-tight">ลงทะเบียนเข้าใช้งาน</h2>
+                <h2 class="text-2xl font-bold text-gray-800 tracking-tight">ลงทะเบียนพนักงาน</h2>
             </div>
             
-            <div class="bg-white p-8 rounded-[2rem] border border-gray-100 card-shadow space-y-6">
-                <div id="reg-form-content">
+            <div class="bg-white p-10 rounded-[3rem] border border-gray-100 card-shadow space-y-10">
+                <div id="reg-form-content" class="space-y-8">
                     <div class="space-y-4">
-                        <label class="block text-sm font-semibold text-gray-500 uppercase tracking-wider">เลือกรายชื่อพนักงาน</label>
-                        <select id="reg-user-list" class="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none text-lg font-medium appearance-none font-kanit"></select>
+                        <label class="block text-sm font-bold text-gray-500 uppercase tracking-widest px-1">เลือกรายชื่อพนักงาน</label>
+                        <select id="reg-user-list" class="w-full p-5 bg-gray-50 border-none rounded-3xl outline-none text-lg font-semibold appearance-none transition-all focus:bg-gray-100"></select>
                     </div>
-                    <button onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all mt-8">เริ่มต้นการสแกนใบหน้า</button>
+                    <button onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-5 rounded-[1.8rem] font-bold shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all">ถัดไป: สแกนใบหน้า</button>
                 </div>
 
-                <div id="face-scan-section" class="hidden space-y-6 text-center">
-                    <p class="text-lg font-bold text-gray-800" id="scan-status">มองตรงที่กล้อง</p>
-                    <div id="reg-video-container" class="mx-auto aspect-square ring-8 ring-blue-50">
+                <!-- Face Scan -->
+                <div id="face-scan-section" class="hidden space-y-8 text-center">
+                    <div class="space-y-1">
+                        <p class="text-xl font-bold text-gray-800" id="scan-status">มองตรงที่กล้อง</p>
+                        <p class="text-sm text-gray-400">กรุณาอยู่ในที่ที่มีแสงสว่างเพียงพอ</p>
+                    </div>
+                    <div id="reg-video-container" class="mx-auto aspect-square ring-[15px] ring-blue-50/60">
                         <video id="reg-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                         <canvas id="reg-overlay"></canvas>
                     </div>
                 </div>
 
-                <div id="pin-setup-section" class="hidden flex flex-col items-center space-y-10 py-2">
-                    <div class="space-y-4">
-                        <h3 id="pin-setup-title" class="text-2xl font-semibold text-[#444] text-center">ตั้งรหัสผ่าน 6 หลัก</h3>
-                        <div id="pin-indicators-reg" class="flex justify-center space-x-4">
+                <!-- PIN Register UI -->
+                <div id="pin-setup-section" class="hidden flex flex-col items-center space-y-12 py-2">
+                    <div class="space-y-6">
+                        <h3 id="pin-setup-title" class="text-2xl font-bold text-gray-800 text-center tracking-tight">กรุณารหัสผ่าน 6 หลัก</h3>
+                        <div id="pin-indicators-reg" class="flex justify-center space-x-5">
                             <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
                             <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-x-8 gap-y-6 max-w-xs mx-auto">
+                    <div class="grid grid-cols-3 gap-x-10 gap-y-8 max-w-xs mx-auto">
                         <button onclick="pressPinReg(1)" class="numpad-btn">1</button>
                         <button onclick="pressPinReg(2)" class="numpad-btn">2</button>
                         <button onclick="pressPinReg(3)" class="numpad-btn">3</button>
@@ -196,97 +208,99 @@
                         <button onclick="pressPinReg(7)" class="numpad-btn">7</button>
                         <button onclick="pressPinReg(8)" class="numpad-btn">8</button>
                         <button onclick="pressPinReg(9)" class="numpad-btn">9</button>
-                        <div class="w-20 h-20"></div>
+                        <div class="w-20"></div>
                         <button onclick="pressPinReg(0)" class="numpad-btn">0</button>
-                        <button onclick="backspacePinReg()" class="w-20 h-20 flex items-center justify-center text-gray-400 active:scale-75 transition-transform cursor-pointer">
-                            <i data-lucide="delete" class="w-10 h-10"></i>
+                        <button onclick="backspacePinReg()" class="w-20 h-20 flex items-center justify-center text-gray-400 active:scale-75 transition-all cursor-pointer">
+                            <i data-lucide="delete" class="w-12 h-12"></i>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- SECTION: Dashboard -->
-        <div id="view-main" class="hidden space-y-8 pb-10">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
-                <!-- Profile Card -->
-                <div class="lg:col-span-1 bg-white p-6 rounded-[2rem] card-shadow text-center border border-gray-100 space-y-4 relative overflow-hidden font-kanit">
-                    <div id="admin-badge" class="hidden absolute top-4 right-4 bg-red-100 text-red-600 text-[10px] font-bold px-3 py-1 rounded-full border border-red-200">ADMIN MODE</div>
-                    <h3 class="text-gray-400 text-xs font-bold uppercase tracking-widest">ยินดีต้อนรับคุณ</h3>
-                    <div id="display-user-name" class="font-bold text-gray-800 text-2xl truncate px-4">-</div>
+        <!-- SECTION: Main Attendance Form -->
+        <div id="view-main" class="hidden space-y-10 pb-12 font-kanit">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 no-print">
+                <!-- User Profile & Time Card -->
+                <div class="lg:col-span-1 bg-white p-8 rounded-[3rem] card-shadow text-center border border-gray-100 space-y-8 relative overflow-hidden font-kanit">
+                    <div id="admin-badge" class="hidden absolute top-6 right-6 bg-red-100 text-red-600 text-[10px] font-extrabold px-4 py-1.5 rounded-full border border-red-200 tracking-widest uppercase">Admin Mode</div>
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">สวัสดีคุณ</p>
+                    <div id="display-user-name" class="font-bold text-gray-800 text-3xl truncate px-4">-</div>
                     
-                    <div class="py-6 border-y border-gray-50">
-                        <div class="text-5xl font-bold text-blue-600 tracking-tighter" id="current-time">00:00:00</div>
-                        <div class="text-gray-400 text-sm font-medium" id="current-date">-</div>
+                    <div class="py-10 border-y border-gray-50 space-y-2">
+                        <div class="text-6xl font-bold text-blue-600 tracking-tighter" id="current-time">00:00:00</div>
+                        <div class="text-gray-400 text-base font-medium" id="current-date">-</div>
                     </div>
 
-                    <div id="gps-banner" class="flex items-center justify-center p-3 bg-yellow-50 text-yellow-700 rounded-2xl text-[11px] font-semibold">
-                        <i id="gps-icon" data-lucide="map-pin" class="w-4 h-4 mr-2"></i>
-                        <span id="gps-text">กำลังเช็คตำแหน่ง GPS...</span>
+                    <div id="gps-banner" class="flex items-center justify-center p-4 bg-yellow-50 text-yellow-700 rounded-[1.5rem] text-xs font-bold shadow-sm transition-all duration-500">
+                        <i id="gps-icon" data-lucide="map-pin" class="w-5 h-5 mr-3"></i>
+                        <span id="gps-text">กำลังค้นหาพิกัด GPS ของคุณ...</span>
                     </div>
                 </div>
 
-                <!-- Input Form -->
-                <div class="lg:col-span-2 bg-white p-8 rounded-[2rem] card-shadow border border-gray-100 space-y-6">
-                    <div id="admin-controls-area" class="hidden pb-6 border-b border-gray-100 space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600 italic underline">วันที่ลงบันทึกแทน (Admin):</label>
-                                <input type="date" id="admin-record-date" class="w-full p-4 bg-red-50 border-none rounded-2xl font-bold text-red-700 outline-none font-kanit">
+                <!-- Input Form Card -->
+                <div class="lg:col-span-2 bg-white p-10 rounded-[3rem] card-shadow border border-gray-100 space-y-10">
+                    <!-- Admin Overwrites -->
+                    <div id="admin-controls-area" class="hidden pb-8 border-b border-gray-100 space-y-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div class="space-y-3">
+                                <label class="text-xs font-bold text-red-600 flex items-center gap-2 tracking-wide uppercase"><i data-lucide="calendar" class="w-4 h-4"></i> วันที่บันทึกแทน (Admin):</label>
+                                <input type="date" id="admin-record-date" class="w-full p-5 bg-red-50/50 border-none rounded-[1.5rem] font-bold text-red-700 outline-none focus:ring-2 focus:ring-red-200">
                             </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-red-600">เลือกรายชื่อพนักงาน:</label>
-                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-3 bg-red-50/50 rounded-2xl border border-red-50 text-[10px]"></div>
+                            <div class="space-y-3">
+                                <label class="text-xs font-bold text-red-600 flex items-center gap-2 tracking-wide uppercase"><i data-lucide="users" class="w-4 h-4"></i> เลือกพนักงาน:</label>
+                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 gap-3 max-h-56 overflow-y-auto p-4 bg-red-50/30 rounded-[1.5rem] border border-red-50 text-[11px] font-semibold"></div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 font-kanit font-kanit">
-                        <!-- ส่วนเข้าบริษัท -->
-                        <div class="space-y-3">
-                            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">จุดเข้าบริษัท</label>
-                            <div class="flex gap-2">
-                                <select id="point-company" onchange="handlePointChange('company')" class="flex-grow p-4 bg-gray-50 border-none rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-400 transition-all font-kanit"></select>
-                                <input type="time" id="time-company" disabled class="w-28 p-4 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-blue-600 font-kanit">
+                    <!-- Geofenced Selects -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 font-kanit">
+                        <div class="space-y-4">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">จุดเข้าบริษัท</label>
+                            <div class="flex gap-4">
+                                <select id="point-company" onchange="handlePointChange('company')" class="flex-grow p-5 bg-gray-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-400 appearance-none"></select>
+                                <input type="time" id="time-company" disabled class="w-36 p-5 bg-white border border-gray-100 rounded-2xl text-base font-bold text-blue-600 shadow-sm disabled:opacity-30">
                             </div>
                         </div>
-                        <!-- ส่วนเข้าหน้างาน -->
-                        <div class="space-y-3">
-                            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">จุดเข้าหน้างาน</label>
-                            <div class="flex gap-2">
-                                <select id="point-work" onchange="handlePointChange('work')" class="flex-grow p-4 bg-gray-50 border-none rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-400 transition-all font-kanit"></select>
-                                <input type="time" id="time-work" disabled class="w-28 p-4 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-orange-600 font-kanit">
+                        <div class="space-y-4">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">จุดเข้าหน้างาน</label>
+                            <div class="flex gap-4">
+                                <select id="point-work" onchange="handlePointChange('work')" class="flex-grow p-5 bg-gray-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-400 appearance-none"></select>
+                                <input type="time" id="time-work" disabled class="w-36 p-5 bg-white border border-gray-100 rounded-2xl text-base font-bold text-orange-600 shadow-sm disabled:opacity-30">
                             </div>
                         </div>
                     </div>
                     
-                    <textarea id="attendance-note" rows="1" class="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-400 transition-all font-kanit" placeholder="ระบุหมายเหตุ..."></textarea>
+                    <textarea id="attendance-note" rows="1" class="w-full p-5 bg-gray-50 border-none rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-400 transition-all" placeholder="ระบุรายละเอียดเพิ่มเติมหรือสาเหตุการลา..."></textarea>
                     
-                    <button onclick="validateAndSubmit('มา')" class="w-full bg-blue-600 text-white p-5 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3 font-kanit">
-                        <i data-lucide="check-circle-2" class="w-6 h-6"></i> บันทึกการทำงาน
+                    <!-- Single Submit Button -->
+                    <button onclick="validateAndSubmit('มา')" class="w-full bg-blue-600 text-white p-6 rounded-[2rem] font-extrabold text-xl shadow-2xl shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-4">
+                        <i data-lucide="check-circle" class="w-7 h-7"></i> บันทึกข้อมูลการทำงาน
                     </button>
 
-                    <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-50">
-                        <button onclick="validateAndSubmit('ลา')" class="bg-red-50 text-red-600 p-4 rounded-2xl font-bold flex flex-col items-center justify-center transition-all hover:bg-red-100">
-                            <i data-lucide="x-circle" class="w-5 h-5 mb-1 font-kanit"></i>
-                            <span class="text-[10px] uppercase font-kanit">ลาหยุด</span>
+                    <!-- Leave Buttons -->
+                    <div class="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50">
+                        <button onclick="validateAndSubmit('ลา')" class="bg-red-50 text-red-600 p-5 rounded-[1.5rem] font-bold flex flex-col items-center justify-center transition-all hover:bg-red-100">
+                            <i data-lucide="x-circle" class="w-7 h-7 mb-2"></i>
+                            <span class="text-[11px] uppercase font-bold tracking-widest">แจ้งลาหยุดงาน</span>
                         </button>
-                        <button onclick="validateAndSubmit('ลาครึ่งวัน')" class="bg-orange-50 text-orange-600 p-4 rounded-2xl font-bold flex flex-col items-center justify-center transition-all hover:bg-orange-100">
-                            <i data-lucide="clock-3" class="w-5 h-5 mb-1 font-kanit"></i>
-                            <span class="text-[10px] uppercase font-kanit">ลาครึ่งวัน</span>
+                        <button onclick="validateAndSubmit('ลาครึ่งวัน')" class="bg-orange-50 text-orange-600 p-5 rounded-[1.5rem] font-bold flex flex-col items-center justify-center transition-all hover:bg-orange-100">
+                            <i data-lucide="clock-3" class="w-7 h-7 mb-2"></i>
+                            <span class="text-[11px] uppercase font-bold tracking-widest">แจ้งลาครึ่งวัน</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Report Section -->
-            <div class="space-y-4 font-kanit">
+            <!-- Report Dashboard Section -->
+            <div class="space-y-8 font-kanit">
                 <div class="flex items-center justify-between no-print">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2 font-kanit"><i data-lucide="clipboard-list" class="text-blue-600"></i> รายงานลงเวลาของทุกคน</h3>
-                    <div class="flex items-center gap-2">
-                        <div class="flex items-center bg-white p-1 rounded-full border border-gray-100 shadow-sm overflow-hidden font-kanit">
-                            <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 px-4 bg-transparent outline-none font-bold text-gray-700 font-kanit">
-                            <select id="filter-status" onchange="renderGlobalReport()" class="p-2 px-4 bg-transparent border-l border-gray-100 outline-none text-xs font-bold text-gray-500 font-kanit">
+                    <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-3"><i data-lucide="clipboard-list" class="text-blue-600 w-8 h-8"></i> รายงานลงเวลาวันนี้</h3>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center bg-white p-2 rounded-full border border-gray-100 shadow-xl overflow-hidden font-kanit">
+                            <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 px-6 bg-transparent outline-none text-xs font-bold">
+                            <select id="filter-status" onchange="renderGlobalReport()" class="p-2 px-6 bg-transparent border-l border-gray-100 outline-none text-xs font-bold text-gray-500">
                                 <option value="ทั้งหมด">ทั้งหมด</option>
                                 <option value="มา">มา</option>
                                 <option value="ลา">ลา</option>
@@ -294,79 +308,101 @@
                                 <option value="ยังไม่ลงบันทึก">ยังไม่ลง</option>
                             </select>
                         </div>
-                        <button onclick="generatePDF()" class="bg-white p-3 rounded-full border border-gray-100 shadow-sm text-red-500 hover:bg-red-50 transition-all font-kanit"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                        <button onclick="generatePDF()" class="bg-white p-4 rounded-full border border-gray-100 shadow-xl text-red-500 hover:bg-red-50 transition-all"><i data-lucide="printer" class="w-5 h-5"></i></button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 no-print">
-                    <div class="bg-white p-5 rounded-3xl card-shadow border border-green-50 text-center space-y-1">
-                        <p id="sum-present" class="text-3xl font-bold text-green-600 font-mono">0</p>
-                        <p class="text-gray-400 text-[9px] font-bold uppercase tracking-widest font-kanit">มาทำงาน</p>
+                <!-- Live Summary Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 no-print">
+                    <div class="bg-white p-8 rounded-[2.5rem] card-shadow border-l-[12px] border-green-500 text-center space-y-1">
+                        <p id="sum-present" class="text-4xl font-black text-green-600 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">มาทำงาน</p>
                     </div>
-                    <div class="bg-white p-5 rounded-3xl card-shadow border border-red-50 text-center space-y-1">
-                        <p id="sum-leave" class="text-3xl font-bold text-red-600 font-mono">0</p>
-                        <p class="text-gray-400 text-[9px] font-bold uppercase tracking-wider font-kanit">ลาหยุด</p>
+                    <div class="bg-white p-8 rounded-[2.5rem] card-shadow border-l-[12px] border-red-500 text-center space-y-1">
+                        <p id="sum-leave" class="text-4xl font-black text-red-600 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">ลาหยุด</p>
                     </div>
-                    <div class="bg-white p-5 rounded-3xl card-shadow border border-orange-50 text-center space-y-1">
-                        <p id="sum-half" class="text-3xl font-bold text-orange-500 font-mono font-kanit">0</p>
-                        <p class="text-gray-400 text-[9px] font-bold uppercase tracking-wider font-kanit">ลาครึ่งวัน</p>
+                    <div class="bg-white p-8 rounded-[2.5rem] card-shadow border-l-[12px] border-orange-400 text-center space-y-1">
+                        <p id="sum-half" class="text-4xl font-black text-orange-500 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">ลาครึ่งวัน</p>
                     </div>
-                    <div class="bg-white p-5 rounded-3xl card-shadow border border-gray-50 text-center space-y-1">
-                        <p id="sum-missing" class="text-3xl font-bold text-gray-500 font-mono font-kanit">0</p>
-                        <p class="text-gray-400 text-[9px] font-bold uppercase tracking-wider font-kanit">ยังไม่ลง</p>
+                    <div class="bg-white p-8 rounded-[2.5rem] card-shadow border-l-[12px] border-gray-300 text-center space-y-1">
+                        <p id="sum-missing" class="text-4xl font-black text-gray-400 font-mono">0</p>
+                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">ยังไม่ลง</p>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] card-shadow border border-gray-100 overflow-hidden relative">
-                    <table id="attendance-table" class="report-table">
+                <div class="bg-white rounded-[3rem] card-shadow border border-gray-100 overflow-hidden relative">
+                    <table id="attendance-table" class="report-table font-kanit">
                         <thead>
                             <tr class="hidden" id="pdf-table-header-row">
-                                <th colspan="7" class="py-10 bg-white border-none font-kanit">
-                                    <div class="text-2xl font-bold text-black mb-2 text-center font-kanit">รายงานประจำวัน ฝ่ายกำกับรถพาเหรด</div>
-                                    <div class="text-lg font-bold text-gray-600 pdf-date-display text-center font-kanit"></div>
+                                <th colspan="7" class="py-16 bg-white border-none">
+                                    <div class="text-4xl font-black text-black mb-2 text-center">รายงานประจำวัน ฝ่ายกำกับรถพาเหรด</div>
+                                    <div class="text-xl font-bold text-gray-500 pdf-date-display text-center"></div>
                                 </th>
                             </tr>
-                            <tr class="bg-gray-50/50 text-gray-400 font-bold border-b border-gray-100">
+                            <tr class="bg-gray-50/70 text-gray-400 font-bold border-b border-gray-100">
                                 <th class="w-[6%]">#</th>
-                                <th class="w-[20%] text-left">พนักงาน</th>
+                                <th class="w-[20%] text-left font-kanit">พนักงาน</th>
                                 <th class="w-[12%]">สถานะ</th>
                                 <th class="w-[24%]">เข้าหน้างาน</th>
                                 <th class="w-[24%]">เข้าบริษัท</th>
-                                <th class="w-[10%] text-left">โน้ต</th>
+                                <th class="w-[10%] text-left font-kanit">โน้ต</th>
                                 <th id="th-map" class="w-[4%] no-print">Map</th>
                             </tr>
                         </thead>
-                        <tbody id="report-table-body" class="divide-y divide-gray-50 font-kanit"></tbody>
+                        <tbody id="report-table-body" class="divide-y divide-gray-50"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <div id="view-admin-crud" class="hidden space-y-6 pb-10 no-print font-kanit">
-            <div class="flex items-center justify-between font-kanit"><button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="arrow-left font-kanit font-kanit font-kanit"></i></button>
-                <h2 class="text-2xl font-bold text-gray-800">จัดการข้อมูลระบบ</h2><div></div>
+        <!-- SECTION: Admin Manager -->
+        <div id="view-admin-crud" class="hidden space-y-10 pb-12 no-print font-kanit">
+            <div class="flex items-center justify-between"><button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="arrow-left"></i></button>
+                <h2 class="text-3xl font-bold text-gray-800 tracking-tight">ระบบหลังบ้าน Admin</h2><div></div>
             </div>
-            <div class="bg-white p-8 rounded-[2rem] card-shadow border border-gray-100 space-y-4">
-                <div class="flex justify-between items-center"><h4 class="font-bold text-lg flex items-center gap-2"><i data-lucide="users" class="text-blue-500 font-kanit"></i> รายชื่อพนักงาน</h4><button onclick="showUserModal()" class="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-xs shadow-md">+ เพิ่ม</button></div>
-                <div class="overflow-x-auto rounded-3xl border border-gray-50"><table class="w-full text-sm text-left font-kanit"><thead class="bg-gray-50 font-bold text-gray-500 uppercase text-[10px]"><tr><th class="px-6 py-4 text-center font-kanit font-kanit font-kanit font-kanit">รหัส</th><th class="px-6 py-4 font-kanit font-kanit font-kanit font-kanit font-kanit">ชื่อเล่น</th><th class="px-4 py-3 text-center font-kanit">สิทธิ์</th><th class="px-6 py-4 text-center font-kanit">การจัดการ</th></tr></thead><tbody id="list-users-crud" class="divide-y text-gray-700 font-kanit font-kanit font-kanit"></tbody></table></div>
+            <div class="bg-white p-10 rounded-[3rem] card-shadow border border-gray-100 space-y-8">
+                <div class="flex justify-between items-center"><h4 class="font-bold text-2xl flex items-center gap-4"><i data-lucide="users" class="text-blue-500 w-8 h-8"></i> จัดการพนักงาน</h4><button onclick="showUserModal()" class="bg-blue-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-xl transition-all hover:scale-105">+ เพิ่ม</button></div>
+                <div class="overflow-x-auto rounded-[2rem] border border-gray-50"><table class="w-full text-sm text-left"><thead class="bg-gray-50 font-bold text-gray-500 uppercase text-[11px]"><tr><th class="px-10 py-6 text-center">ID</th><th class="px-10 py-6">ชื่อเล่น</th><th class="px-10 py-6 text-center">สิทธิ์</th><th class="px-10 py-6 text-center">จัดการ</th></tr></thead><tbody id="list-users-crud" class="divide-y text-gray-700"></tbody></table></div>
             </div>
         </div>
     </main>
 
+    <footer class="p-12 text-center text-gray-300 text-[11px] font-bold uppercase tracking-[0.3em] no-print font-kanit">
+        <p>© 2026 PFL ATTENDANCE SYSTEM | PARADE CONTROL UNIT</p>
+    </footer>
+
     <script>
+        // --- CONSTANTS ---
         const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
         const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
 
         let state = {
             user: null, pin: "", pinReg: "", location: { lat: 0, lng: 0 },
             users: [], attendance: [], entryPoints: [], workPoints: [],
-            view: "view-login", registerStep: 1, loginMode: "face", isAdmin: false,
+            view: "view-login", loginMode: "face", isAdmin: false,
             currentStream: null, faceMatcher: null, gpsError: false,
             confirmingPin: false
         };
 
-        // --- Helper Functions FIRST (Moved to top of script for global accessibility) ---
-        
+        // --- HELPER FUNCTIONS (Declared early to avoid ReferenceError) ---
+
+        function initLucide() { if (typeof lucide !== 'undefined') lucide.createIcons(); else setTimeout(initLucide, 500); }
+
+        function playClickSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(650, audioCtx.currentTime); 
+                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+
         function formatDateDDMMYYYY(dateString) {
             if(!dateString) return '-';
             const parts = dateString.split('-');
@@ -390,16 +426,18 @@
         }
 
         function getStatusClass(s) {
-            if (s === "มา") return "bg-green-100 text-green-700"; if (s === "ลา") return "bg-red-100 text-red-700";
-            if (s === "ลาครึ่งวัน") return "bg-orange-100 text-orange-700"; return "bg-gray-100 text-gray-400";
+            if (s === "มา") return "bg-green-100 text-green-700 border border-green-200"; 
+            if (s === "ลา") return "bg-red-100 text-red-700 border border-red-200";
+            if (s === "ลาครึ่งวัน") return "bg-orange-100 text-orange-700 border border-orange-200"; 
+            return "bg-gray-100 text-gray-400";
         }
 
-        // --- Core Application Logic ---
+        // --- CORE APPLICATION ---
 
         window.onload = async () => {
             initLucide(); updateTime(); setInterval(updateTime, 1000);
             document.getElementById('filter-date').valueAsDate = new Date();
-            try { await initFaceModels(); await fetchData(); startFaceLogin(); } catch (err) { console.error("Init Error", err); } 
+            try { await initFaceModels(); await fetchData(); startFaceLogin(); } catch (err) { console.error("Onload Error", err); } 
             finally { document.getElementById('loading-overlay').style.display = 'none'; }
             initGPS(); checkSession();
         };
@@ -417,8 +455,6 @@
                 } catch (e) {}
             }
         }
-
-        function initLucide() { if (typeof lucide !== 'undefined') lucide.createIcons(); else setTimeout(initLucide, 500); }
 
         async function initFaceModels() {
             if (typeof faceapi !== 'undefined' && faceapi.nets) {
@@ -461,13 +497,13 @@
             const wpSelect = document.getElementById('point-work');
 
             if(regList) {
-                regList.innerHTML = '<option value="" disabled selected>เลือกรายชื่อพนักงาน</option>';
+                regList.innerHTML = '<option value="" disabled selected>กรุณาเลือกรายชื่อพนักงาน</option>';
                 state.users.forEach(u => regList.innerHTML += `<option value="${u.id}">${u.nickname} (${u.id})</option>`);
             }
             if(adminCheckList) {
                 adminCheckList.innerHTML = '';
                 state.users.forEach(u => {
-                    adminCheckList.innerHTML += `<label class="flex items-center gap-2 p-2 hover:bg-red-50 rounded-xl cursor-pointer truncate font-kanit font-kanit font-kanit"><input type="checkbox" name="admin-user-target" value="${u.id}" class="w-4 h-4 text-red-600 focus:ring-red-500 font-kanit"><span>${u.nickname} (${u.id})</span></label>`;
+                    adminCheckList.innerHTML += `<label class="flex items-center gap-3 p-3 hover:bg-red-50 rounded-2xl cursor-pointer truncate font-kanit font-kanit"><input type="checkbox" name="admin-user-target" value="${u.id}" class="w-5 h-5 text-red-600 focus:ring-red-500 rounded-lg"><span>${u.nickname} (${u.id})</span></label>`;
                 });
             }
             if(epSelect) { 
@@ -487,14 +523,14 @@
                     state.gpsError = false;
                     const gt = document.getElementById('gps-text');
                     const gb = document.getElementById('gps-banner');
-                    if(gt) gt.innerText = `พิกัดตำแหน่งระบุได้ถูกต้องแล้ว`;
-                    if(gb) gb.className = "flex items-center justify-center p-3 bg-green-50 text-green-700 rounded-2xl text-[11px] font-semibold";
+                    if(gt) gt.innerText = `พิกัดตำแหน่งถูกระบุอย่างแม่นยำแล้ว`;
+                    if(gb) gb.className = "flex items-center justify-center p-4 bg-green-50 text-green-700 rounded-[1.5rem] text-xs font-bold shadow-sm transition-all duration-500";
                 }, (err) => {
                     state.gpsError = true;
                     const gt = document.getElementById('gps-text');
                     const gb = document.getElementById('gps-banner');
-                    if(gt) gt.innerText = "กรุณาเปิด GPS และอนุญาตสิทธิ์การเข้าถึง";
-                    if(gb) gb.className = "flex items-center justify-center p-3 bg-red-50 text-red-700 rounded-2xl text-[11px] font-semibold";
+                    if(gt) gt.innerText = "กรุณาเปิดใช้ GPS และอนุญาตสิทธิ์การเข้าถึง";
+                    if(gb) gb.className = "flex items-center justify-center p-4 bg-red-50 text-red-700 rounded-[1.5rem] text-xs font-bold shadow-sm transition-all duration-500";
                 }, { enableHighAccuracy: true });
             }
         }
@@ -519,7 +555,7 @@
             if (pointObj) {
                 const dist = getDistance(state.location.lat, state.location.lng, pointObj.lat, pointObj.lng);
                 if (dist > pointObj.range) {
-                    Swal.fire({ icon: 'error', title: 'พิกัดห่างเกินไป', text: `คุณอยู่ห่างจากจุดเข้า${type === 'company' ? 'บริษัท' : 'งาน'} (${pointObj.name}) ระยะ ${Math.round(dist)}ม.`, fontKanit: true });
+                    Swal.fire({ icon: 'error', title: 'อยู่นอกพิกัดจุดเข้า', text: `คุณอยู่ห่างจาก${type === 'company' ? 'บริษัท' : 'หน้างาน'} (${pointObj.name}) ระยะ ${Math.round(dist)}ม.`, fontKanit: true });
                     document.getElementById(selectId).value = ""; 
                     timeInput.disabled = true;
                     timeInput.value = "";
@@ -531,15 +567,16 @@
             }
         }
 
-        // PIN Interactions
+        // --- PIN Display ---
         function renderPinDotsLogin() {
             const dots = document.querySelectorAll('#pin-indicators-login .pin-dot');
             dots.forEach((dot, i) => { if (i < state.pin.length) dot.classList.add('filled'); else dot.classList.remove('filled'); });
         }
         function pressPin(num) {
+            playClickSound();
             if(state.pin.length < 6) { state.pin += num; renderPinDotsLogin(); if(state.pin.length === 6) setTimeout(handlePinLogin, 300); }
         }
-        function backspacePin() { state.pin = state.pin.slice(0, -1); renderPinDotsLogin(); }
+        function backspacePin() { playClickSound(); state.pin = state.pin.slice(0, -1); renderPinDotsLogin(); }
         function clearPin() { state.pin = ""; renderPinDotsLogin(); }
 
         function renderPinDotsReg() {
@@ -547,9 +584,10 @@
             dots.forEach((dot, i) => { if (i < state.pinReg.length) dot.classList.add('filled'); else dot.classList.remove('filled'); });
         }
         function pressPinReg(num) {
+            playClickSound();
             if(state.pinReg.length < 6) { state.pinReg += num; renderPinDotsReg(); if(state.pinReg.length === 6) setTimeout(handlePinRegConfirm, 300); }
         }
-        function backspacePinReg() { state.pinReg = state.pinReg.slice(0, -1); renderPinDotsReg(); }
+        function backspacePinReg() { playClickSound(); state.pinReg = state.pinReg.slice(0, -1); renderPinDotsReg(); }
 
         async function handlePinLogin() {
             const hashedPin = CryptoJS.SHA256(state.pin).toString();
@@ -569,14 +607,14 @@
         function handlePinRegConfirm() {
             if(!state.confirmingPin) {
                 regFirstPin = state.pinReg; state.pinReg = ""; state.confirmingPin = true;
-                document.getElementById('pin-setup-title').innerText = "ยืนยันรหัส PIN อีกครั้ง";
+                document.getElementById('pin-setup-title').innerText = "ยืนยันรหัสผ่านอีกครั้ง";
                 renderPinDotsReg();
             } else {
                 if(state.pinReg === regFirstPin) {
                     const uid = document.getElementById('reg-user-list').value;
                     saveNewUser(uid, state.pinReg);
                 } else {
-                    Swal.fire({ icon: 'error', title: 'รหัสไม่ตรงกัน', text: 'กรุณาตั้งรหัสใหม่' });
+                    Swal.fire({ icon: 'error', title: 'รหัสไม่ตรงกัน', text: 'กรุณาตั้งรหัสใหม่ตั้งแต่ต้น' });
                     state.pinReg = ""; regFirstPin = ""; state.confirmingPin = false;
                     document.getElementById('pin-setup-title').innerText = "กรุณารหัสผ่าน 6 หลัก";
                     renderPinDotsReg();
@@ -596,8 +634,8 @@
 
         function switchLoginMode(mode) {
             state.loginMode = mode; stopAllVideo();
-            document.getElementById('tab-face').className = mode === 'face' ? 'pb-3 tab-active flex items-center gap-1 font-medium' : 'pb-3 flex items-center gap-1 font-medium';
-            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-3 tab-active flex items-center gap-1 font-medium' : 'pb-3 flex items-center gap-1 font-medium';
+            document.getElementById('tab-face').className = mode === 'face' ? 'pb-4 tab-active flex items-center gap-2 font-medium' : 'pb-4 flex items-center gap-2 font-medium';
+            document.getElementById('tab-pin').className = mode === 'pin' ? 'pb-4 tab-active flex items-center gap-2 font-medium' : 'pb-4 flex items-center gap-2 font-medium';
             document.getElementById('login-face-section').classList.toggle('hidden', mode !== 'face');
             document.getElementById('login-pin-section').classList.toggle('hidden', mode !== 'pin');
             if (mode === 'face') startFaceLogin();
@@ -627,11 +665,11 @@
                             if (state.faceMatcher) {
                                 const match = state.faceMatcher.findBestMatch(det.descriptor);
                                 if (match.label !== 'unknown' && match.distance < 0.5) {
-                                    const uFound = state.users.find(u => u.id.toString() === match.label);
-                                    if (uFound) { 
-                                        new faceapi.draw.DrawBox(res.detection.box, { label: uFound.nickname, boxColor: '#10b981' }).draw(canvas);
-                                        if(statusEl) statusEl.innerText = "พบใบหน้า: " + uFound.nickname;
-                                        clearInterval(interval); setTimeout(() => loginSuccess(uFound), 800); 
+                                    const u = state.users.find(u => u.id.toString() === match.label);
+                                    if (u) { 
+                                        new faceapi.draw.DrawBox(res.detection.box, { label: u.nickname, boxColor: '#10b981' }).draw(canvas);
+                                        if(statusEl) statusEl.innerText = "พบใบหน้า: " + u.nickname;
+                                        clearInterval(interval); setTimeout(() => loginSuccess(u), 800); 
                                     }
                                 }
                             }
@@ -655,7 +693,7 @@
             const tWork = document.getElementById('time-work').value;
 
             if (status === 'มา' && (!pCompany || !tCompany || !pWork || !tWork)) {
-                return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุจุดและเวลาให้ครบถ้วนทั้งบริษัทและหน้างาน', 'warning');
+                return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุจุดและเวลาให้ครบถ้วนทั้งสองส่วน', 'warning');
             }
 
             Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -709,10 +747,7 @@
                     const tsStr = a.timestamp.toString();
                     const dateMatch = tsStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
                     if (!dateMatch) return false;
-                    const day = dateMatch[1].padStart(2, '0');
-                    const month = dateMatch[2].padStart(2, '0');
-                    const yr = dateMatch[3];
-                    const aDate = `${yr}-${month}-${day}`; 
+                    const aDate = `${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
                     return a.userId.toString() === u.id.toString() && aDate === selDate;
                 });
                 
@@ -720,19 +755,20 @@
                 if (status === "มา") sums.present++; else if (status === "ลา") sums.leave++; else if (status === "ลาครึ่งวัน") sums.half++; else sums.missing++;
                 if (selStatus !== "ทั้งหมด" && selStatus !== status) return;
 
-                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}')" class="text-blue-600 p-1"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '';
-                const infoClass = "font-bold text-gray-700 font-kanit font-kanit";
+                const mapBtn = (att && state.isAdmin) ? `<button onclick="viewMap('${att.lat}', '${att.lng}')" class="text-blue-600 p-1 font-kanit font-kanit font-kanit"><i data-lucide="map"></i></button>` : '';
+                const rowClass = ((index + 1) % 25 === 0) ? "page-break-row" : "";
+                const infoClass = "font-bold text-gray-700 font-kanit font-kanit font-kanit";
                 const timeClass = "font-mono font-bold font-kanit font-kanit font-kanit";
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 border-b border-gray-100 font-kanit font-kanit font-kanit">
+                    <tr class="hover:bg-gray-50 border-b border-gray-100 font-kanit font-kanit">
                         <td>${index + 1}</td>
                         <td class="text-left font-bold text-gray-800">${u.nickname} (${u.id})</td>
-                        <td><span class="px-2 py-0.5 rounded-full text-[8px] font-bold status-badge ${getStatusClass(status)} font-kanit font-kanit font-kanit">${status}</span></td>
-                        <td><span class="${infoClass}">${att?.pointWork || '-'}</span> <span class="${timeClass} text-blue-600 font-kanit font-kanit font-kanit">${att?.timeWork ? '('+formatTimeHHMM(att.timeWork)+')' : ''}</span></td>
-                        <td><span class="${infoClass}">${att?.pointCompany || '-'}</span> <span class="${timeClass} text-green-600 font-kanit font-kanit font-kanit">${att?.timeCompany ? '('+formatTimeHHMM(att.timeCompany)+')' : ''}</span></td>
-                        <td class="px-1 font-medium text-[8px] md:text-[10px] text-left text-gray-500 font-kanit">${att ? (att.note || '-') : '-'}</td>
-                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center font-kanit">${mapBtn}</td>
+                        <td><span class="px-3 py-1 rounded-full text-[9px] font-bold status-badge ${getStatusClass(status)} font-kanit">${status}</span></td>
+                        <td><span class="${infoClass}">${att?.pointWork || '-'}</span> <span class="${timeClass} text-blue-600 font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit">${att?.timeWork ? '('+formatTimeHHMM(att.timeWork)+')' : ''}</span></td>
+                        <td><span class="${infoClass}">${att?.pointCompany || '-'}</span> <span class="${timeClass} text-green-600 font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit">${att?.timeCompany ? '('+formatTimeHHMM(att.timeCompany)+')' : ''}</span></td>
+                        <td class="px-1 font-medium text-[9px] md:text-[11px] text-left text-gray-500 font-kanit font-kanit font-kanit">${att ? (att.note || '-') : '-'}</td>
+                        <td class="${state.isAdmin ? '' : 'hidden'} no-print text-center font-kanit font-kanit">${mapBtn}</td>
                     </tr>`;
             });
 
@@ -770,7 +806,7 @@
                             const nose = det.landmarks.getNose(); const jaw = det.landmarks.getJawOutline();
                             if ((nose[0].x - jaw[0].x) / (jaw[16].x - jaw[0].x) > 0.45) {
                                 state.tempDescriptor = det.descriptor; 
-                                if(statusEl) statusEl.innerText = "บันทึกสำเร็จ!"; 
+                                if(statusEl) statusEl.innerText = "บันทึกข้อมูลเรียบร้อย!"; 
                                 clearInterval(interval); finishScan();
                             }
                         }
@@ -791,15 +827,6 @@
             } catch (e) { Swal.fire('Error', 'บันทึกไม่สำเร็จ', 'error'); }
         }
 
-        function updateTime() {
-            const now = new Date();
-            const timeEl = document.getElementById('current-time');
-            const dateEl = document.getElementById('current-date');
-            if(timeEl) timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
-            if(dateEl) dateEl.innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        }
-
-        function retryFetchData() { fetchData(); }
         function logout() { stopAllVideo(); state.isAdmin = false; localStorage.removeItem('pfl_session'); state.user = null; switchView('view-login'); }
 
         function enterAdminSettings() {
@@ -809,6 +836,7 @@
                 else if(res.value) Swal.fire('รหัสไม่ถูกต้อง', '', 'error');
             });
         }
+
         function proceedToAdminMode() {
             state.isAdmin = true; 
             const b = document.getElementById('admin-badge'); if(b) b.classList.remove('hidden'); 
@@ -816,46 +844,45 @@
             const rd = document.getElementById('admin-record-date'); if(rd) rd.valueAsDate = new Date();
             switchView('view-admin-crud'); populateSelectors();
         }
+
         function renderCRUDLists() {
-            const el = document.getElementById('list-entry-points'); const wl = document.getElementById('list-work-points'); const ul = document.getElementById('list-users-crud');
-            if(!el || !wl || !ul) return;
-            el.innerHTML = ''; wl.innerHTML = ''; ul.innerHTML = '';
-            state.entryPoints.forEach(p => el.innerHTML += createPointRow(p, 'EntryPoints'));
-            state.workPoints.forEach(p => wl.innerHTML += createPointRow(p, 'WorkPoints'));
+            const ul = document.getElementById('list-users-crud');
+            if(!ul) return;
+            ul.innerHTML = '';
             state.users.forEach(u => {
-                ul.innerHTML += `<tr class="border-b font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"><td class="px-6 py-4 text-center font-mono text-[10px] font-kanit font-kanit font-kanit">${u.id}</td><td class="px-6 py-4 font-bold font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit">${u.nickname}</td><td class="text-center text-[10px] capitalize font-medium font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit">${u.role || 'user'}</td><td class="text-center font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"><div class="flex justify-center gap-1 font-kanit font-kanit font-kanit font-kanit font-kanit"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-all font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"><i data-lucide="edit-3" class="w-4 h-4 font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-600 p-2 hover:bg-red-50 rounded-full transition-all font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"><i data-lucide="trash-2" class="w-4 h-4 font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"></i></button></div></td></tr>`;
+                ul.innerHTML += `<tr class="border-b font-kanit"><td class="px-10 py-6 text-center font-mono text-[11px] font-kanit font-kanit">${u.id}</td><td class="px-10 py-6 font-bold">${u.nickname}</td><td class="text-center text-[11px] capitalize font-medium">${u.role || 'user'}</td><td class="text-center font-kanit"><div class="flex justify-center gap-1"><button onclick='showUserModal(${JSON.stringify(u)})' class="text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-all font-kanit"><i data-lucide="edit-3"></i></button><button onclick="deleteUser('${u.id}')" class="text-red-600 p-2 hover:bg-red-50 rounded-full transition-all font-kanit"><i data-lucide="trash-2"></i></button></div></td></tr>`;
             });
             initLucide();
         }
-        function createPointRow(p, action) {
-            return `<div class="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100 text-[10px] mb-2 shadow-sm font-kanit font-kanit font-kanit font-kanit font-kanit"><div><div class="font-bold text-gray-700 font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit">${p.name}</div><div class="text-gray-400 font-mono">Lat: ${p.lat}, Lng: ${p.lng} (${p.range}m)</div></div><div class="flex gap-1 font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"><button onclick='showPointModal("${action}", ${JSON.stringify(p)})' class="text-blue-600 p-2 bg-white border border-gray-100 rounded-full hover:bg-blue-50 transition-all font-kanit font-kanit font-kanit font-kanit"><i data-lucide="edit-3 font-kanit font-kanit font-kanit font-kanit" class="w-3.5 h-3.5"></i></button><button onclick="deletePoint('${action}', '${p.name}')" class="text-red-600 p-2 bg-white border border-gray-100 rounded-full hover:bg-red-50 transition-all font-kanit font-kanit font-kanit font-kanit font-kanit"><i data-lucide="trash-2 font-kanit font-kanit font-kanit font-kanit" class="w-3.5 h-3.5 font-kanit font-kanit font-kanit font-kanit"></i></button></div></div>`;
-        }
-        async function showPointModal(type, p = null) {
-            const isEdit = !!p;
-            const { value: v } = await Swal.fire({
-                title: isEdit ? 'แก้ไขจุด' : 'เพิ่มจุดใหม่',
-                html: `<div class="space-y-4 text-left font-kanit font-kanit font-kanit font-kanit"><div><label class="text-[10px] font-bold text-gray-400 font-kanit font-kanit font-kanit">ชื่อจุด</label><input id="s-name" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-kanit font-kanit font-kanit font-kanit" value="${p?p.name:''}" ${isEdit?'disabled':''}></div><div class="grid grid-cols-2 gap-3"><div><label class="text-[10px] font-bold text-gray-400 font-kanit font-kanit font-kanit">Latitude</label><input id="s-lat" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono font-kanit font-kanit font-kanit" value="${p?p.lat:state.location.lat}"></div><div><label class="text-[10px] font-bold text-gray-400 font-kanit font-kanit font-kanit">Longitude</label><input id="s-lng" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-mono font-kanit font-kanit font-kanit" value="${p?p.lng:state.location.lng}"></div></div><button type="button" onclick="document.getElementById('s-lat').value=state.location.lat.toFixed(6);document.getElementById('s-lng').value=state.location.lng.toFixed(6)" class="w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-[11px] shadow-lg flex items-center justify-center gap-2 font-kanit font-kanit font-kanit font-kanit"><i data-lucide="map-pin" class="w-4 h-4 font-kanit font-kanit font-kanit font-kanit font-kanit"></i> ใช้ตำแหน่งปัจจุบัน</button><div><label class="text-[10px] font-bold text-gray-400 font-kanit font-kanit font-kanit">ระยะอนุญาต (เมตร)</label><input id="s-range" class="swal2-input !mt-1 !mb-0 !w-full text-sm font-kanit font-kanit font-kanit font-kanit font-kanit" value="${p?p.range:'100'}"></div></div>`,
-                didOpen: () => { if (typeof lucide !== 'undefined') lucide.createIcons(); },
-                preConfirm: () => ({ name: document.getElementById('s-name').value, lat: document.getElementById('s-lat').value, lng: document.getElementById('s-lng').value, range: document.getElementById('s-range').value })
-            });
-            if(v && v.name) { const action = type === 'EntryPoints' ? 'saveEntryPoint' : 'saveWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
-        }
-        async function deletePoint(type, name) { if(!(await Swal.fire({ title: 'ลบจุดนี้?', icon: 'warning', showCancelButton: true })).isConfirmed) return; const action = type === 'EntryPoints' ? 'deleteEntryPoint' : 'deleteWorkPoint'; await fetch(`${API_URL}?action=${action}`, { method: 'POST', body: JSON.stringify({ name }) }); fetchData(); }
+
         async function showUserModal(u = null) {
             const isEdit = !!u;
             const { value: v } = await Swal.fire({
                 title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน',
-                html: `<input id="s-uid" class="swal2-input text-sm font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit font-kanit"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
+                html: `<input id="s-uid" class="swal2-input text-sm font-kanit font-kanit font-kanit" placeholder="ID (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}><input id="s-unick" class="swal2-input text-sm font-kanit font-kanit font-kanit" placeholder="ชื่อ" value="${u?u.nickname:''}"><select id="s-urole" class="swal2-input text-sm font-kanit font-kanit font-kanit"><option value="user" ${u&&u.role==='user'?'selected':''}>User</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>Admin</option></select>`,
                 preConfirm: () => ({ id: document.getElementById('s-uid').value, nickname: document.getElementById('s-unick').value, role: document.getElementById('s-urole').value })
             });
             if(v && v.id) { await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); fetchData(); }
         }
+
         async function deleteUser(id) { if(!(await Swal.fire({ title: 'ลบพนักงาน?', text: `รหัส ${id}`, icon: 'warning', showCancelButton: true })).isConfirmed) return; await fetch(`${API_URL}?action=deleteUser`, { method: 'POST', body: JSON.stringify({ id }) }); fetchData(); }
 
         function generatePDF() {
             const hr = document.getElementById('pdf-table-header-row'); if(hr) hr.classList.remove('hidden');
             window.print(); if(hr) hr.classList.add('hidden');
         }
+
+        function viewMap(uLat, uLng) { window.open(`https://www.google.com/maps/dir/?api=1&origin=${uLat},${uLng}`, '_blank'); }
+
+        function updateTime() {
+            const now = new Date();
+            const timeEl = document.getElementById('current-time');
+            const dateEl = document.getElementById('current-date');
+            if(timeEl) timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+            if(dateEl) dateEl.innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function retryFetchData() { fetchData(); }
 
     </script>
 </body>
