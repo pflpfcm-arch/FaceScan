@@ -1,445 +1,109 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PFL Attendance – ระบบบันทึกเวลางาน ฝ่ายกำกับรถพาเหรด</title>
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Face API & Crypto -->
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; color: #333; -webkit-tap-highlight-color: transparent; }
-        .numpad-btn { @apply w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-2xl font-semibold bg-white shadow-sm border border-gray-100 hover:bg-blue-50 transition-all active:scale-90 select-none cursor-pointer; }
-        .pin-dot { @apply w-3.5 h-3.5 rounded-full border-2 border-blue-100 transition-all duration-200; }
-        .pin-dot.filled { @apply bg-blue-600 border-blue-600 scale-125 shadow-md; }
-        #video-container, #reg-video-container { position: relative; width: 100%; max-width: 320px; border-radius: 2rem; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; }
-        canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #2563eb; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-active { @apply border-b-4 border-blue-600 text-blue-600 font-bold; }
-        .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-        .report-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
-        .report-table th, .report-table td { @apply border-b border-gray-50 break-words whitespace-normal; padding: 8px 4px; font-size: 9px; vertical-align: middle; text-align: center; }
-        @media (min-width: 768px) { .report-table th, .report-table td { font-size: 11px; padding: 12px 8px; } }
-        .report-table th { @apply font-bold text-gray-400 uppercase bg-gray-50/50 tracking-wider; }
-        @media print { .no-print { display: none !important; } body { background: white; } .report-table { font-size: 10pt; width: 100% !important; border: 1px solid #ddd !important; } .report-table th { background: #f9fafb !important; color: black !important; border: 1px solid #ddd !important; } .report-table td { border: 1px solid #ddd !important; } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>PFL Attendance</title>
+
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FaceAPI (optional) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-gray-100">
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div class="loader mb-4"></div>
-        <h2 class="text-lg font-bold text-gray-800">PFL Attendance Security</h2>
-        <p class="text-sm text-gray-500 mt-1">กำลังเตรียมความพร้อมของระบบ...</p>
-        <button id="btn-force-start" class="mt-6 text-xs text-blue-500 underline hidden" onclick="hideOverlay()">หากค้างนานเกินไป คลิกที่นี่เพื่อข้าม</button>
+  <div class="w-full max-w-md mx-auto mt-10 p-5 bg-white shadow rounded-lg">
+
+    <h1 class="text-2xl font-bold text-center mb-5">PFL Attendance</h1>
+
+    <div class="space-y-4">
+
+      <div>
+        <label class="block text-sm">User ID</label>
+        <input id="userId" class="w-full border p-2 rounded" />
+      </div>
+
+      <div>
+        <label class="block text-sm">Nickname</label>
+        <input id="nickname" class="w-full border p-2 rounded" />
+      </div>
+
+      <div>
+        <label class="block text-sm">Role</label>
+        <select id="role" class="w-full border p-2 rounded">
+          <option value="staff">Staff</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <button onclick="saveUser()" class="w-full bg-blue-600 text-white p-3 rounded">
+        บันทึกผู้ใช้
+      </button>
+
+      <button onclick="registerPin()" class="w-full bg-green-600 text-white p-3 rounded">
+        ลงทะเบียน PIN
+      </button>
+
+      <button onclick="registerFace()" class="w-full bg-purple-600 text-white p-3 rounded">
+        ลงทะเบียนใบหน้า (Face ID)
+      </button>
+
     </div>
+  </div>
 
-    <!-- Header -->
-    <header id="main-header" class="hidden bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 sticky top-0 z-50 no-print">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100"><i data-lucide="truck" class="text-white w-5 h-5"></i></div>
-                <div>
-                    <h1 class="text-base font-bold text-gray-800 leading-tight">PFL Attendance</h1>
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Parade Control Unit</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="enterAdminSettings()" class="p-2 text-gray-400 hover:text-blue-600 transition-colors"><i data-lucide="settings-2" class="w-5 h-5"></i></button>
-                <button onclick="logout()" class="text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full hover:bg-red-100 transition-all">ออกจากระบบ</button>
-            </div>
-        </div>
-    </header>
 
-    <main class="flex-grow container mx-auto max-w-6xl p-4 space-y-6">
-        
-        <!-- SECTION: Login -->
-        <div id="view-login" class="max-w-lg mx-auto space-y-8 py-6 text-center no-print">
-            <div class="space-y-2">
-                <h2 class="text-3xl font-bold text-gray-800 tracking-tight">เข้าใช้งานระบบ</h2>
-                <p class="text-sm text-gray-400">กรุณายืนยันตัวตนเพื่อเริ่มบันทึกเวลา</p>
-            </div>
+  <!-- ======================= -->
+  <!--  SCRIPT.JS (Embedded)  -->
+  <!-- ======================= -->
+  <script>
 
-            <div class="flex justify-center space-x-10 border-b border-gray-100 text-gray-400 text-sm">
-                <button id="tab-face" onclick="switchLoginMode('face')" class="pb-3 tab-active flex items-center gap-2 transition-all"><i data-lucide="scan-face" class="w-4 h-4"></i> สแกนใบหน้า</button>
-                <button id="tab-pin" onclick="switchLoginMode('pin')" class="pb-3 flex items-center gap-2 transition-all"><i data-lucide="keypad" class="w-4 h-4"></i> รหัส PIN</button>
-            </div>
+    const API_URL = "YOUR_DEPLOYED_WEBAPP_URL";
 
-            <div id="login-face-section" class="space-y-6">
-                <div id="video-container" class="ring-8 ring-blue-50">
-                    <video id="login-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                    <canvas id="login-overlay"></canvas>
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                    <p class="text-sm font-medium text-blue-600 animate-pulse" id="face-login-status">กำลังสแกนใบหน้า...</p>
-                    <button onclick="retryFetchData()" class="text-[10px] text-gray-400 flex items-center gap-1 hover:text-blue-500"><i data-lucide="refresh-cw" class="w-3 h-3"></i> รีเฟรชข้อมูลพนักงาน</button>
-                </div>
-            </div>
+    /* Save User */
+    async function saveUser() {
+      const data = {
+        id: document.getElementById("userId").value,
+        nickname: document.getElementById("nickname").value,
+        role: document.getElementById("role").value
+      };
 
-            <div id="login-pin-section" class="hidden space-y-8">
-                <div class="space-y-4">
-                    <h3 class="text-lg font-bold text-gray-700">กรุณาระบุรหัส PIN 6 หลัก</h3>
-                    <div id="pin-display-login" class="flex justify-center space-x-4">
-                        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-                        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-6 max-w-[280px] mx-auto">
-                    <button onclick="pressPin(1)" class="numpad-btn">1</button>
-                    <button onclick="pressPin(2)" class="numpad-btn">2</button>
-                    <button onclick="pressPin(3)" class="numpad-btn">3</button>
-                    <button onclick="pressPin(4)" class="numpad-btn">4</button>
-                    <button onclick="pressPin(5)" class="numpad-btn">5</button>
-                    <button onclick="pressPin(6)" class="numpad-btn">6</button>
-                    <button onclick="pressPin(7)" class="numpad-btn">7</button>
-                    <button onclick="pressPin(8)" class="numpad-btn">8</button>
-                    <button onclick="pressPin(9)" class="numpad-btn">9</button>
-                    <button onclick="clearPin()" class="numpad-btn text-red-500"><i data-lucide="x" class="w-6 h-6"></i></button>
-                    <button onclick="pressPin(0)" class="numpad-btn">0</button>
-                    <button onclick="backspacePin()" class="numpad-btn text-gray-400"><i data-lucide="delete" class="w-6 h-6"></i></button>
-                </div>
-            </div>
-            <p class="text-sm text-gray-400 pt-4">ยังไม่ได้ลงทะเบียนใบหน้า? <button onclick="switchView('view-register')" class="text-blue-600 font-bold underline">คลิกเพื่อลงทะเบียน</button></p>
-        </div>
+      const res = await fetch(API_URL + "?action=saveUser", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
 
-        <!-- SECTION: Register -->
-        <div id="view-register" class="max-w-lg mx-auto hidden space-y-6 no-print">
-            <div class="flex items-center space-x-2">
-                <button onclick="switchView('view-login')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="arrow-left"></i></button>
-                <h2 class="text-xl font-bold text-gray-800">ลงทะเบียนพนักงานใหม่</h2>
-            </div>
-            <div class="bg-white p-8 rounded-3xl border border-gray-100 card-shadow space-y-6">
-                <div id="reg-form-content" class="space-y-4">
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">ค้นหารายชื่อของคุณ</label>
-                    <select id="reg-user-list" class="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none text-base font-bold focus:ring-2 focus:ring-blue-100"></select>
-                    <button onclick="handleRegisterNext()" class="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all mt-4">เริ่มสแกนใบหน้า</button>
-                </div>
-                <div id="face-scan-section" class="hidden space-y-4 text-center">
-                    <p class="text-sm font-bold text-blue-600" id="scan-status">มองตรงที่กล้องและนิ่งไว้</p>
-                    <div id="reg-video-container" class="ring-4 ring-blue-50">
-                        <video id="reg-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                        <canvas id="reg-overlay"></canvas>
-                    </div>
-                </div>
-                <div id="pin-setup-section" class="hidden space-y-6">
-                    <p class="text-center font-bold text-gray-700">ตั้งรหัส PIN 6 หลักเพื่อใช้งาน</p>
-                    <div id="pin-display-reg" class="flex justify-center space-x-4">
-                        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-                        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-4 max-w-[240px] mx-auto">
-                        <button onclick="pressPinReg(1)" class="numpad-btn">1</button>
-                        <button onclick="pressPinReg(2)" class="numpad-btn">2</button>
-                        <button onclick="pressPinReg(3)" class="numpad-btn">3</button>
-                        <button onclick="pressPinReg(4)" class="numpad-btn">4</button>
-                        <button onclick="pressPinReg(5)" class="numpad-btn">5</button>
-                        <button onclick="pressPinReg(6)" class="numpad-btn">6</button>
-                        <button onclick="pressPinReg(7)" class="numpad-btn">7</button>
-                        <button onclick="pressPinReg(8)" class="numpad-btn">8</button>
-                        <button onclick="pressPinReg(9)" class="numpad-btn">9</button>
-                        <button onclick="clearPinReg()" class="numpad-btn text-xs text-red-500 font-bold">CLEAR</button>
-                        <button onclick="pressPinReg(0)" class="numpad-btn">0</button>
-                        <button onclick="backspacePinReg()" class="numpad-btn text-gray-400"><i data-lucide="delete" class="w-5 h-5"></i></button>
-                    </div>
-                </div>
-            </div>
-        </div>
+      alert("Result: " + (await res.json()).status);
+    }
 
-        <!-- SECTION: Main Dashboard -->
-        <div id="view-main" class="hidden space-y-8 pb-10">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
-                <div class="lg:col-span-1 bg-white p-6 rounded-3xl card-shadow border border-gray-100 text-center space-y-4 relative overflow-hidden">
-                    <div id="admin-badge" class="hidden absolute top-3 right-3 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-1 rounded-full border border-red-200 uppercase">Admin Mode</div>
-                    <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">ข้อมูลพนักงาน</p>
-                    <div id="display-user-name" class="font-bold text-gray-800 text-2xl truncate px-2">-</div>
-                    <div class="py-6 border-y border-gray-50">
-                        <div class="text-5xl font-bold text-blue-600 font-mono tracking-tight" id="current-time">00:00:00</div>
-                        <div class="text-gray-400 text-xs mt-1 font-medium" id="current-date">-</div>
-                    </div>
-                    <div id="gps-banner" class="flex items-center justify-center p-3 bg-yellow-50 text-yellow-700 rounded-2xl text-[10px] border border-yellow-100 font-bold">
-                        <i id="gps-icon" data-lucide="map-pin" class="w-4 h-4 mr-2"></i>
-                        <span id="gps-text">กำลังค้นหาพิกัด...</span>
-                    </div>
-                </div>
+    /* Register PIN */
+    async function registerPin() {
+      const id = document.getElementById("userId").value;
+      const pin = prompt("ใส่ PIN ใหม่:");
 
-                <div class="lg:col-span-2 bg-white p-6 rounded-3xl card-shadow border border-gray-100 space-y-6">
-                    <div id="admin-controls-area" class="hidden pb-6 border-b border-gray-100 space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-red-600 uppercase">วันที่บันทึกย้อนหลัง:</label>
-                                <input type="date" id="admin-record-date" class="w-full p-3 bg-red-50/50 border border-red-100 rounded-xl text-sm font-bold text-red-700 outline-none">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-red-600 uppercase">เลือกพนักงาน:</label>
-                                <div id="admin-user-checkbox-list" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-3 bg-red-50/30 rounded-xl border border-red-50 text-[10px] font-bold"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="building-2" class="w-3 h-3 text-blue-500"></i> จุดเข้าบริษัท</label>
-                            <select id="point-company" onchange="handlePointChange('company')" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100"></select>
-                            <div class="flex items-center gap-2">
-                                <input type="time" id="time-company" disabled class="flex-grow p-3 bg-white border border-gray-200 rounded-xl text-base font-bold text-blue-600 outline-none">
-                                <button onclick="validateAndSubmit('มา', 'company')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100"><i data-lucide="check" class="w-5 h-5"></i></button>
-                            </div>
-                        </div>
-                        <div class="space-y-3 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="briefcase" class="w-3 h-3 text-orange-500"></i> จุดเข้าหน้างาน</label>
-                            <select id="point-work" onchange="handlePointChange('work')" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100"></select>
-                            <div class="flex items-center gap-2">
-                                <input type="time" id="time-work" disabled class="flex-grow p-3 bg-white border border-gray-200 rounded-xl text-base font-bold text-orange-600 outline-none">
-                                <button onclick="validateAndSubmit('มา', 'work')" class="bg-orange-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-orange-700 shadow-lg shadow-orange-100"><i data-lucide="check" class="w-5 h-5"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                    <textarea id="attendance-note" rows="1" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100" placeholder="หมายเหตุเพิ่มเติม..."></textarea>
-                    <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-50">
-                        <button onclick="validateAndSubmit('ลา', 'leave')" class="bg-red-50 text-red-600 p-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 flex flex-col items-center"><i data-lucide="x-circle" class="w-5 h-5 mb-1"></i><span class="text-[10px] uppercase">ลาหยุดงาน</span></button>
-                        <button onclick="validateAndSubmit('ลาครึ่งวัน', 'half')" class="bg-orange-50 text-orange-600 p-4 rounded-2xl font-bold border border-orange-100 hover:bg-orange-100 flex flex-col items-center"><i data-lucide="clock-3" class="w-5 h-5 mb-1"></i><span class="text-[10px] uppercase">ลาครึ่งวัน</span></button>
-                    </div>
-                </div>
-            </div>
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(pin));
+      const hashArray = [...new Uint8Array(hashBuffer)];
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 
-            <!-- Report Table -->
-            <div class="space-y-6">
-                <div class="flex items-center justify-between flex-wrap gap-4 no-print">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clipboard-list" class="text-blue-600"></i> รายงานวันนี้</h3>
-                    <div class="flex items-center gap-2 bg-white p-1 rounded-2xl border border-gray-200 shadow-sm text-xs">
-                        <input type="date" id="filter-date" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold text-gray-700">
-                        <select id="filter-status" onchange="renderGlobalReport()" class="p-2 bg-transparent outline-none font-bold border-l border-gray-100 text-gray-500">
-                            <option value="ทั้งหมด">ทั้งหมด</option>
-                            <option value="มา">มา</option>
-                            <option value="ลา">ลา</option>
-                            <option value="ลาครึ่งวัน">ลาครึ่งวัน</option>
-                            <option value="ยังไม่ลงบันทึก">ยังไม่ลง</option>
-                        </select>
-                        <button onclick="generatePDF()" class="p-2 text-red-500 hover:bg-red-50 rounded-xl border-l border-gray-100"><i data-lucide="printer" class="w-4 h-4"></i></button>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 no-print">
-                    <div class="bg-white p-4 rounded-2xl border-l-8 border-green-500 shadow-sm text-center"><p id="sum-present" class="text-3xl font-black text-green-600 font-mono">0</p><p class="text-gray-400 text-[9px] font-bold uppercase tracking-widest">มาทำงาน</p></div>
-                    <div class="bg-white p-4 rounded-2xl border-l-8 border-red-500 shadow-sm text-center"><p id="sum-leave" class="text-3xl font-black text-red-600 font-mono">0</p><p class="text-gray-400 text-[9px] font-bold uppercase tracking-widest">ลาหยุด</p></div>
-                    <div class="bg-white p-4 rounded-2xl border-l-8 border-orange-400 shadow-sm text-center"><p id="sum-half" class="text-3xl font-black text-orange-500 font-mono">0</p><p class="text-gray-400 text-[9px] font-bold uppercase tracking-widest">ลาครึ่งวัน</p></div>
-                    <div class="bg-white p-4 rounded-2xl border-l-8 border-gray-300 shadow-sm text-center"><p id="sum-missing" class="text-3xl font-black text-gray-400 font-mono">0</p><p class="text-gray-400 text-[9px] font-bold uppercase tracking-widest">ยังไม่ลง</p></div>
-                </div>
-                <div class="bg-white rounded-[2rem] card-shadow border border-gray-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table id="attendance-table" class="report-table">
-                            <thead>
-                                <tr class="hidden" id="pdf-table-header-row"><th colspan="7" class="py-10 bg-white text-center"><div class="text-2xl font-bold text-gray-900 mb-1">รายงานบันทึกเวลาทำงาน</div><div class="text-sm font-bold text-gray-500 pdf-date-display"></div></th></tr>
-                                <tr class="bg-gray-50/80 text-gray-500 font-bold border-b border-gray-100 uppercase">
-                                    <th class="w-[6%]">#</th><th class="w-[20%] text-left">พนักงาน</th><th class="w-[12%]">สถานะ</th><th class="w-[25%]">เข้าหน้างาน</th><th class="w-[25%]">เข้าบริษัท</th><th class="w-[12%] text-left">โน้ต</th><th id="th-map" class="w-[6%] no-print">Map</th>
-                                </tr>
-                            </thead>
-                            <tbody id="report-table-body" class="divide-y divide-gray-50"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+      const data = { id, pin: hashHex };
 
-        <!-- SECTION: Admin CRUD -->
-        <div id="view-admin-crud" class="hidden space-y-6 pb-12 no-print">
-            <div class="flex items-center justify-between"><button onclick="switchView('view-main')" class="p-2 hover:bg-gray-100 rounded-full transition-colors"><i data-lucide="arrow-left"></i></button><h2 class="text-xl font-bold text-gray-800">จัดการข้อมูล</h2><div></div></div>
-            <div class="bg-white p-6 rounded-3xl card-shadow border border-gray-100 space-y-4">
-                <div class="flex justify-between items-center"><h4 class="font-bold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-500"></i> บัญชีพนักงาน</h4><button onclick="showUserModal()" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-xl font-bold">+ เพิ่มพนักงาน</button></div>
-                <div class="overflow-x-auto rounded-2xl border border-gray-50"><table class="w-full text-xs text-left"><thead class="bg-gray-50 font-bold text-gray-400"><tr><th class="px-6 py-4 text-center">ID</th><th class="px-6 py-4">ชื่อเล่น</th><th class="px-4 py-4 text-center">สิทธิ์</th><th class="px-6 py-4 text-center">จัดการ</th></tr></thead><tbody id="list-users-crud" class="divide-y text-gray-700"></tbody></table></div>
-            </div>
-        </div>
-    </main>
+      const res = await fetch(API_URL + "?action=registerUserPin", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
 
-    <footer class="p-8 text-center text-gray-300 text-[10px] font-bold uppercase tracking-[0.2em] no-print"><p>© 2026 PFL ATTENDANCE | PCU TEAM</p></footer>
+      alert((await res.json()).status);
+    }
 
-    <script>
-        const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
-        const API_URL = "https://script.google.com/macros/s/AKfycbyqyQfHWTnj7yZiOyLOVs8qjU2HdtAvK1gfKhPmrCgdFTPV8WiWUZ-Q3O82Wd6c3VHX_A/exec";
-        let state = { user: null, pin: "", pinReg: "", location: { lat: 0, lng: 0 }, users: [], attendance: [], entryPoints: [], workPoints: [], view: "view-login", loginMode: "face", isAdmin: false, currentStream: null, faceMatcher: null, gpsError: false, registerStep: 1, tempDescriptor: null };
+    /* Register Face */
+    async function registerFace() {
+      alert("ระบบลงทะเบียนใบหน้า พร้อมเชื่อมต่อ FaceAPI.js");
+    }
 
-        function initLucide() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
-        window.onload = async () => { initLucide(); updateTime(); setInterval(updateTime, 1000); document.getElementById('filter-date').valueAsDate = new Date(); setTimeout(() => { const btn = document.getElementById('btn-force-start'); if(btn) btn.classList.remove('hidden'); }, 5000); try { await initFaceModels(); await fetchData(); checkSession(); initGPS(); } catch (err) { console.error(err); } finally { hideOverlay(); } };
-        function hideOverlay() { const ov = document.getElementById('loading-overlay'); if(ov) { ov.style.opacity = '0'; setTimeout(() => ov.style.display = 'none', 500); } if(state.view === 'view-login' && state.loginMode === 'face') startFaceLogin(); }
+  </script>
 
-        async function fetchData() {
-            try {
-                const [u, a, ep, wp] = await Promise.all([ safeFetch(`${API_URL}?action=getUsers`), safeFetch(`${API_URL}?action=getAttendance`), safeFetch(`${API_URL}?action=getEntryPoints`), safeFetch(`${API_URL}?action=getWorkPoints`) ]);
-                state.users = u || []; state.attendance = a || []; state.entryPoints = ep || []; state.workPoints = wp || [];
-                const descriptors = [];
-                state.users.forEach(user => { if (user.faceDescriptor) { try { const desc = new Float32Array(Object.values(JSON.parse(user.faceDescriptor))); descriptors.push(new faceapi.LabeledFaceDescriptors(user.id.toString(), [desc])); } catch (e) {} } });
-                if (descriptors.length > 0) state.faceMatcher = new faceapi.FaceMatcher(descriptors, 0.55);
-                populateSelectors(); renderGlobalReport(); renderCRUDLists();
-            } catch (e) { console.error(e); }
-        }
-
-        async function safeFetch(url, options = {}, retries = 3) {
-            for (let i = 0; i < retries; i++) { try { const res = await fetch(url, options); if (res.ok) return await res.json(); } catch (e) { if (i === retries - 1) throw e; await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i))); } }
-        }
-
-        function populateSelectors() {
-            const regList = document.getElementById('reg-user-list');
-            const epSelect = document.getElementById('point-company');
-            const wpSelect = document.getElementById('point-work');
-            const adminCheckList = document.getElementById('admin-user-checkbox-list');
-            if(regList) { regList.innerHTML = '<option value="" disabled selected>แตะค้นหาชื่อของคุณ...</option>'; state.users.forEach(u => regList.innerHTML += `<option value="${u.id}">${u.nickname} (${u.id})</option>`); }
-            if(epSelect) { epSelect.innerHTML = '<option value="" disabled selected>เลือกจุดบริษัท</option>'; state.entryPoints.forEach(p => epSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`); }
-            if(wpSelect) { wpSelect.innerHTML = '<option value="" disabled selected>เลือกจุดหน้างาน</option>'; state.workPoints.forEach(p => wpSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`); }
-            if(adminCheckList) { adminCheckList.innerHTML = ''; state.users.forEach(u => adminCheckList.innerHTML += `<label class="flex items-center gap-2 p-1.5 hover:bg-red-100 rounded-lg cursor-pointer"><input type="checkbox" name="admin-user-target" value="${u.id}" class="rounded text-red-600"><span class="truncate">${u.nickname}</span></label>`); }
-        }
-
-        function handlePointChange(type) {
-            const selectId = type === 'company' ? 'point-company' : 'point-work';
-            const timeId = type === 'company' ? 'time-company' : 'time-work';
-            const val = document.getElementById(selectId).value;
-            const points = type === 'company' ? state.entryPoints : state.workPoints;
-            const target = points.find(p => p.name === val);
-            const timeInput = document.getElementById(timeId);
-            if (state.isAdmin) { timeInput.disabled = false; if(!timeInput.value) timeInput.value = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }); return; }
-            if (target) {
-                const dist = getDistance(state.location.lat, state.location.lng, target.lat, target.lng);
-                if (dist > target.range) { Swal.fire({ icon: 'error', title: 'อยู่นอกระยะ!', text: `คุณอยู่ห่างจาก ${target.name} ${Math.round(dist)} เมตร` }); document.getElementById(selectId).value = ""; timeInput.disabled = true; timeInput.value = ""; }
-                else { timeInput.disabled = false; timeInput.value = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }); }
-            }
-        }
-
-        async function validateAndSubmit(status, subType) {
-            let targets = [];
-            if (state.isAdmin) {
-                const checked = document.querySelectorAll('input[name="admin-user-target"]:checked');
-                checked.forEach(cb => targets.push(cb.value));
-                if (targets.length === 0) return Swal.fire('แจ้งเตือน', 'เลือกพนักงานก่อน', 'warning');
-            } else { if(!state.user) return; targets = [state.user.id]; }
-            const pComp = document.getElementById('point-company').value;
-            const tComp = document.getElementById('time-company').value;
-            const pWork = document.getElementById('point-work').value;
-            const tWork = document.getElementById('time-work').value;
-            if (status === 'มา') { if (subType === 'company' && !tComp) return Swal.fire('ข้อมูลไม่ครบ', 'ระบุเวลาเข้าบริษัท', 'warning'); if (subType === 'work' && !tWork) return Swal.fire('ข้อมูลไม่ครบ', 'ระบุเวลาเข้าหน้างาน', 'warning'); }
-            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            try {
-                const now = new Date();
-                const tsStr = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}, ${now.toLocaleTimeString('en-GB')}`;
-                for (const tid of targets) {
-                    const u = state.users.find(x => x.id == tid);
-                    const payload = { userId: tid, nickname: u.nickname, status, subType, pointCompany: (subType === 'company') ? pComp : '', timeCompany: (subType === 'company') ? tComp : '', pointWork: (subType === 'work') ? pWork : '', timeWork: (subType === 'work') ? tWork : '', note: document.getElementById('attendance-note').value, lat: state.location.lat, lng: state.location.lng, timestamp: tsStr, adminRecord: state.isAdmin };
-                    await fetch(API_URL + "?action=saveAttendance", { method: 'POST', body: JSON.stringify(payload) });
-                }
-                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
-                document.getElementById('attendance-note').value = ""; await fetchData();
-            } catch (e) { Swal.fire('Error', 'ลองใหม่อีกครั้ง', 'error'); }
-        }
-
-        async function initFaceModels() { if(!faceapi.nets) return; await Promise.all([ faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL), faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL), faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL) ]); }
-        async function startFaceLogin() {
-            const v = document.getElementById('login-video'); const c = document.getElementById('login-overlay'); if(!v || !c) return;
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); state.currentStream = stream; v.srcObject = stream;
-                v.onplay = () => {
-                    const ds = { width: v.clientWidth, height: v.clientHeight }; faceapi.matchDimensions(c, ds);
-                    const loop = setInterval(async () => {
-                        if (state.view !== 'view-login' || state.loginMode !== 'face') { clearInterval(loop); return; }
-                        const det = await faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                        const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height);
-                        if (det && state.faceMatcher) { const match = state.faceMatcher.findBestMatch(det.descriptor); if (match.label !== 'unknown' && match.distance < 0.5) { clearInterval(loop); const user = state.users.find(u => u.id.toString() === match.label); if(user) loginSuccess(user); } }
-                    }, 300);
-                };
-            } catch (e) { document.getElementById('face-login-status').innerText = "ใช้รหัส PIN แทน"; }
-        }
-
-        function pressPin(n) { if(state.pin.length < 6) { state.pin += n; renderPinDots('login'); if(state.pin.length === 6) setTimeout(handlePinLogin, 300); } }
-        function backspacePin() { state.pin = state.pin.slice(0, -1); renderPinDots('login'); }
-        function clearPin() { state.pin = ""; renderPinDots('login'); }
-        async function handlePinLogin() { const hash = CryptoJS.SHA256(state.pin).toString(); const u = state.users.find(x => x.pin === hash); if(u) loginSuccess(u); else { Swal.fire({ icon: 'error', title: 'PIN ผิด', timer: 1000, showConfirmButton: false }); clearPin(); } }
-
-        function renderGlobalReport() {
-            const filterDateInput = document.getElementById('filter-date'); if(!filterDateInput) return;
-            const date = filterDateInput.value; const statusF = document.getElementById('filter-status').value;
-            const tbody = document.getElementById('report-table-body'); if(!tbody) return;
-            tbody.innerHTML = ""; let sums = { present: 0, leave: 0, half: 0, missing: 0 };
-            document.querySelectorAll('.pdf-date-display').forEach(el => el.innerText = "ประจำวันที่: " + date.split('-').reverse().join('/'));
-            const statusPriority = { "มา": 3, "ลาครึ่งวัน": 2, "ลา": 1, "ยังไม่ลงบันทึก": 0 };
-
-            state.users.forEach((u, idx) => {
-                const userDayAtts = state.attendance.filter(a => {
-                    if(!a.timestamp) return false;
-                    const ts = a.timestamp.toString().trim();
-                    const datePart = ts.split(' ')[0].replace(',', '');
-                    let aDate = '';
-                    if (datePart.includes('/')) {
-                        const d = datePart.split('/');
-                        if (d[0].length === 4) aDate = `${d[0]}-${d[1].padStart(2,'0')}-${d[2].padStart(2,'0')}`;
-                        else aDate = `${d[2]}-${d[1].padStart(2,'0')}-${d[0].padStart(2,'0')}`;
-                    } else if (datePart.includes('-')) {
-                        const d = datePart.split('-');
-                        if (d[0].length === 4) aDate = datePart;
-                        else aDate = `${d[2]}-${d[1].padStart(2,'0')}-${d[0].padStart(2,'0')}`;
-                    }
-                    return (a.userId || a.UserId || "").toString() === u.id.toString() && aDate === date;
-                });
-
-                let att = null;
-                if (userDayAtts.length > 0) {
-                    att = userDayAtts.reduce((acc, curr) => {
-                        // ดึงสถานะที่ถูกต้องจากคุณสมบัติ (รองรับทั้ง status และ Status)
-                        const currentStatus = curr.status || curr.Status || "";
-                        const accStatus = acc.status || acc.Status || "";
-                        return {
-                            ...curr,
-                            pointCompany: curr.pointCompany || curr.PointCompany || acc.pointCompany || "",
-                            timeCompany: curr.timeCompany || curr.TimeCompany || acc.timeCompany || "",
-                            pointWork: curr.pointWork || curr.PointWork || acc.pointWork || "",
-                            timeWork: curr.timeWork || curr.TimeWork || acc.timeWork || "",
-                            status: statusPriority[currentStatus] > (statusPriority[accStatus] || 0) ? currentStatus : (accStatus || currentStatus),
-                            note: acc.note || acc.Note ? (acc.note || acc.Note) + (curr.note || curr.Note ? ", " + (curr.note || curr.Note) : "") : (curr.note || curr.Note || "")
-                        };
-                    }, {});
-                }
-
-                // สรุปสถานะสุดท้าย
-                const finalStatus = att && att.status ? att.status : "ยังไม่ลงบันทึก";
-                if(finalStatus === "มา") sums.present++; else if(finalStatus === "ลา") sums.leave++; else if(finalStatus === "ลาครึ่งวัน") sums.half++; else sums.missing++;
-                if(statusF !== "ทั้งหมด" && statusF !== finalStatus) return;
-
-                const stClass = finalStatus === "มา" ? "bg-green-100 text-green-700" : (finalStatus === "ลา" ? "bg-red-100 text-red-700" : (finalStatus === "ลาครึ่งวัน" ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400"));
-                tbody.innerHTML += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="text-gray-400 font-mono">${idx+1}</td><td class="text-left font-bold text-gray-800">${u.nickname} (${u.id})</td><td><span class="px-2 py-0.5 rounded-full font-bold ${stClass}">${finalStatus}</span></td><td><span class="font-bold text-gray-600">${att?.pointWork || att?.PointWork || '-'}</span> <span class="text-blue-600 font-bold">${att?.timeWork || att?.TimeWork ? '('+(att.timeWork||att.TimeWork)+')' : ''}</span></td><td><span class="font-bold text-gray-600">${att?.pointCompany || att?.PointCompany || '-'}</span> <span class="text-green-600 font-bold">${att?.timeCompany || att?.TimeCompany ? '('+(att.timeCompany||att.TimeCompany)+')' : ''}</span></td><td class="text-left text-gray-400 italic">${att?.note || att?.Note || '-'}</td><td class="no-print">${att && state.isAdmin ? `<button onclick="window.open('https://www.google.com/maps?q=${att.lat||att.Lat},${att.lng||att.Lng}')" class="p-1 text-blue-500"><i data-lucide="map" class="w-3.5 h-3.5"></i></button>` : '-'}</td></tr>`;
-            });
-            document.getElementById('sum-present').innerText = sums.present; document.getElementById('sum-leave').innerText = sums.leave; document.getElementById('sum-half').innerText = sums.half; document.getElementById('sum-missing').innerText = sums.missing; initLucide();
-        }
-
-        function getDistance(lat1, lon1, lat2, lon2) { const R = 6371e3; const f1 = lat1 * Math.PI/180, f2 = lat2 * Math.PI/180, df = (lat2-lat1) * Math.PI/180, dl = (lon2-lon1) * Math.PI/180; const a = Math.sin(df/2)**2 + Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
-        function renderPinDots(mode) { const dots = document.querySelectorAll(`#pin-display-${mode} .pin-dot`); const p = mode === 'login' ? state.pin : state.pinReg; dots.forEach((d, i) => d.classList.toggle('filled', i < p.length)); }
-        function loginSuccess(u) { state.user = u; localStorage.setItem('pfl_session', JSON.stringify({ u, ex: Date.now() + 8*3600000 })); document.getElementById('display-user-name').innerText = `${u.nickname} (${u.id})`; switchView('view-main'); clearPin(); }
-        function checkSession() { const s = localStorage.getItem('pfl_session'); if(s) { try { const data = JSON.parse(s); if(data.ex > Date.now()) { state.user = data.u; document.getElementById('display-user-name').innerText = `${state.user.nickname} (${state.user.id})`; switchView('view-main'); } } catch(e) {} } }
-        function logout() { stopStream(); localStorage.removeItem('pfl_session'); state.isAdmin = false; state.user = null; switchView('view-login'); }
-        function switchView(id) { stopStream(); document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); document.getElementById('main-header').classList.toggle('hidden', id === 'view-login' || id === 'view-register'); if (id === 'view-login' && state.loginMode === 'face') startFaceLogin(); if (id === 'view-main') renderGlobalReport(); if (id === 'view-admin-crud') renderCRUDLists(); initLucide(); }
-        function switchLoginMode(m) { state.loginMode = m; stopStream(); document.getElementById('tab-face').classList.toggle('tab-active', m === 'face'); document.getElementById('tab-pin').classList.toggle('tab-active', m === 'pin'); document.getElementById('login-face-section').classList.toggle('hidden', m !== 'face'); document.getElementById('login-pin-section').classList.toggle('hidden', m !== 'pin'); if (m === 'face') startFaceLogin(); initLucide(); }
-        function stopStream() { if(state.currentStream) { state.currentStream.getTracks().forEach(t => t.stop()); state.currentStream = null; } }
-        function initGPS() { if ("geolocation" in navigator) { navigator.geolocation.watchPosition(p => { state.location = { lat: p.coords.latitude, lng: p.coords.longitude }; const b = document.getElementById('gps-banner'); const t = document.getElementById('gps-text'); if(t) t.innerText = `พิกัดระบุได้แม่นยำแล้ว (${Math.round(p.coords.accuracy)}ม.)`; if(b) b.className = "flex items-center justify-center p-3 bg-green-50 text-green-700 rounded-2xl text-[10px] border border-green-100 font-bold"; }, e => { const t = document.getElementById('gps-text'); const b = document.getElementById('gps-banner'); if(t) t.innerText = "กรุณาเปิด GPS"; if(b) b.className = "flex items-center justify-center p-3 bg-red-50 text-red-700 rounded-2xl text-[10px] border border-red-100 font-bold"; }, { enableHighAccuracy: true }); } }
-        function renderCRUDLists() { const ul = document.getElementById('list-users-crud'); if(!ul) return; ul.innerHTML = ''; state.users.forEach(u => { ul.innerHTML += `<tr class="border-b"><td class="px-6 py-4 text-center font-mono">${u.id}</td><td class="px-6 py-4 font-bold text-gray-800">${u.nickname}</td><td class="px-4 py-4 text-center uppercase text-[10px] font-bold text-gray-500">${u.role || 'user'}</td><td class="px-6 py-4 text-center"><button onclick='showUserModal(${JSON.stringify(u)})' class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i data-lucide="edit" class="w-4 h-4"></i></button><button onclick="deleteUser('${u.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg"><i data-lucide="trash" class="w-4 h-4"></i></button></td></tr>`; }); initLucide(); }
-        async function showUserModal(u = null) { const isEdit = !!u; const { value: v } = await Swal.fire({ title: isEdit ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงานใหม่', html: `<div class="space-y-4 text-left font-kanit"><input id="sw-id" class="swal2-input !mt-0 !w-full" placeholder="ไอดีพนักงาน (PFLxxx)" value="${u?u.id:''}" ${isEdit?'disabled':''}> <input id="sw-nick" class="swal2-input !mt-0 !w-full" placeholder="ชื่อเล่น" value="${u?u.nickname:''}"> <select id="sw-role" class="swal2-input !mt-0 !w-full"><option value="user" ${u&&u.role==='user'?'selected':''}>พนักงานทั่วไป</option><option value="admin" ${u&&u.role==='admin'?'selected':''}>แอดมิน</option></select></div>`, preConfirm: () => ({ id: document.getElementById('sw-id').value, nickname: document.getElementById('sw-nick').value, role: document.getElementById('sw-role').value }) }); if(v && v.id) { Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() }); await fetch(`${API_URL}?action=saveUser`, { method: 'POST', body: JSON.stringify(v) }); await fetchData(); Swal.fire('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success'); } }
-        async function deleteUser(id) { const res = await Swal.fire({ title: 'ลบรายชื่อ?', text: `รหัส ${id}`, icon: 'warning', showCancelButton: true }); if(res.isConfirmed) { await fetch(`${API_URL}?action=deleteUser`, { method: 'POST', body: JSON.stringify({ id }) }); await fetchData(); } }
-        function enterAdminSettings() { if(state.user?.role === 'admin') return proceedToAdmin(); Swal.fire({ title: 'สิทธิ์แอดมิน', input: 'password', showCancelButton: true }).then(r => { if(r.value === 'pflpfcm') proceedToAdmin(); else if(r.value) Swal.fire('รหัสผิด', '', 'error'); }); }
-        function proceedToAdmin() { state.isAdmin = true; document.getElementById('admin-badge').classList.remove('hidden'); document.getElementById('admin-controls-area').classList.remove('hidden'); document.getElementById('admin-record-date').valueAsDate = new Date(); switchView('view-admin-crud'); }
-        function updateTime() { const n = new Date(); const ct = document.getElementById('current-time'); if(ct) ct.innerText = n.toLocaleTimeString('th-TH', { hour12: false }); const cd = document.getElementById('current-date'); if(cd) cd.innerText = n.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); }
-        function generatePDF() { const h = document.getElementById('pdf-table-header-row'); if(h) h.classList.remove('hidden'); window.print(); if(h) h.classList.add('hidden'); }
-        function logout() { localStorage.removeItem('pfl_session'); location.reload(); }
-        function retryFetchData() { fetchData(); }
-        // REGISTRATION FUNCTIONS
-        function pressPinReg(n) { if(state.pinReg.length < 6) { state.pinReg += n; renderPinDots('reg'); if(state.pinReg.length === 6) setTimeout(finishRegistration, 300); } }
-        function backspacePinReg() { state.pinReg = state.pinReg.slice(0, -1); renderPinDots('reg'); }
-        function clearPinReg() { state.pinReg = ""; renderPinDots('reg'); }
-        async function handleRegisterNext() { const uid = document.getElementById('reg-user-list').value; if(!uid) return Swal.fire('เตือน', 'กรุณาเลือกรายชื่อก่อน', 'warning'); document.getElementById('reg-form-content').classList.add('hidden'); document.getElementById('face-scan-section').classList.remove('hidden'); startRegisterScan(); }
-        async function startRegisterScan() { const v = document.getElementById('reg-video'); const c = document.getElementById('reg-overlay'); try { const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); state.currentStream = stream; v.srcObject = stream; v.onplay = () => { const ds = { width: v.clientWidth, height: v.clientHeight }; faceapi.matchDimensions(c, ds); const loop = setInterval(async () => { const det = await faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor(); if (det) { state.tempDescriptor = det.descriptor; document.getElementById('scan-status').innerText = "สำเร็จ!"; clearInterval(loop); setTimeout(() => { document.getElementById('face-scan-section').classList.add('hidden'); document.getElementById('pin-setup-section').classList.remove('hidden'); stopStream(); initLucide(); }, 1000); } }, 500); }; } catch (e) { Swal.fire('Error', 'กล้องขัดข้อง', 'error'); } }
-        async function finishRegistration() { const uid = document.getElementById('reg-user-list').value; const pinHash = CryptoJS.SHA256(state.pinReg).toString(); Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() }); try { const payload = { userId: uid, pin: pinHash, faceDescriptor: JSON.stringify(Array.from(state.tempDescriptor)), type: 'register' }; await fetch(API_URL + "?action=saveLog", { method: 'POST', body: JSON.stringify(payload) }); Swal.fire({ icon: 'success', title: 'สำเร็จ' }); location.reload(); } catch (e) { Swal.fire('Error', 'ไม่สำเร็จ', 'error'); } }
-    </script>
 </body>
 </html>
