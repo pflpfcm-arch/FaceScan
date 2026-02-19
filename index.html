@@ -777,13 +777,31 @@
             document.querySelectorAll('.pdf-date-display').forEach(el => el.innerText = "ประจำวันที่: " + date.split('-').reverse().join('/'));
 
             state.users.forEach((u, idx) => {
-                const att = state.attendance.find(a => {
+                // ค้นหาข้อมูลการบันทึกทั้งหมดของพนักงานคนนี้ในวันที่ระบุ
+                const userDayAtts = state.attendance.filter(a => {
                     if(!a.timestamp) return false;
-                    const d = a.timestamp.split(',')[0].trim().split('/'); 
+                    const datePart = a.timestamp.trim().split(' ')[0].replace(',', '');
+                    const d = datePart.split('/'); 
                     if(d.length < 3) return false;
                     const aDate = `${d[2]}-${d[1].padStart(2,'0')}-${d[0].padStart(2,'0')}`;
                     return a.userId.toString() === u.id.toString() && aDate === date;
                 });
+
+                // รวมข้อมูลจากทุกแถวที่พบในวันนั้น (Data Merging)
+                let att = null;
+                if (userDayAtts.length > 0) {
+                    att = userDayAtts.reduce((acc, curr) => {
+                        return {
+                            ...curr, // ใช้ข้อมูลแถวล่าสุดเป็นฐาน
+                            pointCompany: curr.pointCompany || acc.pointCompany || '',
+                            timeCompany: curr.timeCompany || acc.timeCompany || '',
+                            pointWork: curr.pointWork || acc.pointWork || '',
+                            timeWork: curr.timeWork || acc.timeWork || '',
+                            status: (curr.status === 'มา' || acc.status === 'มา') ? 'มา' : curr.status,
+                            note: acc.note && curr.note && acc.note !== curr.note ? acc.note + ", " + curr.note : (curr.note || acc.note || '')
+                        };
+                    }, {});
+                }
 
                 const status = att ? att.status : "ยังไม่ลงบันทึก";
                 if(status === "มา") sums.present++; else if(status === "ลา") sums.leave++; else if(status === "ลาครึ่งวัน") sums.half++; else sums.missing++;
